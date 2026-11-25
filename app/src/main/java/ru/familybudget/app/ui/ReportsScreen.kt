@@ -71,7 +71,7 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
         item {
-            Section(if (showIncome) "Доходы по категориям" else "Расходы по категориям") {
+            Section(if (showIncome) "🧾 Отчёты: ДОХОДЫ" else "🧾 Отчёты: РАСХОДЫ") {
                 if (stats.isEmpty()) {
                     EmptyHint("Нет данных за этот месяц.")
                 } else {
@@ -102,7 +102,7 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
         }
         if (!showIncome) {
             item {
-                Section("Расходы по дням") {
+                Section("📅 График: расходы по дням") {
                     if (daily.all { it == 0L }) {
                         EmptyHint("Нет расходов за этот месяц.")
                     } else {
@@ -116,7 +116,7 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 }
             }
             item {
-                Section("Лимиты по категориям") {
+                Section("🎯 Лимиты по категориям") {
                     if (limited.isEmpty()) {
                         EmptyHint("Задайте лимиты в разделе «Ещё» → «Категории».")
                     } else {

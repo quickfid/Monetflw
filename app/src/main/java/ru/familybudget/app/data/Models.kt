@@ -105,6 +105,18 @@ interface BudgetDao {
     @Query("UPDATE operations SET destAccount = :newName WHERE destAccount = :oldName")
     suspend fun renameDestAccountInOperations(oldName: String, newName: String)
 
+    @Query("DELETE FROM operations")
+    suspend fun clearOperations()
+
+    @Query("DELETE FROM categories")
+    suspend fun clearCategories()
+
+    @Query("DELETE FROM accounts")
+    suspend fun clearAccounts()
+
+    @Query("DELETE FROM mandatory")
+    suspend fun clearMandatory()
+
     // --- категории
     @Query("SELECT * FROM categories ORDER BY id")
     fun categories(): Flow<List<Category>>

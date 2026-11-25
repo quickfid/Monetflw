@@ -1,6 +1,8 @@
 package ru.familybudget.app.ui
 
 import android.app.DatePickerDialog
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +42,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 
@@ -58,29 +62,45 @@ fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifie
 
 @Composable
 fun Section(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+    Column(
+        modifier.fillMaxWidth()
+            .border(1.dp, Sheet.border())
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Box(
+            Modifier.fillMaxWidth().background(Sheet.header()).padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             content()
         }
     }
 }
 
+/** Плитка как в таблице: подпись на бежевом фоне, значение крупно по центру. */
 @Composable
-fun StatCard(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    container: Color = MaterialTheme.colorScheme.surfaceVariant,
-    valueColor: Color = Color.Unspecified
-) {
-    Card(modifier, colors = CardDefaults.cardColors(containerColor = container)) {
-        Column(Modifier.padding(12.dp).fillMaxWidth()) {
-            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = valueColor)
+fun StatCard(label: String, value: String, modifier: Modifier = Modifier, tone: Tone = Tone.NEUTRAL) {
+    Column(modifier.border(1.dp, Sheet.border())) {
+        Box(
+            Modifier.fillMaxWidth().background(Sheet.header()).padding(vertical = 6.dp, horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center)
+        }
+        Box(
+            Modifier.fillMaxWidth().background(Sheet.tone(tone)).padding(vertical = 14.dp, horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                value,
+                fontWeight = FontWeight.Bold,
+                fontSize = if (value.length > 13) 15.sp else 19.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false
+            )
         }
     }
 }

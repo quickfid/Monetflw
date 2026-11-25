@@ -53,28 +53,28 @@ fun YearScreen(vm: BudgetViewModel, padding: PaddingValues) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatCard("Доходы за год", Fmt.money(totalIncome, cur, false), Modifier.weight(1f), valueColor = incomeColor)
-                    StatCard("Расходы за год", Fmt.money(totalExpense, cur, false), Modifier.weight(1f), valueColor = expenseColor)
+                    StatCard("Доходы за год", Fmt.money(totalIncome, cur, false), Modifier.weight(1f), Tone.INCOME)
+                    StatCard("Расходы за год", Fmt.money(totalExpense, cur, false), Modifier.weight(1f), Tone.EXPENSE)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatCard(
                         "Накоплено за год",
                         (if (saved > 0) "+" else "") + Fmt.money(saved, cur, false),
                         Modifier.weight(1f),
-                        valueColor = if (saved >= 0) incomeColor else expenseColor
+                        if (saved >= 0) Tone.INCOME else Tone.EXPENSE
                     )
-                    StatCard("Среднемесячные расходы", Fmt.money(avgExpense, cur, false), Modifier.weight(1f))
+                    StatCard("Среднемесячные расходы", Fmt.money(avgExpense, cur, false), Modifier.weight(1f), Tone.WARN)
                 }
             }
         }
         item {
-            Section("Траты помесячно") { BarChart(expenses, monthsLabels, expenseColor) }
+            Section("📈 Траты помесячно") { BarChart(expenses, monthsLabels, expenseColor) }
         }
         item {
-            Section("Доходы помесячно") { BarChart(incomes, monthsLabels, incomeColor) }
+            Section("📈 Доходы помесячно") { BarChart(incomes, monthsLabels, incomeColor) }
         }
         item {
-            Section("По месяцам") {
+            Section("🗓 По месяцам") {
                 var running = 0L
                 (0 until 12).forEach { i ->
                     val diff = incomes[i] - expenses[i]
@@ -101,7 +101,7 @@ fun YearScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
         item {
-            Section("Траты — ТОП-15 категорий") {
+            Section("🏆 Траты — ТОП-15 категорий") {
                 if (top.isEmpty()) {
                     EmptyHint("Нет расходов за этот год.")
                 } else {

@@ -25,11 +25,15 @@ import ru.familybudget.app.data.Operation
 import ru.familybudget.app.data.SettingsStore
 import ru.familybudget.app.data.SheetsSync
 import ru.familybudget.app.logic.Fmt
+import org.json.JSONArray
+import org.json.JSONObject
+import androidx.room.withTransaction
 import java.time.LocalDate
 import java.time.YearMonth
 
 class BudgetViewModel(app: Application) : AndroidViewModel(app) {
-    private val dao = BudgetDb.get(app).dao()
+    private val db = BudgetDb.get(app)
+    private val dao = db.dao()
     private val store = SettingsStore(app)
 
     val settings: StateFlow<AppSettings> = store.flow
@@ -233,6 +237,141 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
             sb.append(cells.joinToString(";") { q(it) }).append('\n')
         }
         return sb.toString()
+    }
+
+    // ---------- резервная копия (JSON)
+    fun exportBackup(uri: Uri) {
+        viewModelScope.launch {
+            val text = buildBackup()
+            message = withContext(Dispatchers.IO) {
+                try {
+                    getApplication<Application>().contentResolver.openOutputStream(uri)?.use {
+                        it.write(text.toByteArray(Charsets.UTF_8))
+                    }
+                    "Резервная копия сохранена."
+                } catch (e: Exception) {
+                    "Не удалось сохранить копию: ${e.localizedMessage ?: "ошибка"}"
+                }
+            }
+        }
+    }
+
+    fun importBackup(uri: Uri) {
+        viewModelScope.launch {
+            message = withContext(Dispatchers.IO) {
+                try {
+                    val text = getApplication<Application>().contentResolver.openInputStream(uri)
+                        ?.use { it.readBytes().toString(Charsets.UTF_8) }
+                        ?: return@withContext "Не удалось открыть файл."
+                    restoreBackup(text)
+                } catch (e: Exception) {
+                    "Не удалось прочитать копию: ${e.localizedMessage ?: "неверный файл"}"
+                }
+            }
+        }
+    }
+
+    private fun buildBackup(): String {
+        val root = JSONObject()
+        root.put("app", "family-budget")
+        root.put("version", 1)
+        root.put("currency", settings.value.currency)
+        root.put("persons", JSONArray(settings.value.persons))
+        val accs = JSONArray()
+        accounts.value.forEach { accs.put(JSONObject().put("name", it.name).put("initial", it.initialCents)) }
+        root.put("accounts", accs)
+        val cats = JSONArray()
+        categories.value.forEach {
+            cats.put(JSONObject().put("name", it.name).put("income", it.isIncome).put("limit", it.limitCents))
+        }
+        root.put("categories", cats)
+        val mand = JSONArray()
+        mandatory.value.forEach {
+            mand.put(
+                JSONObject().put("id", it.id).put("name", it.name).put("day", it.day)
+                    .put("amount", it.amountCents).put("category", it.category)
+            )
+        }
+        root.put("mandatory", mand)
+        val opsArr = JSONArray()
+        operations.value.sortedBy { it.date }.forEach { o ->
+            val j = JSONObject()
+                .put("uid", o.uid).put("date", o.date).put("amount", o.amountCents).put("type", o.type)
+                .put("category", o.category).put("comment", o.comment).put("person", o.person)
+                .put("account", o.account).put("dest", o.destAccount).put("synced", o.synced)
+            if (o.mandatoryId != null) j.put("mandatoryId", o.mandatoryId)
+            opsArr.put(j)
+        }
+        root.put("operations", opsArr)
+        return root.toString()
+    }
+
+    private suspend fun restoreBackup(text: String): String {
+        val root = JSONObject(text)
+        if (root.optString("app") != "family-budget") return "Это не резервная копия «Семейного бюджета»."
+        val accs = root.getJSONArray("accounts")
+        val cats = root.getJSONArray("categories")
+        val mand = root.getJSONArray("mandatory")
+        val opsArr = root.getJSONArray("operations")
+        var restored = 0
+        db.withTransaction {
+            dao.clearOperations()
+            dao.clearMandatory()
+            dao.clearCategories()
+            dao.clearAccounts()
+            for (i in 0 until accs.length()) {
+                val o = accs.getJSONObject(i)
+                dao.insertAccount(Account(name = o.getString("name"), initialCents = o.optLong("initial")))
+            }
+            for (i in 0 until cats.length()) {
+                val o = cats.getJSONObject(i)
+                dao.insertCategory(
+                    Category(name = o.getString("name"), isIncome = o.optBoolean("income"), limitCents = o.optLong("limit"))
+                )
+            }
+            val idMap = HashMap<Long, Long>()
+            for (i in 0 until mand.length()) {
+                val o = mand.getJSONObject(i)
+                val newId = dao.insertMandatory(
+                    Mandatory(
+                        name = o.getString("name"), day = o.optInt("day", 1),
+                        amountCents = o.optLong("amount"), category = o.optString("category")
+                    )
+                )
+                idMap[o.optLong("id")] = newId
+            }
+            for (i in 0 until opsArr.length()) {
+                val o = opsArr.getJSONObject(i)
+                val oldMandatory = if (o.has("mandatoryId")) o.optLong("mandatoryId") else null
+                dao.insertOperation(
+                    Operation(
+                        uid = o.optString("uid").ifBlank { java.util.UUID.randomUUID().toString() },
+                        date = o.getLong("date"),
+                        amountCents = o.getLong("amount"),
+                        type = o.getString("type"),
+                        category = o.optString("category"),
+                        comment = o.optString("comment"),
+                        person = o.optString("person"),
+                        account = o.optString("account"),
+                        destAccount = o.optString("dest"),
+                        mandatoryId = if (oldMandatory != null) idMap[oldMandatory] else null,
+                        synced = o.optBoolean("synced")
+                    )
+                )
+                restored++
+            }
+        }
+        val persons = root.optJSONArray("persons")
+        val list = ArrayList<String>()
+        if (persons != null) {
+            for (i in 0 until persons.length()) {
+                val n = persons.optString(i).trim()
+                if (n.isNotEmpty()) list.add(n)
+            }
+        }
+        val currency = root.optString("currency", "₽")
+        store.update { s -> s.copy(persons = if (list.isEmpty()) s.persons else list, currency = currency.ifBlank { "₽" }) }
+        return "Восстановлено операций: $restored."
     }
 
     fun clearMessage() { message = "" }

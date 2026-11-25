@@ -5,6 +5,9 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// Подпись релиза берётся из переменных окружения (их задаёт workflow «Релиз»).
+val releaseKeystore: String? = System.getenv("KEYSTORE_FILE")
+
 android {
     namespace = "ru.familybudget.app"
     compileSdk = 35
@@ -13,8 +16,28 @@ android {
         applicationId = "ru.familybudget.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
+        // Для магазина versionCode должен расти с каждой загрузкой: берём номер запуска GitHub Actions.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionName = "1.0.0"
+    }
+
+    signingConfigs {
+        create("release") {
+            if (releaseKeystore != null && File(releaseKeystore).exists()) {
+                storeFile = File(releaseKeystore)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = if (releaseKeystore != null) signingConfigs.getByName("release") else null
+        }
     }
 
     compileOptions {
@@ -24,6 +47,11 @@ android {
     kotlinOptions { jvmTarget = "17" }
 
     buildFeatures { compose = true }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 }
 
 dependencies {

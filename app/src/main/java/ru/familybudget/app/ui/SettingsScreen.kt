@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -92,6 +93,27 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         if (uri != null) vm.exportCsv(uri)
     }
 
+    val backupLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) vm.exportBackup(uri)
+    }
+    val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) vm.importBackup(uri)
+    }
+    var confirmRestore by remember { mutableStateOf(false) }
+    if (confirmRestore) {
+        AlertDialog(
+            onDismissRequest = { confirmRestore = false },
+            title = { Text("Восстановить из копии?") },
+            text = { Text("Все текущие данные в приложении будут заменены данными из файла.") },
+            confirmButton = {
+                TextButton(onClick = { confirmRestore = false; restoreLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }) {
+                    Text("Выбрать файл")
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmRestore = false }) { Text("Отмена") } }
+        )
+    }
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Text("Ещё", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
         MenuItem("Категории и лимиты", "Расходы, доходы, месячные лимиты") { open(Page.CATEGORIES) }
@@ -105,6 +127,10 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         MenuItem("Экспорт в CSV", "Сохранить все операции в файл для Excel") {
             exportLauncher.launch("budget_${LocalDate.now()}.csv")
         }
+        MenuItem("Сохранить резервную копию", "Файл со всеми данными: счета, категории, операции") {
+            backupLauncher.launch("family_budget_backup_${LocalDate.now()}.json")
+        }
+        MenuItem("Восстановить из копии", "Заменяет все данные данными из файла") { confirmRestore = true }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -124,7 +150,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
             Text(vm.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)
         }
         Text(
-            "Данные хранятся на устройстве. Версия 1.0.0",
+            "Данные хранятся только на вашем устройстве. Версия 1.0.0",
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

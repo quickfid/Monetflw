@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
@@ -22,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -69,7 +71,17 @@ fun OperationEditor(vm: BudgetViewModel, initial: Operation) {
     val valid = cents != null && cents > 0 && person.isNotBlank() &&
         (if (isTransfer) (account.isNotBlank() && destAccount.isNotBlank() && account != destAccount) else category.isNotBlank())
 
+    var confirmDelete by remember { mutableStateOf(false) }
     BackHandler { vm.closeEditor() }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Удалить операцию?") },
+            text = { Text("Это действие нельзя отменить.") },
+            confirmButton = { TextButton(onClick = { confirmDelete = false; vm.deleteOperation(initial) }) { Text("Удалить") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Отмена") } }
+        )
+    }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
@@ -126,7 +138,7 @@ fun OperationEditor(vm: BudgetViewModel, initial: Operation) {
 
             if (!isNew) {
                 OutlinedButton(
-                    onClick = { vm.deleteOperation(initial) },
+                    onClick = { confirmDelete = true },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Удалить операцию") }
