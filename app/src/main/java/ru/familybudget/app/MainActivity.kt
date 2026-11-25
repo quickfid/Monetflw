@@ -18,6 +18,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ru.familybudget.app.ui.BudgetTheme
+import ru.familybudget.app.ui.OnboardingScreen
 import ru.familybudget.app.ui.OperationEditor
 import ru.familybudget.app.ui.OperationsScreen
 import ru.familybudget.app.ui.OverviewScreen
@@ -57,8 +59,11 @@ private fun BudgetApp() {
     val vm: BudgetViewModel = viewModel()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val editing = vm.editing
+    val settings by vm.settings.collectAsState()
 
-    if (editing != null) {
+    if (!settings.onboarded) {
+        OnboardingScreen(vm)
+    } else if (editing != null) {
         OperationEditor(vm, editing)
     } else {
         Scaffold(
@@ -83,7 +88,7 @@ private fun BudgetApp() {
             }
         ) { padding ->
             when (tab) {
-                0 -> OverviewScreen(vm, padding)
+                0 -> OverviewScreen(vm, padding) { tab = 4 }
                 1 -> OperationsScreen(vm, padding)
                 2 -> ReportsScreen(vm, padding)
                 3 -> YearScreen(vm, padding)

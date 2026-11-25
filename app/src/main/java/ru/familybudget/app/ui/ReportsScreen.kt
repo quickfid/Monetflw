@@ -53,6 +53,9 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
         Stats.categoryStats(monthOps, OpType.EXPENSE).associate { it.name to it.sum }
     }
     val limited = categories.filter { !it.isIncome && it.limitCents > 0 }
+    val today = remember { java.time.LocalDate.now() }
+    val elapsed = Stats.elapsedDays(ym, today)
+    val isCurrentMonth = ym == java.time.YearMonth.from(today)
     val expenseColor = AppColors.expense()
     val incomeColor = AppColors.income()
 
@@ -118,7 +121,7 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
             item {
                 Section("🎯 Лимиты по категориям") {
                     if (limited.isEmpty()) {
-                        EmptyHint("Задайте лимиты в разделе «Ещё» → «Категории».")
+                        EmptyHint("Лимит — сколько вы готовы тратить на категорию в месяц. Задайте лимиты: Ещё → Категории и лимиты. Можно разделить бюджет автоматически.")
                     } else {
                         limited.forEach { c ->
                             val spent = spentByCategory[c.name] ?: 0L
@@ -144,6 +147,16 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                     fontSize = 12.sp,
                                     color = if (over) expenseColor else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                if (isCurrentMonth && elapsed >= 5 && !over) {
+                                    val projected = Stats.projectCategory(spent, elapsed, ym.lengthOfMonth())
+                                    if (projected > c.limitCents) {
+                                        Text(
+                                            "🔮 При таких тратах к концу месяца выйдет около " + Fmt.money(projected, cur, false) + ": лимит будет превышен",
+                                            fontSize = 12.sp,
+                                            color = AppColors.warning()
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

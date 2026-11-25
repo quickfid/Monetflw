@@ -77,7 +77,18 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
         if (list.isEmpty()) {
-            item { EmptyHint("В этом месяце операций нет. Нажмите «+», чтобы добавить.") }
+            item {
+                Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                    Text("🧾", fontSize = 40.sp)
+                    EmptyHint(
+                        if (monthOps.isEmpty()) "В этом месяце операций нет. Записывайте каждую покупку, и приложение покажет, куда уходят деньги."
+                        else "Ничего не найдено. Измените фильтр или поиск."
+                    )
+                    if (monthOps.isEmpty()) {
+                        androidx.compose.material3.Button(onClick = { vm.startNew() }) { Text("Добавить операцию") }
+                    }
+                }
+            }
         }
         grouped.forEach { (day, dayOps) ->
             item(key = "h$day") {

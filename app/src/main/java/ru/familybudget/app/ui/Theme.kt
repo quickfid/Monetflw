@@ -12,18 +12,18 @@ enum class Tone { NEUTRAL, INCOME, EXPENSE, WARN }
 
 object Sheet {
     @Composable
-    fun header(): Color = if (isSystemInDarkTheme()) Color(0xFF2B2619) else Color(0xFFF3EBDD)
+    fun header(): Color = if (isSystemInDarkTheme()) Color(0xFF1C2B3A) else Color(0xFFF3EBDD)
 
     @Composable
-    fun border(): Color = if (isSystemInDarkTheme()) Color(0xFF6B5E3A) else Color(0xFFC9B98A)
+    fun border(): Color = if (isSystemInDarkTheme()) Color(0xFF2F465C) else Color(0xFFC9B98A)
 
     @Composable
     fun tone(t: Tone): Color = if (isSystemInDarkTheme()) {
         when (t) {
-            Tone.NEUTRAL -> Color(0xFF1C1912)
-            Tone.INCOME -> Color(0xFF2A3626)
-            Tone.EXPENSE -> Color(0xFF5E2F2A)
-            Tone.WARN -> Color(0xFF4D3C18)
+            Tone.NEUTRAL -> Color(0xFF152230)
+            Tone.INCOME -> Color(0xFF14392F)
+            Tone.EXPENSE -> Color(0xFF4A2530)
+            Tone.WARN -> Color(0xFF3B3520)
         }
     } else {
         when (t) {
@@ -37,13 +37,13 @@ object Sheet {
 
 object AppColors {
     @Composable
-    fun income(): Color = if (isSystemInDarkTheme()) Color(0xFF8FD694) else Color(0xFF2E6B3A)
+    fun income(): Color = if (isSystemInDarkTheme()) Color(0xFF6EE0A8) else Color(0xFF2E6B3A)
 
     @Composable
-    fun expense(): Color = if (isSystemInDarkTheme()) Color(0xFFFF8A80) else Color(0xFFB3261E)
+    fun expense(): Color = if (isSystemInDarkTheme()) Color(0xFFFF8F8F) else Color(0xFFB3261E)
 
     @Composable
-    fun warning(): Color = if (isSystemInDarkTheme()) Color(0xFFFFCC80) else Color(0xFFB26A00)
+    fun warning(): Color = if (isSystemInDarkTheme()) Color(0xFFFFD27A) else Color(0xFFB26A00)
 
     val chart: List<Color> = listOf(
         Color(0xFF4285F4), Color(0xFFEA4335), Color(0xFFFBBC04), Color(0xFF34A853),
@@ -57,27 +57,30 @@ object AppColors {
 fun BudgetTheme(content: @Composable () -> Unit) {
     val scheme = if (isSystemInDarkTheme()) {
         darkColorScheme(
-            primary = Color(0xFFE6C77E),
-            onPrimary = Color(0xFF3B2F00),
-            primaryContainer = Color(0xFF54430F),
-            onPrimaryContainer = Color(0xFFFDE9C5),
-            secondaryContainer = Color(0xFF4A3F1E),
-            onSecondaryContainer = Color(0xFFF6E7C1),
-            background = Color(0xFF15130E),
-            surface = Color(0xFF1C1912),
-            surfaceVariant = Color(0xFF2B2619),
-            surfaceContainer = Color(0xFF2B2619),
-            outline = Color(0xFF8C7C52),
-            outlineVariant = Color(0xFF3D3622)
+            primary = Color(0xFF5CD6C8),
+            onPrimary = Color(0xFF00332E),
+            primaryContainer = Color(0xFF0F4F4A),
+            onPrimaryContainer = Color(0xFFBFF5EE),
+            secondaryContainer = Color(0xFF243B4D),
+            onSecondaryContainer = Color(0xFFD3E8F5),
+            background = Color(0xFF0E1620),
+            onBackground = Color(0xFFE7EEF4),
+            surface = Color(0xFF152230),
+            onSurface = Color(0xFFE7EEF4),
+            surfaceVariant = Color(0xFF1C2B3A),
+            onSurfaceVariant = Color(0xFFA9BBCB),
+            surfaceContainer = Color(0xFF172431),
+            outline = Color(0xFF5B7389),
+            outlineVariant = Color(0xFF2A3D4F)
         )
     } else {
         lightColorScheme(
-            primary = Color(0xFF8A6D1F),
+            primary = Color(0xFF1B7F79),
             onPrimary = Color.White,
-            primaryContainer = Color(0xFFFDE9C5),
-            onPrimaryContainer = Color(0xFF2A1F00),
-            secondaryContainer = Color(0xFFF6E7C1),
-            onSecondaryContainer = Color(0xFF2A2000),
+            primaryContainer = Color(0xFFD6F0EC),
+            onPrimaryContainer = Color(0xFF00201E),
+            secondaryContainer = Color(0xFFDDEFEC),
+            onSecondaryContainer = Color(0xFF0A2623),
             background = Color(0xFFFBF9F5),
             surface = Color(0xFFFFFFFF),
             surfaceVariant = Color(0xFFF3EBDD),

@@ -31,6 +31,29 @@ import androidx.room.withTransaction
 import java.time.LocalDate
 import java.time.YearMonth
 
+/** Всё, что человек ввёл на экране первоначальной настройки. */
+data class OnboardingData(
+    val name: String,
+    val partner: String,
+    val currency: String,
+    val cardCents: Long,
+    val cashCents: Long,
+    val incomeCents: Long,
+    val recordIncome: Boolean,
+    val budgetCents: Long,
+    val payments: List<Mandatory>,
+    val distributeLimits: Boolean
+)
+
+/** Примерные доли бюджета по категориям (в сумме 100%). */
+private val expenseShares: Map<String, Double> = mapOf(
+    "Аренда жилья" to 0.30, "Продукты" to 0.18, "ЖКХ" to 0.06, "Транспорт" to 0.06,
+    "Кафе и доставка" to 0.05, "Связь и интернет" to 0.02, "Здоровье" to 0.04,
+    "Одежда и обувь" to 0.05, "Дом и быт" to 0.04, "Красота и уход" to 0.03,
+    "Подарки и близкие" to 0.03, "Спорт" to 0.02, "Досуг" to 0.05, "Отпуск" to 0.04,
+    "Подушка безопасности" to 0.03
+)
+
 class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     private val db = BudgetDb.get(app)
     private val dao = db.dao()
@@ -131,6 +154,96 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
                     .forEach { dao.deleteOperation(it) }
             }
         }
+    }
+
+    // ---------- первая настройка и профиль
+    fun completeOnboarding(d: OnboardingData) {
+        viewModelScope.launch {
+            val name = d.name.trim()
+            val people = listOf(name, d.partner.trim()).filter { it.isNotEmpty() }.distinct()
+            store.update { st ->
+                st.copy(
+                    userName = name,
+                    persons = if (people.isEmpty()) st.persons else people,
+                    currency = d.currency.ifBlank { "₽" },
+                    monthlyIncome = d.incomeCents,
+                    monthlyBudget = d.budgetCents,
+                    onboarded = true
+                )
+            }
+            val accs = accounts.value
+            // Если доход уже пришёл и записан, вычитаем его из стартового остатка,
+            // чтобы текущий баланс остался таким, каким его ввёл человек.
+            val recordIncome = d.recordIncome && d.incomeCents > 0
+            val cardInitial = d.cardCents - (if (recordIncome) d.incomeCents else 0L)
+            if (accs.isNotEmpty()) dao.updateAccount(accs[0].copy(initialCents = cardInitial))
+            if (accs.size > 1) dao.updateAccount(accs[1].copy(initialCents = d.cashCents))
+            if (recordIncome) {
+                dao.insertOperation(
+                    Operation(
+                        date = LocalDate.now().toEpochDay(),
+                        amountCents = d.incomeCents,
+                        type = OpType.INCOME,
+                        category = categories.value.firstOrNull { it.isIncome }?.name ?: "Зарплата",
+                        comment = "Доход за месяц",
+                        person = name.ifEmpty { settings.value.persons.firstOrNull().orEmpty() },
+                        account = accs.firstOrNull()?.name.orEmpty()
+                    )
+                )
+            }
+            val cats = categories.value
+            d.payments.forEach { p ->
+                dao.insertMandatory(p.copy(category = guessCategory(p.name, cats)))
+            }
+            if (d.distributeLimits && d.budgetCents > 0) applyLimits(d.budgetCents)
+        }
+    }
+
+    fun skipOnboarding() { store.update { it.copy(onboarded = true) } }
+
+    fun saveProfile(name: String, incomeCents: Long, budgetCents: Long) {
+        store.update { st ->
+            val n = name.trim()
+            val people = if (n.isEmpty() || n in st.persons) st.persons else listOf(n) + st.persons
+            st.copy(userName = n, persons = people, monthlyIncome = incomeCents, monthlyBudget = budgetCents)
+        }
+        message = "Профиль сохранён."
+    }
+
+    fun hideTips() { store.update { it.copy(hideTips = true) } }
+
+    fun distributeLimits() {
+        val budget = settings.value.monthlyBudget
+        if (budget <= 0) {
+            message = "Сначала укажите месячный бюджет: Ещё → Профиль и бюджет."
+            return
+        }
+        viewModelScope.launch {
+            applyLimits(budget)
+            message = "Лимиты рассчитаны из бюджета. Их можно поправить вручную."
+        }
+    }
+
+    private suspend fun applyLimits(budgetCents: Long) {
+        categories.value.filter { !it.isIncome }.forEach { c ->
+            val share = expenseShares[c.name]
+            if (share != null) {
+                val rubles = Math.round(budgetCents * share / 100.0)
+                dao.updateCategory(c.copy(limitCents = rubles * 100L))
+            }
+        }
+    }
+
+    private fun guessCategory(name: String, cats: List<Category>): String {
+        val n = name.lowercase()
+        val wanted = when {
+            n.contains("аренд") || n.contains("ипотек") -> "Аренда жилья"
+            n.contains("жкх") || n.contains("коммун") -> "ЖКХ"
+            n.contains("интернет") || n.contains("связ") || n.contains("мобил") -> "Связь и интернет"
+            n.contains("спорт") || n.contains("фитнес") -> "Спорт"
+            else -> ""
+        }
+        return if (wanted.isNotEmpty() && cats.any { it.name == wanted }) wanted else ""
     }
 
     // ---------- справочники
@@ -277,6 +390,9 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         root.put("version", 1)
         root.put("currency", settings.value.currency)
         root.put("persons", JSONArray(settings.value.persons))
+        root.put("userName", settings.value.userName)
+        root.put("monthlyIncome", settings.value.monthlyIncome)
+        root.put("monthlyBudget", settings.value.monthlyBudget)
         val accs = JSONArray()
         accounts.value.forEach { accs.put(JSONObject().put("name", it.name).put("initial", it.initialCents)) }
         root.put("accounts", accs)
@@ -370,20 +486,28 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         val currency = root.optString("currency", "₽")
-        store.update { s -> s.copy(persons = if (list.isEmpty()) s.persons else list, currency = currency.ifBlank { "₽" }) }
+        store.update { st ->
+            st.copy(
+                persons = if (list.isEmpty()) st.persons else list,
+                currency = currency.ifBlank { "₽" },
+                userName = root.optString("userName", st.userName),
+                monthlyIncome = root.optLong("monthlyIncome", st.monthlyIncome),
+                monthlyBudget = root.optLong("monthlyBudget", st.monthlyBudget),
+                onboarded = true
+            )
+        }
         return "Восстановлено операций: $restored."
     }
 
     fun clearMessage() { message = "" }
 
     private fun defaultCategories(): List<Category> {
-        fun exp(name: String, limit: Long) = Category(name = name, isIncome = false, limitCents = limit * 100)
+        fun exp(name: String) = Category(name = name, isIncome = false, limitCents = 0)
         return listOf(
-            exp("Аренда жилья", 30000), exp("Продукты", 20000), exp("ЖКХ", 6000),
-            exp("Транспорт", 4000), exp("Кафе и доставка", 4500), exp("Связь и интернет", 1500),
-            exp("Здоровье", 3000), exp("Одежда и обувь", 4000), exp("Дом и быт", 3000),
-            exp("Красота и уход", 2000), exp("Подарки и близкие", 3000), exp("Спорт", 2000),
-            exp("Досуг", 3000), exp("Отпуск", 5000), exp("Подушка безопасности", 10000),
+            exp("Аренда жилья"), exp("Продукты"), exp("ЖКХ"), exp("Транспорт"), exp("Кафе и доставка"),
+            exp("Связь и интернет"), exp("Здоровье"), exp("Одежда и обувь"), exp("Дом и быт"),
+            exp("Красота и уход"), exp("Подарки и близкие"), exp("Спорт"), exp("Досуг"), exp("Отпуск"),
+            exp("Подушка безопасности"),
             Category(name = "Зарплата", isIncome = true),
             Category(name = "Аванс", isIncome = true),
             Category(name = "Подработка", isIncome = true),

@@ -25,7 +25,100 @@ data class MonthSummary(
 
 data class CatStat(val name: String, val sum: Long, val count: Int, val share: Float)
 
+enum class Verdict { GOOD, WARN, BAD, NONE }
+
+data class Forecast(
+    val isCurrent: Boolean,
+    val isPast: Boolean,
+    val daysInMonth: Int,
+    /** Сколько дней месяца уже прошло (для текущего месяца — включая сегодня). */
+    val elapsed: Int,
+    val daysLeft: Int,
+    val spent: Long,
+    val projectedExpense: Long,
+    val projectedBalance: Long,
+    val budget: Long,
+    /** Сколько можно тратить в день, чтобы уложиться в план. */
+    val safeDaily: Long,
+    val verdict: Verdict,
+    /** Прогноз становится надёжнее после первых дней месяца. */
+    val reliable: Boolean,
+    /** Накопленные расходы по дням, от 1-го числа до сегодняшнего дня. */
+    val cumulative: List<Long>
+)
+
 object Stats {
+    fun elapsedDays(ym: YearMonth, today: LocalDate): Int {
+        val current = YearMonth.from(today)
+        return when {
+            ym == current -> today.dayOfMonth
+            ym.isBefore(current) -> ym.lengthOfMonth()
+            else -> 0
+        }
+    }
+
+    /**
+     * Прогноз трат на конец месяца: обычные траты растягиваются на весь месяц по среднему за день,
+     * обязательные платежи считаются отдельно (оплаченные + ещё не оплаченные).
+     */
+    fun forecast(
+        monthOps: List<Operation>,
+        ym: YearMonth,
+        today: LocalDate,
+        summary: MonthSummary,
+        budget: Long,
+        expectedIncome: Long
+    ): Forecast {
+        val current = YearMonth.from(today)
+        val days = ym.lengthOfMonth()
+        val isCurrent = ym == current
+        val isPast = ym.isBefore(current)
+        val elapsed = elapsedDays(ym, today)
+        val expenses = monthOps.filter { it.type == OpType.EXPENSE }
+        val variable = expenses.filter { it.mandatoryId == null }.sumOf { it.amountCents }
+        val fixedPaid = expenses.filter { it.mandatoryId != null }.sumOf { it.amountCents }
+        val projectedVariable = when {
+            isCurrent && elapsed > 0 -> variable * days / elapsed
+            isPast -> variable
+            else -> 0L
+        }
+        val unpaid = if (isPast) 0L else summary.mandatoryUnpaid
+        val projected = projectedVariable + fixedPaid + unpaid
+        val incomeTotal = if (isPast) summary.income else maxOf(summary.income, expectedIncome)
+        val projectedBalance = summary.opening + incomeTotal - projected
+        val daysLeft = if (isCurrent) days - elapsed + 1 else 0
+        val safeDaily = if (isCurrent && daysLeft > 0) {
+            val pool = if (budget > 0) budget - summary.expense - unpaid
+            else summary.opening + incomeTotal - summary.expense - unpaid
+            (pool / daysLeft).coerceAtLeast(0L)
+        } else 0L
+        val verdict = when {
+            !isCurrent && !isPast -> Verdict.NONE
+            budget > 0 -> {
+                val ratio = projected.toDouble() / budget
+                if (ratio <= 0.95) Verdict.GOOD else if (ratio <= 1.05) Verdict.WARN else Verdict.BAD
+            }
+            else -> if (projectedBalance >= 0) Verdict.GOOD else Verdict.BAD
+        }
+        val daily = dailyExpenses(monthOps, ym)
+        val cumulative = ArrayList<Long>()
+        var running = 0L
+        for (i in 0 until elapsed.coerceAtMost(days)) {
+            running += daily[i]
+            cumulative.add(running)
+        }
+        return Forecast(
+            isCurrent = isCurrent, isPast = isPast, daysInMonth = days, elapsed = elapsed, daysLeft = daysLeft,
+            spent = summary.expense, projectedExpense = projected, projectedBalance = projectedBalance,
+            budget = budget, safeDaily = safeDaily, verdict = verdict,
+            reliable = isPast || (isCurrent && elapsed >= 5), cumulative = cumulative
+        )
+    }
+
+    /** Прогноз расхода по категории на конец месяца по среднему за прошедшие дни. */
+    fun projectCategory(spent: Long, elapsed: Int, daysInMonth: Int): Long =
+        if (elapsed <= 0) 0L else spent * daysInMonth / elapsed
+
     fun opsInMonth(ops: List<Operation>, ym: YearMonth): List<Operation> {
         val start = ym.atDay(1).toEpochDay()
         val end = ym.atEndOfMonth().toEpochDay()

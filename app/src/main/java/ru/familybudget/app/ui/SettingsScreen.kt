@@ -48,7 +48,7 @@ import ru.familybudget.app.data.Mandatory
 import ru.familybudget.app.logic.Fmt
 import java.time.LocalDate
 
-private enum class Page { MENU, CATEGORIES, MANDATORY, ACCOUNTS, PEOPLE, SYNC }
+private enum class Page { MENU, PROFILE, CATEGORIES, MANDATORY, ACCOUNTS, PEOPLE, SYNC }
 
 @Composable
 fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
@@ -63,6 +63,7 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 }
                 Text(
                     when (page) {
+                        Page.PROFILE -> "Профиль и бюджет"
                         Page.CATEGORIES -> "Категории и лимиты"
                         Page.MANDATORY -> "Обязательные платежи"
                         Page.ACCOUNTS -> "Счета"
@@ -75,6 +76,7 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
         }
         when (page) {
             Page.MENU -> MenuPage(vm) { page = it }
+            Page.PROFILE -> ProfilePage(vm)
             Page.CATEGORIES -> CategoriesPage(vm)
             Page.MANDATORY -> MandatoryPage(vm)
             Page.ACCOUNTS -> AccountsPage(vm)
@@ -116,6 +118,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Text("Ещё", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
+        MenuItem("Профиль и бюджет", "Имя, доход в месяц, план трат") { open(Page.PROFILE) }
         MenuItem("Категории и лимиты", "Расходы, доходы, месячные лимиты") { open(Page.CATEGORIES) }
         MenuItem("Обязательные платежи", "Аренда, связь, интернет — с галочками на обзоре") { open(Page.MANDATORY) }
         MenuItem("Счета", "Карты, наличные и начальные остатки") { open(Page.ACCOUNTS) }
@@ -150,7 +153,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
             Text(vm.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)
         }
         Text(
-            "Данные хранятся только на вашем устройстве. Версия 1.0.0",
+            "Данные хранятся только на вашем устройстве. Версия 1.1.0",
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -165,6 +168,41 @@ private fun MenuItem(title: String, subtitle: String, onClick: () -> Unit) {
         supportingContent = { Text(subtitle, maxLines = 2) },
         modifier = Modifier.clickable(onClick = onClick)
     )
+}
+
+// ---------------------------------------------------------------- профиль
+@Composable
+private fun ProfilePage(vm: BudgetViewModel) {
+    val settings by vm.settings.collectAsState()
+    val cur = settings.currency
+    var name by remember(settings.userName) { mutableStateOf(settings.userName) }
+    var income by remember(settings.monthlyIncome) {
+        mutableStateOf(if (settings.monthlyIncome > 0) Fmt.plain(settings.monthlyIncome) else "")
+    }
+    var budget by remember(settings.monthlyBudget) {
+        mutableStateOf(if (settings.monthlyBudget > 0) Fmt.plain(settings.monthlyBudget) else "")
+    }
+    val incomeCents = Fmt.parseCents(income) ?: 0L
+    val budgetCents = Fmt.parseCents(budget) ?: 0L
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        TextField2(name, { name = it }, "Ваше имя")
+        MoneyField(income, { income = it }, "Доход в месяц, $cur")
+        MoneyField(budget, { budget = it }, "План трат на месяц, $cur")
+        if (incomeCents > 0 && budgetCents > 0) {
+            val saving = incomeCents - budgetCents
+            HelpText(
+                if (saving >= 0) "Откладывать каждый месяц: " + Fmt.money(saving, cur, false) + " (" + Fmt.percent(saving.toFloat() / incomeCents) + " дохода)"
+                else "План трат больше дохода на " + Fmt.money(-saving, cur, false) + ". Так деньги будут заканчиваться."
+            )
+        }
+        HelpText("Бюджет и доход нужны для прогнозов и подсказок на главном экране.")
+        Button(
+            onClick = { vm.saveProfile(name, incomeCents, budgetCents) },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Сохранить") }
+        if (vm.message.isNotEmpty()) Text(vm.message, color = MaterialTheme.colorScheme.primary)
+    }
 }
 
 // ---------------------------------------------------------------- категории
@@ -189,6 +227,13 @@ private fun CategoriesPage(vm: BudgetViewModel) {
                 },
                 modifier = Modifier.clickable { dialog = c }
             )
+        }
+        if (!income) {
+            OutlinedButton(onClick = { vm.distributeLimits() }, modifier = Modifier.fillMaxWidth()) {
+                Text("✨ Разделить месячный бюджет по категориям")
+            }
+            HelpText("Лимиты рассчитываются из бюджета (Ещё → Профиль и бюджет) по типичным долям семейных расходов.")
+            if (vm.message.isNotEmpty()) Text(vm.message, color = MaterialTheme.colorScheme.primary)
         }
         OutlinedButton(onClick = { dialog = Category(name = "", isIncome = income) }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null)

@@ -68,6 +68,35 @@ fun YearScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
         item {
+            val today = java.time.LocalDate.now()
+            val isCurrentYear = year == today.year
+            val isPastYear = year < today.year
+            val monthsDone = if (isPastYear) 12 else if (isCurrentYear) today.monthValue else 0
+            val activeSaved = (0 until monthsDone).count { incomes[it] != 0L || expenses[it] != 0L }
+            val avgSaved = if (activeSaved > 0) saved / activeSaved else 0L
+            val remaining = 12 - monthsDone
+            val projectedSaved = saved + avgSaved * remaining
+            val projectedExpense = totalExpense + avgExpense * remaining
+            Section("🔮 Прогноз на год") {
+                if (isPastYear) {
+                    EmptyHint("Это уже прошедший год, итоги показаны выше.")
+                } else if (activeSaved == 0) {
+                    EmptyHint("Прогноз появится, когда накопится хотя бы месяц данных.")
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatCard(
+                            "Накопления к концу года",
+                            Fmt.money(projectedSaved, cur, false),
+                            Modifier.weight(1f),
+                            if (projectedSaved >= 0) Tone.INCOME else Tone.EXPENSE
+                        )
+                        StatCard("Расходы за весь год", Fmt.money(projectedExpense, cur, false), Modifier.weight(1f), Tone.WARN)
+                    }
+                    HelpText("Расчёт простой: средние показатели прошедших месяцев продолжаются до декабря. Чем больше данных, тем точнее прогноз.")
+                }
+            }
+        }
+        item {
             Section("📈 Траты помесячно") { BarChart(expenses, monthsLabels, expenseColor) }
         }
         item {

@@ -9,7 +9,14 @@ data class AppSettings(
     val token: String = "",
     val persons: List<String> = listOf("Я"),
     val currency: String = "₽",
-    val autoSync: Boolean = false
+    val autoSync: Boolean = false,
+    val userName: String = "",
+    val onboarded: Boolean = false,
+    /** Ожидаемый ежемесячный доход, в копейках. */
+    val monthlyIncome: Long = 0,
+    /** План трат на месяц, в копейках (доход минус желаемые накопления). */
+    val monthlyBudget: Long = 0,
+    val hideTips: Boolean = false
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -27,7 +34,12 @@ class SettingsStore(context: Context) {
             token = prefs.getString("token", "").orEmpty(),
             persons = persons,
             currency = prefs.getString("currency", "₽").orEmpty().ifBlank { "₽" },
-            autoSync = prefs.getBoolean("autoSync", false)
+            autoSync = prefs.getBoolean("autoSync", false),
+            userName = prefs.getString("userName", "").orEmpty(),
+            onboarded = prefs.getBoolean("onboarded", false),
+            monthlyIncome = prefs.getLong("monthlyIncome", 0L),
+            monthlyBudget = prefs.getLong("monthlyBudget", 0L),
+            hideTips = prefs.getBoolean("hideTips", false)
         )
     }
 
@@ -39,6 +51,11 @@ class SettingsStore(context: Context) {
             .putString("persons", next.persons.joinToString("\n"))
             .putString("currency", next.currency)
             .putBoolean("autoSync", next.autoSync)
+            .putString("userName", next.userName)
+            .putBoolean("onboarded", next.onboarded)
+            .putLong("monthlyIncome", next.monthlyIncome)
+            .putLong("monthlyBudget", next.monthlyBudget)
+            .putBoolean("hideTips", next.hideTips)
             .apply()
         state.value = next
     }

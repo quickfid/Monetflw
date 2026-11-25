@@ -21,6 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -90,6 +93,60 @@ fun BarChart(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+/**
+ * Линейный график трат за месяц: сплошная линия — факт (накопительно),
+ * пунктир — прогноз до конца месяца, горизонтальная линия — бюджет.
+ */
+@Composable
+fun BurnChart(
+    actual: List<Long>,
+    daysInMonth: Int,
+    projectedEnd: Long?,
+    budget: Long,
+    actualColor: Color,
+    projectionColor: Color,
+    budgetColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val gridColor = MaterialTheme.colorScheme.outlineVariant
+    Canvas(modifier.fillMaxWidth().height(170.dp)) {
+        val maxValue = maxOf(budget, projectedEnd ?: 0L, actual.lastOrNull() ?: 0L, 1L).toFloat() * 1.08f
+        val w = size.width
+        val h = size.height
+        val lastIndex = (daysInMonth - 1).coerceAtLeast(1)
+        fun px(i: Int): Float = w * i / lastIndex
+        fun py(v: Long): Float = h - h * (v.toFloat() / maxValue)
+
+        for (g in 0..3) {
+            val y = h * g / 3f
+            drawLine(gridColor, Offset(0f, y), Offset(w, y), strokeWidth = 1f)
+        }
+        if (budget > 0) {
+            drawLine(
+                budgetColor, Offset(0f, py(budget)), Offset(w, py(budget)),
+                strokeWidth = 3f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 8f))
+            )
+        }
+        if (actual.isNotEmpty()) {
+            val path = Path()
+            actual.forEachIndexed { i, v ->
+                if (i == 0) path.moveTo(px(i), py(v)) else path.lineTo(px(i), py(v))
+            }
+            drawPath(path, actualColor, style = Stroke(width = 6f, cap = StrokeCap.Round))
+            if (projectedEnd != null && actual.size < daysInMonth) {
+                val from = Offset(px(actual.size - 1), py(actual.last()))
+                val to = Offset(px(daysInMonth - 1), py(projectedEnd))
+                drawLine(
+                    projectionColor, from, to, strokeWidth = 5f, cap = StrokeCap.Round,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(16f, 12f))
+                )
+                drawCircle(projectionColor, radius = 8f, center = to)
+            }
+            drawCircle(actualColor, radius = 8f, center = Offset(px(actual.size - 1), py(actual.last())))
         }
     }
 }

@@ -38,6 +38,7 @@ import ru.familybudget.app.BudgetViewModel
 import ru.familybudget.app.data.OpType
 import ru.familybudget.app.data.Operation
 import ru.familybudget.app.logic.Fmt
+import java.time.LocalDate
 
 @Composable
 fun OperationEditor(vm: BudgetViewModel, initial: Operation) {
@@ -71,6 +72,7 @@ fun OperationEditor(vm: BudgetViewModel, initial: Operation) {
     val valid = cents != null && cents > 0 && person.isNotBlank() &&
         (if (isTransfer) (account.isNotBlank() && destAccount.isNotBlank() && account != destAccount) else category.isNotBlank())
 
+    val today = LocalDate.now().toEpochDay()
     var confirmDelete by remember { mutableStateOf(false) }
     BackHandler { vm.closeEditor() }
     if (confirmDelete) {
@@ -87,7 +89,7 @@ fun OperationEditor(vm: BudgetViewModel, initial: Operation) {
         Column(
             Modifier.fillMaxSize().safeDrawingPadding().imePadding()
                 .verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { vm.closeEditor() }) { Icon(Icons.Default.Close, contentDescription = "Закрыть") }
@@ -101,21 +103,32 @@ fun OperationEditor(vm: BudgetViewModel, initial: Operation) {
                     FilterChip(
                         selected = type == t,
                         onClick = { if (t != type) { type = t; category = "" } },
-                        label = { Text(t) }
+                        label = { Text(if (t == OpType.EXPENSE) "➖ Расход" else if (t == OpType.INCOME) "➕ Доход" else "🔁 Перевод") }
                     )
                 }
             }
             MoneyField(amount, { amount = it }, "Сумма, ${settings.currency}")
+
             if (isTransfer) {
-                Picker("Со счёта", account, accountNames, { account = it })
-                Picker("На счёт", destAccount, accountNames, { destAccount = it })
+                ChipPicker("Со счёта", account, accountNames, { account = it })
+                ChipPicker("На счёт", destAccount, accountNames, { destAccount = it })
             } else {
-                Picker("Категория", category, categoryNames, { category = it })
-                Picker("Счёт", account, accountNames, { account = it })
+                ChipPicker(if (type == OpType.INCOME) "Откуда деньги" else "На что потратили", category, categoryNames, { category = it })
+                ChipPicker("Счёт", account, accountNames, { account = it })
             }
-            Picker("Кто", person, settings.persons, { person = it })
-            DateField(date, { date = it })
-            TextField2(comment, { comment = it }, "Комментарий", singleLine = false)
+            if (settings.persons.size > 1) {
+                ChipPicker("Кто", person, settings.persons, { person = it })
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Когда", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(selected = date == today, onClick = { date = today }, label = { Text("Сегодня") })
+                    FilterChip(selected = date == today - 1, onClick = { date = today - 1 }, label = { Text("Вчера") })
+                }
+                DateField(date, { date = it })
+            }
+            TextField2(comment, { comment = it }, "Комментарий (необязательно)", singleLine = false)
 
             Button(
                 onClick = {
