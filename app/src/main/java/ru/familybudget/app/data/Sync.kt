@@ -24,6 +24,34 @@ object SheetsSync {
 
     private class Result(val ok: Boolean, val error: String = "")
 
+    class ReportResult(val url: String, val message: String)
+
+    /** Отправляет данные месяца; скрипт строит в таблице красивый отчёт с графиками и возвращает ссылку. */
+    suspend fun exportReport(settings: AppSettings, payload: String): ReportResult = withContext(Dispatchers.IO) {
+        try {
+            val longClient = client.newBuilder().readTimeout(120, TimeUnit.SECONDS).writeTimeout(60, TimeUnit.SECONDS).build()
+            val request = Request.Builder().url(settings.apiUrl)
+                .post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            longClient.newCall(request).execute().use { resp ->
+                val body = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) return@withContext ReportResult("", "Ошибка HTTP ${resp.code}.")
+                val json = try { JSONObject(body) } catch (e: Exception) {
+                    return@withContext ReportResult("", "Ответ не похож на API. Обновите скрипт в таблице до новой версии (scripts/Code.gs) и сделайте новое развёртывание.")
+                }
+                if (json.optBoolean("ok")) {
+                    ReportResult(json.optString("url"), "Готово")
+                } else if (json.optString("error") == "unknown_action") {
+                    ReportResult("", "Скрипт в таблице старый. Вставьте новый Code.gs и обновите развёртывание.")
+                } else {
+                    ReportResult("", describeError(json))
+                }
+            }
+        } catch (e: Exception) {
+            ReportResult("", "Нет связи: ${e.localizedMessage ?: "ошибка сети"}")
+        }
+    }
+
     suspend fun push(dao: BudgetDao, settings: AppSettings): String = withContext(Dispatchers.IO) {
         if (settings.apiUrl.isBlank() || settings.token.isBlank()) {
             return@withContext "Синхронизация не настроена: укажите URL и токен."

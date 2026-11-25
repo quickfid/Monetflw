@@ -79,9 +79,9 @@ fun YearScreen(vm: BudgetViewModel, padding: PaddingValues) {
             val projectedExpense = totalExpense + avgExpense * remaining
             Section("🔮 Прогноз на год") {
                 if (isPastYear) {
-                    EmptyHint("Это уже прошедший год, итоги показаны выше.")
+                    EmptyHint("Год завершён")
                 } else if (activeSaved == 0) {
-                    EmptyHint("Прогноз появится, когда накопится хотя бы месяц данных.")
+                    EmptyHint("Нужен хотя бы месяц данных")
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatCard(
@@ -92,7 +92,6 @@ fun YearScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         )
                         StatCard("Расходы за весь год", Fmt.money(projectedExpense, cur, false), Modifier.weight(1f), Tone.WARN)
                     }
-                    HelpText("Расчёт простой: средние показатели прошедших месяцев продолжаются до декабря. Чем больше данных, тем точнее прогноз.")
                 }
             }
         }
@@ -119,20 +118,20 @@ fun YearScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                 )
                             }
                             Text(
-                                "доход ${Fmt.money(incomes[i], cur, false)} · расход ${Fmt.money(expenses[i], cur, false)} · накопления ${Fmt.money(running, cur, false)}",
+                                "+${Fmt.money(incomes[i], cur, false)}  −${Fmt.money(expenses[i], cur, false)}  🐷 ${Fmt.money(running, cur, false)}",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-                if (activeMonths == 0 && totalIncome == 0L) EmptyHint("За этот год операций пока нет.")
+                if (activeMonths == 0 && totalIncome == 0L) EmptyHint("Пока пусто")
             }
         }
         item {
             Section("🏆 Траты — ТОП-15 категорий") {
                 if (top.isEmpty()) {
-                    EmptyHint("Нет расходов за этот год.")
+                    EmptyHint("Пока пусто")
                 } else {
                     top.forEachIndexed { i, s ->
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {

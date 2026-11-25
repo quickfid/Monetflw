@@ -12,6 +12,8 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Update
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
@@ -47,6 +49,15 @@ data class Mandatory(
     val day: Int = 1,
     val amountCents: Long,
     val category: String = ""
+)
+
+/** План расходов на конкретный месяц: сколько запланировано на категорию. ym в формате «2026-11». */
+@Entity(tableName = "plans", indices = [Index(value = ["ym", "category"], unique = true)])
+data class PlanItem(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val ym: String,
+    val category: String,
+    val amountCents: Long
 )
 
 @Entity(
@@ -117,9 +128,31 @@ interface BudgetDao {
     @Query("DELETE FROM mandatory")
     suspend fun clearMandatory()
 
+    // --- планы по месяцам
+    @Query("SELECT * FROM plans")
+    fun plans(): Flow<List<PlanItem>>
+
+    @Query("DELETE FROM plans WHERE ym = :ym")
+    suspend fun clearPlan(ym: String)
+
+    @Query("DELETE FROM plans")
+    suspend fun clearAllPlans()
+
+    @Insert
+    suspend fun insertPlans(list: List<PlanItem>)
+
+    @Query("UPDATE plans SET category = :newName WHERE category = :oldName")
+    suspend fun renameCategoryInPlans(oldName: String, newName: String)
+
     // --- категории
     @Query("SELECT * FROM categories ORDER BY id")
     fun categories(): Flow<List<Category>>
+
+    @Query("SELECT * FROM categories ORDER BY id")
+    suspend fun categoriesOnce(): List<Category>
+
+    @Query("SELECT * FROM mandatory ORDER BY id")
+    suspend fun mandatoryOnce(): List<Mandatory>
 
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun categoryCount(): Int
@@ -167,8 +200,8 @@ interface BudgetDao {
 }
 
 @Database(
-    entities = [Category::class, Account::class, Mandatory::class, Operation::class],
-    version = 1,
+    entities = [Category::class, Account::class, Mandatory::class, Operation::class, PlanItem::class],
+    version = 2,
     exportSchema = false
 )
 abstract class BudgetDb : RoomDatabase() {
@@ -182,7 +215,18 @@ abstract class BudgetDb : RoomDatabase() {
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
                     context.applicationContext, BudgetDb::class.java, "budget.db"
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
             }
+    }
+}
+
+/** Версия 1 → 2: добавлена таблица планов по месяцам. Данные пользователя не затрагиваются. */
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `plans` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`ym` TEXT NOT NULL, `category` TEXT NOT NULL, `amountCents` INTEGER NOT NULL)"
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_plans_ym_category` ON `plans` (`ym`, `category`)")
     }
 }

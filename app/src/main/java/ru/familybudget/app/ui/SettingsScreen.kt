@@ -117,23 +117,26 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Text("Ещё", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
-        MenuItem("Профиль и бюджет", "Имя, доход в месяц, план трат") { open(Page.PROFILE) }
-        MenuItem("Категории и лимиты", "Расходы, доходы, месячные лимиты") { open(Page.CATEGORIES) }
-        MenuItem("Обязательные платежи", "Аренда, связь, интернет — с галочками на обзоре") { open(Page.MANDATORY) }
-        MenuItem("Счета", "Карты, наличные и начальные остатки") { open(Page.ACCOUNTS) }
-        MenuItem("Люди", settings.persons.joinToString(", ")) { open(Page.PEOPLE) }
+        Text("⚙️ Ещё", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
+        MenuItem("👤 Профиль", "Имя и доход") { open(Page.PROFILE) }
+        MenuItem("🏷️ Категории", "Расходы и доходы") { open(Page.CATEGORIES) }
+        MenuItem("💳 Платежи", "Ежемесячные, с галочками") { open(Page.MANDATORY) }
+        MenuItem("🏦 Счета", "Карты и наличные") { open(Page.ACCOUNTS) }
+        MenuItem("👨‍👩‍👧 Люди", settings.persons.joinToString(", ")) { open(Page.PEOPLE) }
         MenuItem(
             "Google Таблица",
-            if (settings.apiUrl.isBlank()) "Не подключена (необязательно)" else "Не отправлено операций: $unsynced"
+            if (settings.apiUrl.isBlank()) "Не подключена" else "Не отправлено: $unsynced"
         ) { open(Page.SYNC) }
-        MenuItem("Экспорт в CSV", "Сохранить все операции в файл для Excel") {
+        MenuItem("📤 Красивый отчёт в таблицу", "Таблицы и графики для другого человека") {
+            vm.exportReport(vm.month)
+        }
+        MenuItem("📄 Экспорт CSV", "Все операции в файл") {
             exportLauncher.launch("budget_${LocalDate.now()}.csv")
         }
-        MenuItem("Сохранить резервную копию", "Файл со всеми данными: счета, категории, операции") {
+        MenuItem("💾 Резервная копия", "Сохранить все данные в файл") {
             backupLauncher.launch("family_budget_backup_${LocalDate.now()}.json")
         }
-        MenuItem("Восстановить из копии", "Заменяет все данные данными из файла") { confirmRestore = true }
+        MenuItem("♻️ Восстановить", "Из файла резервной копии") { confirmRestore = true }
         HorizontalDivider(Modifier.padding(vertical = 8.dp))
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -153,7 +156,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
             Text(vm.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)
         }
         Text(
-            "Данные хранятся только на вашем устройстве. Версия 1.1.0",
+            "Данные только на вашем телефоне · v1.2.0",
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -227,13 +230,6 @@ private fun CategoriesPage(vm: BudgetViewModel) {
                 },
                 modifier = Modifier.clickable { dialog = c }
             )
-        }
-        if (!income) {
-            OutlinedButton(onClick = { vm.distributeLimits() }, modifier = Modifier.fillMaxWidth()) {
-                Text("✨ Разделить месячный бюджет по категориям")
-            }
-            HelpText("Лимиты рассчитываются из бюджета (Ещё → Профиль и бюджет) по типичным долям семейных расходов.")
-            if (vm.message.isNotEmpty()) Text(vm.message, color = MaterialTheme.colorScheme.primary)
         }
         OutlinedButton(onClick = { dialog = Category(name = "", isIncome = income) }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null)

@@ -70,7 +70,7 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    label = { Text("Поиск по категории, комментарию, человеку") },
+                    label = { Text("🔍 Поиск") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -81,8 +81,8 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                     Text("🧾", fontSize = 40.sp)
                     EmptyHint(
-                        if (monthOps.isEmpty()) "В этом месяце операций нет. Записывайте каждую покупку, и приложение покажет, куда уходят деньги."
-                        else "Ничего не найдено. Измените фильтр или поиск."
+                        if (monthOps.isEmpty()) "Пока пусто. Запишите первую трату!"
+                        else "Ничего не найдено"
                     )
                     if (monthOps.isEmpty()) {
                         androidx.compose.material3.Button(onClick = { vm.startNew() }) { Text("Добавить операцию") }

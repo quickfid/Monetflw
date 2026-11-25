@@ -26,13 +26,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ru.familybudget.app.ui.BudgetTheme
+import ru.familybudget.app.ui.ExportDialog
+import ru.familybudget.app.ui.HomeScreen
 import ru.familybudget.app.ui.OnboardingScreen
+import ru.familybudget.app.ui.PlanEditor
+import ru.familybudget.app.ui.PlanScreen
+import ru.familybudget.app.ui.ReportsHost
 import ru.familybudget.app.ui.OperationEditor
 import ru.familybudget.app.ui.OperationsScreen
-import ru.familybudget.app.ui.OverviewScreen
-import ru.familybudget.app.ui.ReportsScreen
 import ru.familybudget.app.ui.SettingsScreen
-import ru.familybudget.app.ui.YearScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,10 +49,10 @@ class MainActivity : ComponentActivity() {
 private class Tab(val title: String, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab("Обзор", Icons.Default.Home),
-    Tab("Операции", Icons.Default.List),
+    Tab("Главная", Icons.Default.Home),
+    Tab("План", Icons.Default.DateRange),
+    Tab("Траты", Icons.Default.List),
     Tab("Отчёты", Icons.Default.Info),
-    Tab("Год", Icons.Default.DateRange),
     Tab("Ещё", Icons.Default.Settings)
 )
 
@@ -61,8 +63,13 @@ private fun BudgetApp() {
     val editing = vm.editing
     val settings by vm.settings.collectAsState()
 
+    val planMonth = vm.planEditing
+    ExportDialog(vm)
+
     if (!settings.onboarded) {
         OnboardingScreen(vm)
+    } else if (planMonth != null) {
+        PlanEditor(vm, planMonth)
     } else if (editing != null) {
         OperationEditor(vm, editing)
     } else {
@@ -80,7 +87,7 @@ private fun BudgetApp() {
                 }
             },
             floatingActionButton = {
-                if (tab <= 1) {
+                if (tab == 0 || tab == 2) {
                     FloatingActionButton(onClick = { vm.startNew() }) {
                         Icon(Icons.Default.Add, contentDescription = "Добавить операцию")
                     }
@@ -88,10 +95,10 @@ private fun BudgetApp() {
             }
         ) { padding ->
             when (tab) {
-                0 -> OverviewScreen(vm, padding) { tab = 4 }
-                1 -> OperationsScreen(vm, padding)
-                2 -> ReportsScreen(vm, padding)
-                3 -> YearScreen(vm, padding)
+                0 -> HomeScreen(vm, padding)
+                1 -> PlanScreen(vm, padding)
+                2 -> OperationsScreen(vm, padding)
+                3 -> ReportsHost(vm, padding)
                 else -> SettingsScreen(vm, padding)
             }
         }

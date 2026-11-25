@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,11 +18,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -33,16 +35,43 @@ import androidx.compose.ui.unit.sp
 import ru.familybudget.app.BudgetViewModel
 import ru.familybudget.app.data.OpType
 import ru.familybudget.app.logic.Fmt
+import ru.familybudget.app.logic.Plans
 import ru.familybudget.app.logic.Stats
+import java.time.LocalDate
+
+/** Вкладка «Отчёты»: переключатель Месяц / Год и кнопка выгрузки красивого отчёта в таблицу. */
+@Composable
+fun ReportsHost(vm: BudgetViewModel, padding: PaddingValues) {
+    var mode by rememberSaveable { mutableIntStateOf(0) }
+    Column(Modifier.fillMaxSize().padding(padding)) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FilterChip(selected = mode == 0, onClick = { mode = 0 }, label = { Text("Месяц") })
+            FilterChip(selected = mode == 1, onClick = { mode = 1 }, label = { Text("Год") })
+            Spacer(Modifier.weight(1f))
+            OutlinedButton(
+                onClick = { vm.exportReport(vm.month) },
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+            ) { Text("📤 В таблицу", fontSize = 13.sp) }
+        }
+        Box(Modifier.weight(1f)) {
+            if (mode == 0) ReportsScreen(vm, PaddingValues(0.dp)) else YearScreen(vm, PaddingValues(0.dp))
+        }
+    }
+}
 
 @Composable
 fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val ops by vm.operations.collectAsState()
     val categories by vm.categories.collectAsState()
+    val plans by vm.plans.collectAsState()
     val settings by vm.settings.collectAsState()
     val cur = settings.currency
     val ym = vm.month
-    var showIncome by rememberSaveable { mutableStateOf(false) }
+    var showIncome by rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     val type = if (showIncome) OpType.INCOME else OpType.EXPENSE
 
     val monthOps = remember(ops, ym) { Stats.opsInMonth(ops, ym) }
@@ -52,8 +81,11 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val spentByCategory = remember(monthOps) {
         Stats.categoryStats(monthOps, OpType.EXPENSE).associate { it.name to it.sum }
     }
-    val limited = categories.filter { !it.isIncome && it.limitCents > 0 }
-    val today = remember { java.time.LocalDate.now() }
+    val limits = remember(plans, categories, ym) { Plans.limitsFor(plans, categories, ym) }
+    val limitRows = remember(limits) {
+        limits.filter { it.value > 0 }.toList().sortedBy { Fmt.planRank(it.first) }
+    }
+    val today = remember { LocalDate.now() }
     val elapsed = Stats.elapsedDays(ym, today)
     val isCurrentMonth = ym == java.time.YearMonth.from(today)
     val expenseColor = AppColors.expense()
@@ -61,7 +93,7 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
 
     LazyColumn(
         Modifier.fillMaxSize().padding(padding),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
@@ -74,30 +106,27 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
         item {
-            Section(if (showIncome) "🧾 Отчёты: ДОХОДЫ" else "🧾 Отчёты: РАСХОДЫ") {
+            Section(if (showIncome) "🧾 Доходы" else "🧾 Расходы") {
                 if (stats.isEmpty()) {
-                    EmptyHint("Нет данных за этот месяц.")
+                    EmptyHint("Пока пусто")
                 } else {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         DonutChart(stats.map { it.sum.toFloat() }, AppColors.chart)
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Всего", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(Fmt.money(total, cur, false), fontWeight = FontWeight.Bold)
-                        }
+                        Text(Fmt.money(total, cur, false), fontWeight = FontWeight.Bold)
                     }
                     stats.forEachIndexed { i, s ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.size(10.dp).background(AppColors.chart[i % AppColors.chart.size], CircleShape))
                             Spacer(Modifier.width(8.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(s.name, fontWeight = FontWeight.Medium)
+                                Text(Fmt.emoji(s.name) + " " + s.name, fontWeight = FontWeight.Medium)
                                 Text(
-                                    "${s.count} опер. · ${Fmt.percent(s.share)}",
+                                    "${s.count} · ${Fmt.percent(s.share)}",
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            Text(Fmt.money(s.sum, cur), fontWeight = FontWeight.SemiBold, color = if (showIncome) incomeColor else expenseColor)
+                            Text(Fmt.money(s.sum, cur, false), fontWeight = FontWeight.SemiBold, color = if (showIncome) incomeColor else expenseColor)
                         }
                     }
                 }
@@ -105,53 +134,45 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
         }
         if (!showIncome) {
             item {
-                Section("📅 График: расходы по дням") {
+                Section("📅 По дням") {
                     if (daily.all { it == 0L }) {
-                        EmptyHint("Нет расходов за этот месяц.")
+                        EmptyHint("Пока пусто")
                     } else {
                         val labels = daily.indices.map { d -> if ((d + 1) == 1 || (d + 1) % 5 == 0) (d + 1).toString() else "" }
                         BarChart(daily, labels, expenseColor)
                         val maxDay = daily.indices.maxByOrNull { daily[it] } ?: 0
                         KeyValueRow("Самый затратный день", "${maxDay + 1}-е · " + Fmt.money(daily[maxDay], cur, false))
-                        val spentDays = daily.count { it > 0 }
-                        KeyValueRow("В среднем за день с тратами", Fmt.money(if (spentDays > 0) daily.sum() / spentDays else 0L, cur, false))
                     }
                 }
             }
             item {
-                Section("🎯 Лимиты по категориям") {
-                    if (limited.isEmpty()) {
-                        EmptyHint("Лимит — сколько вы готовы тратить на категорию в месяц. Задайте лимиты: Ещё → Категории и лимиты. Можно разделить бюджет автоматически.")
+                Section("🎯 План и факт") {
+                    if (limitRows.isEmpty()) {
+                        EmptyHint("Составьте план на вкладке «План»")
                     } else {
-                        limited.forEach { c ->
-                            val spent = spentByCategory[c.name] ?: 0L
-                            val left = c.limitCents - spent
-                            val fraction = (spent.toFloat() / c.limitCents).coerceIn(0f, 1f)
+                        limitRows.forEach { row ->
+                            val name = row.first
+                            val limit = row.second
+                            val spent = spentByCategory[name] ?: 0L
+                            val left = limit - spent
+                            val fraction = (spent.toFloat() / limit).coerceIn(0f, 1f)
                             val over = left < 0
-                            val warn = !over && fraction >= 0.8f
+                            val warn = !over && fraction >= 0.85f
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(c.name, fontWeight = FontWeight.Medium)
-                                    Text(
-                                        Fmt.money(spent, cur, false) + " / " + Fmt.money(c.limitCents, cur, false),
-                                        fontSize = 13.sp
-                                    )
+                                    Text(Fmt.emoji(name) + " " + name, fontWeight = FontWeight.Medium)
+                                    Text(Fmt.money(spent, cur, false) + " / " + Fmt.money(limit, cur, false), fontSize = 13.sp)
                                 }
                                 LinearProgressIndicator(
                                     progress = { fraction },
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().height(8.dp),
                                     color = if (over) expenseColor else if (warn) AppColors.warning() else MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    if (over) "Превышено на " + Fmt.money(-left, cur, false) else "Осталось " + Fmt.money(left, cur, false),
-                                    fontSize = 12.sp,
-                                    color = if (over) expenseColor else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (isCurrentMonth && elapsed >= 5 && !over) {
                                     val projected = Stats.projectCategory(spent, elapsed, ym.lengthOfMonth())
-                                    if (projected > c.limitCents) {
+                                    if (projected > limit) {
                                         Text(
-                                            "🔮 При таких тратах к концу месяца выйдет около " + Fmt.money(projected, cur, false) + ": лимит будет превышен",
+                                            "🔮 К концу месяца выйдет около " + Fmt.money(projected, cur, false),
                                             fontSize = 12.sp,
                                             color = AppColors.warning()
                                         )

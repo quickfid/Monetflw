@@ -44,4 +44,61 @@ object Fmt {
     fun date(epochDay: Long): String = LocalDate.ofEpochDay(epochDay).format(dateFormat)
 
     fun percent(share: Float): String = Math.round(share * 100f).toString() + "%"
+
+    fun emoji(category: String): String {
+        val n = category.lowercase()
+        return when {
+            n.contains("аренд") || n.contains("ипотек") -> "🏠"
+            n.contains("кредит") || n.contains("долг") -> "💳"
+            n.contains("транспорт") || n.contains("бензин") || n.contains("авто") -> "⛽"
+            n.contains("связь") || n.contains("интернет") || n.contains("мобил") -> "📱"
+            n.contains("коммун") || n.contains("жкх") -> "💡"
+            n.contains("продукт") -> "🛒"
+            n.contains("кафе") -> "🍔"
+            n.contains("здоров") -> "💊"
+            n.contains("одежд") -> "👕"
+            n.contains("красот") -> "💅"
+            n.contains("подар") -> "🎁"
+            n.contains("спорт") -> "🏋️"
+            n.contains("досуг") -> "🎮"
+            n.contains("отпуск") -> "🏖️"
+            n.contains("подуш") || n.contains("накоп") -> "🐷"
+            n.contains("дом") -> "🛋️"
+            n.contains("проч") -> "📦"
+            n.contains("зарплат") || n.contains("аванс") -> "💼"
+            else -> "🏷️"
+        }
+    }
+
+    /** Порядок в плане: аренда, кредит, транспорт, связь, коммунальные, продукты, остальное, прочие. */
+    fun planRank(category: String): Int {
+        val n = category.lowercase()
+        return when {
+            n.contains("аренд") || n.contains("ипотек") -> 0
+            n.contains("кредит") -> 1
+            n.contains("транспорт") || n.contains("бензин") -> 2
+            n.contains("связь") || n.contains("интернет") -> 3
+            n.contains("коммун") || n.contains("жкх") -> 4
+            n.contains("продукт") -> 5
+            n.contains("проч") -> 99
+            else -> 50
+        }
+    }
+
+    /** Ежемесячные платежи с датой: для них в плане заводится галочка «оплачено». */
+    fun isBill(category: String): Boolean {
+        val n = category.lowercase()
+        return n.contains("аренд") || n.contains("ипотек") || n.contains("кредит") ||
+            n.contains("связь") || n.contains("интернет") || n.contains("коммун") || n.contains("жкх")
+    }
+
+    fun billDay(category: String): Int {
+        val n = category.lowercase()
+        return when {
+            n.contains("аренд") || n.contains("ипотек") -> 5
+            n.contains("кредит") -> 10
+            n.contains("коммун") || n.contains("жкх") -> 15
+            else -> 20
+        }
+    }
 }
