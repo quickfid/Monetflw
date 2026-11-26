@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -43,7 +44,7 @@ import java.time.YearMonth
 
 /** Страница «Вклады и накопления»: список, добавление, исправление суммы и процентов. */
 @Composable
-fun DepositsPage(vm: BudgetViewModel) {
+fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.dp)) {
     val deposits by vm.deposits.collectAsState()
     val interest by vm.interest.collectAsState()
     val cur = vm.settings.collectAsState().value.currency
@@ -52,7 +53,7 @@ fun DepositsPage(vm: BudgetViewModel) {
     val incomeColor = AppColors.income()
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         if (deposits.isEmpty()) EmptyHint("Добавьте вклад или накопительный счёт 🐷")

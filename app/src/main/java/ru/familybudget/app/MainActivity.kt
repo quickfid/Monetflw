@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -36,10 +35,10 @@ import ru.familybudget.app.ui.HomeScreen
 import ru.familybudget.app.ui.OnboardingScreen
 import ru.familybudget.app.ui.PlanEditor
 import ru.familybudget.app.ui.PlanScreen
-import ru.familybudget.app.ui.ReportsHost
 import ru.familybudget.app.ui.OperationEditor
 import ru.familybudget.app.ui.OperationsScreen
 import ru.familybudget.app.ui.SettingsScreen
+import ru.familybudget.app.ui.DepositsPage
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,8 +56,7 @@ private val tabs = listOf(
     Tab("Главная", Icons.Default.Home),
     Tab("План", Icons.Default.DateRange),
     Tab("Траты", Icons.Default.List),
-    Tab("Отчёты", Icons.Default.Info),
-    Tab("Вклады", Icons.Default.AccountBalanceWallet),
+    Tab("Накопления", Icons.Default.Info),
     Tab("Ещё", Icons.Default.Settings)
 )
 
@@ -108,8 +106,7 @@ private fun BudgetApp() {
                 0 -> HomeScreen(vm, padding)
                 1 -> PlanScreen(vm, padding)
                 2 -> OperationsScreen(vm, padding)
-                3 -> ReportsHost(vm, padding)
-                4 -> ru.familybudget.app.ui.DepositsPage(vm)
+                3 -> DepositsPage(vm, padding)
                 else -> SettingsScreen(vm, padding)
             }
         }

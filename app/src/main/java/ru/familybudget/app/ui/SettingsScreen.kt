@@ -48,7 +48,7 @@ import ru.familybudget.app.data.Mandatory
 import ru.familybudget.app.logic.Fmt
 import java.time.LocalDate
 
-private enum class Page { MENU, PROFILE, CATEGORIES, MANDATORY, ACCOUNTS, DEPOSITS, PEOPLE, SYNC }
+private enum class Page { MENU, PROFILE, CATEGORIES, MANDATORY, ACCOUNTS, PEOPLE, SYNC, REPORTS }
 
 @Composable
 fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
@@ -67,8 +67,8 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         Page.CATEGORIES -> "Категории и лимиты"
                         Page.MANDATORY -> "Обязательные платежи"
                         Page.ACCOUNTS -> "Счета"
-                        Page.DEPOSITS -> "Вклады и накопления"
                         Page.PEOPLE -> "Люди"
+                        Page.REPORTS -> "Отчёты"
                         else -> "Google Таблица"
                     },
                     style = MaterialTheme.typography.titleLarge
@@ -81,9 +81,9 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
             Page.CATEGORIES -> CategoriesPage(vm)
             Page.MANDATORY -> MandatoryPage(vm)
             Page.ACCOUNTS -> AccountsPage(vm)
-            Page.DEPOSITS -> DepositsPage(vm)
             Page.PEOPLE -> PeoplePage(vm)
             Page.SYNC -> SyncPage(vm)
+            Page.REPORTS -> ReportsHost(vm, PaddingValues(0.dp))
         }
     }
 }
@@ -129,7 +129,8 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
             "Google Таблица",
             if (settings.apiUrl.isBlank()) "Не подключена" else "Не отправлено: $unsynced"
         ) { open(Page.SYNC) }
-        MenuItem("📤 Красивый отчёт в таблицу", "Таблицы и графики для другого человека") {
+        MenuItem("📊 Отчёты", "Анализ доходов, расходов и динамики") { open(Page.REPORTS) }
+        MenuItem("📤 Отправить отчёт в таблицу", "Таблицы и графики для другого человека") {
             vm.exportReport(vm.month)
         }
         MenuItem("📄 Экспорт CSV", "Все операции в файл") {
