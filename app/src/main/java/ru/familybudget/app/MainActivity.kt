@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -57,6 +58,7 @@ private val tabs = listOf(
     Tab("План", Icons.Default.DateRange),
     Tab("Траты", Icons.Default.List),
     Tab("Отчёты", Icons.Default.Info),
+    Tab("Вклады", Icons.Default.AccountBalanceWallet),
     Tab("Ещё", Icons.Default.Settings)
 )
 
@@ -107,6 +109,7 @@ private fun BudgetApp() {
                 1 -> PlanScreen(vm, padding)
                 2 -> OperationsScreen(vm, padding)
                 3 -> ReportsHost(vm, padding)
+                4 -> ru.familybudget.app.ui.DepositsPage(vm)
                 else -> SettingsScreen(vm, padding)
             }
         }

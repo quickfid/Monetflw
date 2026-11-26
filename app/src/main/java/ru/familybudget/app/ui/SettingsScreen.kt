@@ -124,7 +124,6 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         MenuItem("🏷️ Категории", "Расходы и доходы") { open(Page.CATEGORIES) }
         MenuItem("💳 Платежи", "Ежемесячные, с галочками") { open(Page.MANDATORY) }
         MenuItem("🏦 Счета", "Карты и наличные") { open(Page.ACCOUNTS) }
-        MenuItem("🐷 Вклады и накопления", "Проценты прибавляются к балансу") { open(Page.DEPOSITS) }
         MenuItem("👨‍👩‍👧 Люди", settings.persons.joinToString(", ")) { open(Page.PEOPLE) }
         MenuItem(
             "Google Таблица",

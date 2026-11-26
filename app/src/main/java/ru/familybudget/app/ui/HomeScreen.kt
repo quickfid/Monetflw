@@ -218,22 +218,23 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         }
 
         // ---- вклады и проценты
-        if (depositInfos.isNotEmpty()) {
-            item {
-                Section("🐷 Вклады и накопления") {
+        item {
+            Section("🐷 Вклады и накопления") {
+                if (depositInfos.isEmpty()) {
+                    Text("Здесь будут отображаться ваши вклады и накопительные счета. Добавить их можно во вкладке «Вклады».",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                } else {
                     depositInfos.forEach { info ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(info.deposit.name, fontWeight = FontWeight.Medium)
-                                Text(
-                                    "+" + Fmt.money(info.expectedMonthly, cur, false) + " в этом месяце",
-                                    fontSize = 12.sp, color = incomeColor
-                                )
+                                Text("+" + Fmt.money(info.expectedMonthly, cur, false) + " ожидается за месяц",
+                                    fontSize = 12.sp, color = incomeColor)
                             }
                             Text(Fmt.money(info.balance, cur, false), fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    KeyValueRow("Проценты в этом месяце ≈", "+" + Fmt.money(expectedInterest, cur, false), incomeColor)
+                    KeyValueRow("Проценты за месяц ≈", "+" + Fmt.money(expectedInterest, cur, false), incomeColor)
                 }
             }
         }
