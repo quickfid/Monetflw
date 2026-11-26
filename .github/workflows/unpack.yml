@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 jobs:
-  распаковать:
+  unpack:
     runs-on: ubuntu-latest
 
     steps:
