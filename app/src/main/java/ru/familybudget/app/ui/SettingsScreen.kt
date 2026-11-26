@@ -48,7 +48,7 @@ import ru.familybudget.app.data.Mandatory
 import ru.familybudget.app.logic.Fmt
 import java.time.LocalDate
 
-private enum class Page { MENU, PROFILE, CATEGORIES, MANDATORY, ACCOUNTS, PEOPLE, SYNC }
+private enum class Page { MENU, PROFILE, CATEGORIES, MANDATORY, ACCOUNTS, DEPOSITS, PEOPLE, SYNC }
 
 @Composable
 fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
@@ -67,6 +67,7 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         Page.CATEGORIES -> "Категории и лимиты"
                         Page.MANDATORY -> "Обязательные платежи"
                         Page.ACCOUNTS -> "Счета"
+                        Page.DEPOSITS -> "Вклады и накопления"
                         Page.PEOPLE -> "Люди"
                         else -> "Google Таблица"
                     },
@@ -80,6 +81,7 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
             Page.CATEGORIES -> CategoriesPage(vm)
             Page.MANDATORY -> MandatoryPage(vm)
             Page.ACCOUNTS -> AccountsPage(vm)
+            Page.DEPOSITS -> DepositsPage(vm)
             Page.PEOPLE -> PeoplePage(vm)
             Page.SYNC -> SyncPage(vm)
         }
@@ -122,6 +124,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         MenuItem("🏷️ Категории", "Расходы и доходы") { open(Page.CATEGORIES) }
         MenuItem("💳 Платежи", "Ежемесячные, с галочками") { open(Page.MANDATORY) }
         MenuItem("🏦 Счета", "Карты и наличные") { open(Page.ACCOUNTS) }
+        MenuItem("🐷 Вклады и накопления", "Проценты прибавляются к балансу") { open(Page.DEPOSITS) }
         MenuItem("👨‍👩‍👧 Люди", settings.persons.joinToString(", ")) { open(Page.PEOPLE) }
         MenuItem(
             "Google Таблица",
@@ -156,7 +159,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
             Text(vm.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)
         }
         Text(
-            "Данные только на вашем телефоне · v1.2.0",
+            "Данные только на вашем телефоне · v1.3.0",
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

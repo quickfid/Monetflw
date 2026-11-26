@@ -19,14 +19,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import java.time.YearMonth
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ru.familybudget.app.ui.BudgetTheme
+import ru.familybudget.app.logic.Fmt
 import ru.familybudget.app.ui.ExportDialog
+import ru.familybudget.app.ui.FixedPaymentsDialog
 import ru.familybudget.app.ui.HomeScreen
 import ru.familybudget.app.ui.OnboardingScreen
 import ru.familybudget.app.ui.PlanEditor
@@ -64,6 +68,10 @@ private fun BudgetApp() {
     val settings by vm.settings.collectAsState()
 
     val planMonth = vm.planEditing
+    val categoriesNow by vm.categories.collectAsState()
+    val nowMonth = remember { YearMonth.now() }
+    val askFixed = settings.onboarded && settings.fixedPromptYm != nowMonth.toString() &&
+        categoriesNow.any { !it.isIncome && Fmt.isBill(it.name) }
     ExportDialog(vm)
 
     if (!settings.onboarded) {
@@ -102,5 +110,6 @@ private fun BudgetApp() {
                 else -> SettingsScreen(vm, padding)
             }
         }
+        if (askFixed) FixedPaymentsDialog(vm, nowMonth)
     }
 }

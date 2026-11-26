@@ -58,7 +58,7 @@ object Plans {
         val spent = monthOps.filter { it.type == OpType.EXPENSE }
             .groupBy { it.category.ifBlank { "Без категории" } }
             .mapValues { entry -> entry.value.sumOf { it.amountCents } }
-        val forecast = Stats.forecast(monthOps, ym, today, summary, budget, settings.monthlyIncome)
+        val forecast = Stats.forecast(monthOps, ym, today, summary, budget, settings.monthlyIncome, limits, mandatory)
         return MonthData(ym, monthOps, summary, paid, hasPlan(plans, ym), limits, planTotal, budget, spent, forecast)
     }
 

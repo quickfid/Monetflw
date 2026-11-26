@@ -67,7 +67,9 @@ object Stats {
         today: LocalDate,
         summary: MonthSummary,
         budget: Long,
-        expectedIncome: Long
+        expectedIncome: Long,
+        limits: Map<String, Long>,
+        mandatory: List<Mandatory>
     ): Forecast {
         val current = YearMonth.from(today)
         val days = ym.lengthOfMonth()
@@ -75,21 +77,49 @@ object Stats {
         val isPast = ym.isBefore(current)
         val elapsed = elapsedDays(ym, today)
         val expenses = monthOps.filter { it.type == OpType.EXPENSE }
-        val variable = expenses.filter { it.mandatoryId == null }.sumOf { it.amountCents }
-        val fixedPaid = expenses.filter { it.mandatoryId != null }.sumOf { it.amountCents }
+
+        // Обычные траты растягиваем на весь месяц по среднему за день.
+        val variable = expenses.filter { !Fmt.isBill(it.category) && it.mandatoryId == null }.sumOf { it.amountCents }
         val projectedVariable = when {
             isCurrent && elapsed > 0 -> variable * days / elapsed
             isPast -> variable
             else -> 0L
         }
-        val unpaid = if (isPast) 0L else summary.mandatoryUnpaid
-        val projected = projectedVariable + fixedPaid + unpaid
+
+        // Фиксированные платежи (аренда, кредит, связь, коммунальные) НЕ растягиваем:
+        // за месяц это либо сумма из плана, либо фактическая трата, если она больше.
+        val spentBills = expenses.filter { Fmt.isBill(it.category) }
+            .groupBy { it.category }.mapValues { e -> e.value.sumOf { it.amountCents } }
+        val planned = HashMap<String, Long>()
+        mandatory.forEach { m ->
+            val key = m.category.ifBlank { m.name }
+            if (Fmt.isBill(key)) planned[key] = m.amountCents
+        }
+        limits.forEach { (category, amount) -> if (Fmt.isBill(category)) planned[category] = amount }
+        var billsExpected = 0L
+        var billsRemaining = 0L
+        for (c in planned.keys + spentBills.keys) {
+            val spent = spentBills[c] ?: 0L
+            val plan = planned[c] ?: 0L
+            billsExpected += if (isPast) spent else maxOf(spent, plan)
+            if (!isPast) billsRemaining += maxOf(0L, plan - spent)
+        }
+
+        // Прочие обязательные платежи с галочкой (например, спортзал).
+        val paid = monthOps.mapNotNull { it.mandatoryId }.toSet()
+        val otherPaid = expenses.filter { !Fmt.isBill(it.category) && it.mandatoryId != null }.sumOf { it.amountCents }
+        val otherUnpaid = if (isPast) 0L else mandatory
+            .filter { !Fmt.isBill(it.category.ifBlank { it.name }) && it.id !in paid }
+            .sumOf { it.amountCents }
+        billsRemaining += otherUnpaid
+
+        val projected = projectedVariable + billsExpected + otherPaid + otherUnpaid
         val incomeTotal = if (isPast) summary.income else maxOf(summary.income, expectedIncome)
         val projectedBalance = summary.opening + incomeTotal - projected
         val daysLeft = if (isCurrent) days - elapsed + 1 else 0
         val safeDaily = if (isCurrent && daysLeft > 0) {
-            val pool = if (budget > 0) budget - summary.expense - unpaid
-            else summary.opening + incomeTotal - summary.expense - unpaid
+            val pool = if (budget > 0) budget - summary.expense - billsRemaining
+            else summary.opening + incomeTotal - summary.expense - billsRemaining
             (pool / daysLeft).coerceAtLeast(0L)
         } else 0L
         val verdict = when {

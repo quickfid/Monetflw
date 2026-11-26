@@ -6,6 +6,7 @@ import androidx.room.Database
 import androidx.room.Delete
 import androidx.room.Entity
 import androidx.room.Index
+import androidx.room.OnConflictStrategy
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
@@ -58,6 +59,31 @@ data class PlanItem(
     val ym: String,
     val category: String,
     val amountCents: Long
+)
+
+/** Вклад или накопительный счёт. principalCents — сумма на момент baselineYm (месяц «ГГГГ-ММ»). */
+@Entity(tableName = "deposits")
+data class Deposit(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val kind: String = "Вклад",
+    val principalCents: Long,
+    val baselineYm: String,
+    val ratePercent: Double,
+    /** 0 — ставка годовая, 1 — ставка в месяц. */
+    val ratePeriod: Int = 0,
+    /** true — проценты прибавляются к сумме и сами приносят проценты. */
+    val compound: Boolean = true
+)
+
+/** Проценты, пришедшие по вкладу за месяц. manual = true, если сумму поправил человек. */
+@Entity(tableName = "interest_entries", indices = [Index(value = ["depositId", "ym"], unique = true)])
+data class InterestEntry(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val depositId: Long,
+    val ym: String,
+    val amountCents: Long,
+    val manual: Boolean = false
 )
 
 @Entity(
@@ -144,6 +170,49 @@ interface BudgetDao {
     @Query("UPDATE plans SET category = :newName WHERE category = :oldName")
     suspend fun renameCategoryInPlans(oldName: String, newName: String)
 
+    @Query("DELETE FROM plans WHERE ym = :ym AND category = :category")
+    suspend fun deletePlanItem(ym: String, category: String)
+
+    // --- вклады и проценты
+    @Query("SELECT * FROM deposits ORDER BY id")
+    fun deposits(): Flow<List<Deposit>>
+
+    @Query("SELECT * FROM deposits ORDER BY id")
+    suspend fun depositsOnce(): List<Deposit>
+
+    @Insert
+    suspend fun insertDeposit(d: Deposit): Long
+
+    @Update
+    suspend fun updateDeposit(d: Deposit)
+
+    @Delete
+    suspend fun deleteDeposit(d: Deposit)
+
+    @Query("DELETE FROM deposits")
+    suspend fun clearDeposits()
+
+    @Query("SELECT * FROM interest_entries ORDER BY ym")
+    fun interest(): Flow<List<InterestEntry>>
+
+    @Query("SELECT * FROM interest_entries ORDER BY ym")
+    suspend fun interestOnce(): List<InterestEntry>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertInterest(list: List<InterestEntry>)
+
+    @Update
+    suspend fun updateInterest(e: InterestEntry)
+
+    @Query("DELETE FROM interest_entries WHERE depositId = :depositId")
+    suspend fun clearInterest(depositId: Long)
+
+    @Query("DELETE FROM interest_entries WHERE depositId = :depositId AND manual = 0")
+    suspend fun clearAutoInterest(depositId: Long)
+
+    @Query("DELETE FROM interest_entries")
+    suspend fun clearAllInterest()
+
     // --- категории
     @Query("SELECT * FROM categories ORDER BY id")
     fun categories(): Flow<List<Category>>
@@ -200,8 +269,11 @@ interface BudgetDao {
 }
 
 @Database(
-    entities = [Category::class, Account::class, Mandatory::class, Operation::class, PlanItem::class],
-    version = 2,
+    entities = [
+        Category::class, Account::class, Mandatory::class, Operation::class, PlanItem::class,
+        Deposit::class, InterestEntry::class
+    ],
+    version = 3,
     exportSchema = false
 )
 abstract class BudgetDb : RoomDatabase() {
@@ -215,7 +287,7 @@ abstract class BudgetDb : RoomDatabase() {
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
                     context.applicationContext, BudgetDb::class.java, "budget.db"
-                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
             }
     }
 }
@@ -228,5 +300,26 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
                 "`ym` TEXT NOT NULL, `category` TEXT NOT NULL, `amountCents` INTEGER NOT NULL)"
         )
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_plans_ym_category` ON `plans` (`ym`, `category`)")
+    }
+}
+
+/** Версия 2 → 3: вклады и начисленные проценты. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `deposits` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`name` TEXT NOT NULL, `kind` TEXT NOT NULL, `principalCents` INTEGER NOT NULL, " +
+                "`baselineYm` TEXT NOT NULL, `ratePercent` REAL NOT NULL, `ratePeriod` INTEGER NOT NULL, " +
+                "`compound` INTEGER NOT NULL)"
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `interest_entries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`depositId` INTEGER NOT NULL, `ym` TEXT NOT NULL, `amountCents` INTEGER NOT NULL, " +
+                "`manual` INTEGER NOT NULL)"
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_interest_entries_depositId_ym` " +
+                "ON `interest_entries` (`depositId`, `ym`)"
+        )
     }
 }

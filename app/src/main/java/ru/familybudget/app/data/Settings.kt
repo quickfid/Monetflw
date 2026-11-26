@@ -16,7 +16,9 @@ data class AppSettings(
     val monthlyIncome: Long = 0,
     /** План трат на месяц, в копейках (доход минус желаемые накопления). */
     val monthlyBudget: Long = 0,
-    val hideTips: Boolean = false
+    val hideTips: Boolean = false,
+    /** Месяц «ГГГГ-ММ», для которого уже спросили суммы фиксированных платежей. */
+    val fixedPromptYm: String = ""
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -39,7 +41,8 @@ class SettingsStore(context: Context) {
             onboarded = prefs.getBoolean("onboarded", false),
             monthlyIncome = prefs.getLong("monthlyIncome", 0L),
             monthlyBudget = prefs.getLong("monthlyBudget", 0L),
-            hideTips = prefs.getBoolean("hideTips", false)
+            hideTips = prefs.getBoolean("hideTips", false),
+            fixedPromptYm = prefs.getString("fixedPromptYm", "").orEmpty()
         )
     }
 
@@ -56,6 +59,7 @@ class SettingsStore(context: Context) {
             .putLong("monthlyIncome", next.monthlyIncome)
             .putLong("monthlyBudget", next.monthlyBudget)
             .putBoolean("hideTips", next.hideTips)
+            .putString("fixedPromptYm", next.fixedPromptYm)
             .apply()
         state.value = next
     }

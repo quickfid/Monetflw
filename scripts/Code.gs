@@ -66,7 +66,7 @@ function doGet(e) {
     const ss = openSpreadsheet_();
     const sheet = ss.getSheetByName(OPERATIONS_SHEET);
     if (!sheet) throw new Error('Не найден лист «Операции»');
-    return json_({ ok:true, service:'family-budget-api', version:'0.4.0', operationsSheet:true });
+    return json_({ ok:true, service:'family-budget-api', version:'0.5.0', operationsSheet:true });
   } catch (err) {
     return json_({ ok:false, error:'spreadsheet_access_error', message:String(err.message || err) });
   }
@@ -257,8 +257,30 @@ function buildMonthReport_(sh, data, fmt) {
     sh.getRange(firstRow, 1, 1, 6).merge().setValue('В этом месяце пока нет данных').setFontColor(C.gray);
   }
 
+  // --- вклады и накопления
+  const deps = data.deposits || [];
+  const depCount = deps.length;
+  const depTop = firstRow + Math.max(n, 1) + 4;
+  let dayStart = depTop;
+  if (depCount > 0) {
+    sectionHeader_(sh, depTop - 1, 6, '🐷 Вклады и накопления');
+    const dhead = sh.getRange(depTop, 1, 1, 6);
+    dhead.setValues([['Название', 'Сумма', 'Ставка', 'Проценты в месяц', 'Пришло всего', 'Тип']]);
+    headerCells_(dhead);
+    const deprows = deps.map(function (x) {
+      return [clean_(x.label, 80), Number(x.balance) || 0, clean_(x.rate, 30),
+        Number(x.monthly) || 0, Number(x.received) || 0, clean_(x.kind, 30)];
+    });
+    sh.getRange(depTop + 1, 1, depCount, 6).setValues(deprows).setVerticalAlignment('middle');
+    sh.getRange(depTop + 1, 2, depCount, 1).setNumberFormat(fmt);
+    sh.getRange(depTop + 1, 4, depCount, 2).setNumberFormat(fmt);
+    sh.getRange(depTop + 1, 3, depCount, 1).setHorizontalAlignment('center');
+    sh.getRange(depTop + 1, 4, depCount, 2).setFontColor('#1E5B2C').setFontWeight('bold');
+    box_(sh.getRange(depTop, 1, depCount + 1, 6));
+    dayStart = depTop + depCount + 4;
+  }
+
   // --- данные по дням
-  const dayStart = firstRow + Math.max(n, 1) + 4;
   sectionHeader_(sh, dayStart - 1, 6, '📅 Расходы по дням');
   const dh = sh.getRange(dayStart, 1, 1, 4);
   dh.setValues([['День', 'Накопительно', 'План на месяц', 'Расход за день']]);

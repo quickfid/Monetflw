@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.familybudget.app.BudgetViewModel
+import ru.familybudget.app.logic.Deposits
 import ru.familybudget.app.logic.Fmt
 import ru.familybudget.app.logic.Game
 import ru.familybudget.app.logic.Plans
@@ -48,6 +49,8 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val mandatory by vm.mandatory.collectAsState()
     val categories by vm.categories.collectAsState()
     val plans by vm.plans.collectAsState()
+    val deposits by vm.deposits.collectAsState()
+    val interest by vm.interest.collectAsState()
     val settings by vm.settings.collectAsState()
     val cur = settings.currency
     val ym = vm.month
@@ -58,6 +61,9 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
     }
     val game = remember(ops, plans, mandatory) { Game.compute(ops, plans, mandatory, today) }
     val balance = accounts.sumOf { it.initialCents } + ops.sumOf { it.delta() }
+    val depositInfos = remember(deposits, interest) { deposits.map { Deposits.info(it, interest) } }
+    val savings = depositInfos.sumOf { it.balance }
+    val expectedInterest = depositInfos.sumOf { it.expectedMonthly }
     val f = md.forecast
     val incomeColor = AppColors.income()
     val expenseColor = AppColors.expense()
@@ -156,7 +162,15 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         // ---- деньги
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                StatCard("💸 Баланс сейчас", Fmt.money(balance, cur), Modifier.fillMaxWidth())
+                if (depositInfos.isEmpty()) {
+                    StatCard("💸 Баланс сейчас", Fmt.money(balance, cur), Modifier.fillMaxWidth())
+                } else {
+                    StatCard("💰 Всего с накоплениями", Fmt.money(balance + savings, cur), Modifier.fillMaxWidth())
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatCard("На счетах", Fmt.money(balance, cur, false), Modifier.weight(1f))
+                        StatCard("Вклады и накопления", Fmt.money(savings, cur, false), Modifier.weight(1f), Tone.INCOME)
+                    }
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatCard("Доходы", Fmt.money(md.summary.income, cur, false), Modifier.weight(1f), Tone.INCOME)
                     StatCard("Расходы", Fmt.money(md.summary.expense, cur, false), Modifier.weight(1f), Tone.EXPENSE)
@@ -199,6 +213,27 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         if (f.isCurrent) Text("┅ прогноз", color = warnColor, fontSize = 12.sp)
                         if (md.budget > 0) Text("┅ план", color = expenseColor, fontSize = 12.sp)
                     }
+                }
+            }
+        }
+
+        // ---- вклады и проценты
+        if (depositInfos.isNotEmpty()) {
+            item {
+                Section("🐷 Вклады и накопления") {
+                    depositInfos.forEach { info ->
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(info.deposit.name, fontWeight = FontWeight.Medium)
+                                Text(
+                                    "+" + Fmt.money(info.expectedMonthly, cur, false) + " в этом месяце",
+                                    fontSize = 12.sp, color = incomeColor
+                                )
+                            }
+                            Text(Fmt.money(info.balance, cur, false), fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    KeyValueRow("Проценты в этом месяце ≈", "+" + Fmt.money(expectedInterest, cur, false), incomeColor)
                 }
             }
         }

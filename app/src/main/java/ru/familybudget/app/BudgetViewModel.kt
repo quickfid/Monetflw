@@ -19,9 +19,12 @@ import ru.familybudget.app.data.Account
 import ru.familybudget.app.data.AppSettings
 import ru.familybudget.app.data.BudgetDb
 import ru.familybudget.app.data.Category
+import ru.familybudget.app.data.Deposit
+import ru.familybudget.app.data.InterestEntry
 import ru.familybudget.app.data.Mandatory
 import ru.familybudget.app.data.OpType
 import ru.familybudget.app.data.PlanItem
+import ru.familybudget.app.logic.Deposits
 import ru.familybudget.app.logic.Plans
 import ru.familybudget.app.logic.Stats
 import ru.familybudget.app.data.Operation
@@ -63,6 +66,10 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         dao.mandatory().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val plans: StateFlow<List<PlanItem>> =
         dao.plans().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val deposits: StateFlow<List<Deposit>> =
+        dao.deposits().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val interest: StateFlow<List<InterestEntry>> =
+        dao.interest().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val unsyncedCount: StateFlow<Int> =
         operations.map { list -> list.count { !it.synced } }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
@@ -99,6 +106,7 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
             listOf("Кредит", "Прочие расходы").forEach { n ->
                 if (n !in existing) dao.insertCategory(Category(name = n, isIncome = false))
             }
+            ensureInterest()
         }
     }
 
@@ -238,24 +246,93 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         store.update { st ->
             st.copy(
                 monthlyIncome = if (incomeCents > 0) incomeCents else st.monthlyIncome,
-                monthlyBudget = if (total > 0 && ym >= YearMonth.now()) total else st.monthlyBudget
+                monthlyBudget = if (total > 0 && ym >= YearMonth.now()) total else st.monthlyBudget,
+                fixedPromptYm = if (ym == YearMonth.now()) ym.toString() else st.fixedPromptYm
             )
         }
-        // Ежемесячные платежи (аренда, кредит, связь, коммунальные) получают галочку «оплачено».
-        if (ym >= YearMonth.now()) {
-            val existing = dao.mandatoryOnce()
-            rows.filter { Fmt.isBill(it.category) }.forEach { r ->
-                val found = existing.firstOrNull { it.category == r.category }
-                if (found != null) {
-                    dao.updateMandatory(found.copy(amountCents = r.amountCents))
-                } else {
-                    dao.insertMandatory(
-                        Mandatory(name = r.category, day = Fmt.billDay(r.category), amountCents = r.amountCents, category = r.category)
-                    )
-                }
+        syncBills(ym, rows)
+        message = "План сохранён 🎉"
+    }
+
+    /** Ежемесячные платежи (аренда, кредит, связь, коммунальные) получают галочку «оплачено». */
+    private suspend fun syncBills(ym: YearMonth, rows: List<PlanItem>) {
+        if (ym < YearMonth.now()) return
+        val existing = dao.mandatoryOnce()
+        rows.filter { Fmt.isBill(it.category) }.forEach { r ->
+            val found = existing.firstOrNull { it.category == r.category }
+            if (found != null) {
+                dao.updateMandatory(found.copy(amountCents = r.amountCents))
+            } else {
+                dao.insertMandatory(
+                    Mandatory(name = r.category, day = Fmt.billDay(r.category), amountCents = r.amountCents, category = r.category)
+                )
             }
         }
-        message = "План сохранён 🎉"
+    }
+
+    /** Ежемесячный вопрос про аренду, кредит, связь и коммунальные: сохраняем только эти строки плана. */
+    fun saveFixed(ym: YearMonth, items: Map<String, Long>) {
+        viewModelScope.launch {
+            val key = ym.toString()
+            val rows = items.filter { it.value > 0 }.map { PlanItem(ym = key, category = it.key, amountCents = it.value) }
+            db.withTransaction {
+                items.keys.forEach { dao.deletePlanItem(key, it) }
+                if (rows.isNotEmpty()) dao.insertPlans(rows)
+            }
+            syncBills(ym, rows)
+            store.update { it.copy(fixedPromptYm = key) }
+            message = "Платежи сохранены ✅"
+        }
+    }
+
+    fun dismissFixed(ym: YearMonth) { store.update { it.copy(fixedPromptYm = ym.toString()) } }
+
+    // ---------- вклады и накопительные счета
+    private suspend fun ensureInterest() {
+        val now = YearMonth.now()
+        val all = dao.interestOnce()
+        dao.depositsOnce().forEach { d ->
+            val add = Deposits.missing(d, all.filter { it.depositId == d.id }, now)
+            if (add.isNotEmpty()) dao.insertInterest(add)
+        }
+    }
+
+    /** balanceCents = null означает «сумму не меняли». Новая сумма становится точкой отсчёта с этого месяца. */
+    fun saveDeposit(d: Deposit, balanceCents: Long?) {
+        viewModelScope.launch {
+            val now = YearMonth.now().toString()
+            if (d.id == 0L) {
+                dao.insertDeposit(d.copy(principalCents = balanceCents ?: 0L, baselineYm = now))
+            } else if (balanceCents != null) {
+                dao.updateDeposit(d.copy(principalCents = balanceCents, baselineYm = now))
+                dao.clearInterest(d.id)
+            } else {
+                dao.updateDeposit(d)
+            }
+            ensureInterest()
+            message = "Сохранено ✅"
+        }
+    }
+
+    fun deleteDeposit(d: Deposit) {
+        viewModelScope.launch {
+            dao.clearInterest(d.id)
+            dao.deleteDeposit(d)
+        }
+    }
+
+    /** Исправить сумму процентов за конкретный месяц. */
+    fun saveInterest(e: InterestEntry, amountCents: Long) {
+        viewModelScope.launch { dao.updateInterest(e.copy(amountCents = amountCents, manual = true)) }
+    }
+
+    /** Пересчитать проценты заново, кроме тех, что вы исправили вручную. */
+    fun recalcInterest(d: Deposit) {
+        viewModelScope.launch {
+            dao.clearAutoInterest(d.id)
+            ensureInterest()
+            message = "Проценты пересчитаны"
+        }
     }
 
     // ---------- справочники
@@ -427,6 +504,23 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
             planArr.put(JSONObject().put("ym", it.ym).put("category", it.category).put("amount", it.amountCents))
         }
         root.put("plans", planArr)
+        val depArr = JSONArray()
+        deposits.value.forEach {
+            depArr.put(
+                JSONObject().put("id", it.id).put("name", it.name).put("kind", it.kind)
+                    .put("principal", it.principalCents).put("baseline", it.baselineYm)
+                    .put("rate", it.ratePercent).put("period", it.ratePeriod).put("compound", it.compound)
+            )
+        }
+        root.put("deposits", depArr)
+        val intArr = JSONArray()
+        interest.value.forEach {
+            intArr.put(
+                JSONObject().put("deposit", it.depositId).put("ym", it.ym)
+                    .put("amount", it.amountCents).put("manual", it.manual)
+            )
+        }
+        root.put("interest", intArr)
         val opsArr = JSONArray()
         operations.value.sortedBy { it.date }.forEach { o ->
             val j = JSONObject()
@@ -454,6 +548,36 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
             dao.clearCategories()
             dao.clearAccounts()
             dao.clearAllPlans()
+            dao.clearDeposits()
+            dao.clearAllInterest()
+            val depJson = root.optJSONArray("deposits")
+            val interestJson = root.optJSONArray("interest")
+            if (depJson != null) {
+                val idMap2 = HashMap<Long, Long>()
+                for (i in 0 until depJson.length()) {
+                    val o = depJson.getJSONObject(i)
+                    val newId = dao.insertDeposit(
+                        Deposit(
+                            name = o.getString("name"), kind = o.optString("kind", "Вклад"),
+                            principalCents = o.optLong("principal"), baselineYm = o.getString("baseline"),
+                            ratePercent = o.optDouble("rate", 0.0), ratePeriod = o.optInt("period", 0),
+                            compound = o.optBoolean("compound", true)
+                        )
+                    )
+                    idMap2[o.optLong("id")] = newId
+                }
+                if (interestJson != null) {
+                    val entries = ArrayList<InterestEntry>()
+                    for (i in 0 until interestJson.length()) {
+                        val o = interestJson.getJSONObject(i)
+                        val newDep = idMap2[o.optLong("deposit")] ?: continue
+                        entries.add(
+                            InterestEntry(depositId = newDep, ym = o.getString("ym"), amountCents = o.optLong("amount"), manual = o.optBoolean("manual"))
+                        )
+                    }
+                    if (entries.isNotEmpty()) dao.insertInterest(entries)
+                }
+            }
             val planJson = root.optJSONArray("plans")
             if (planJson != null) {
                 val list = ArrayList<PlanItem>()
@@ -601,6 +725,17 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
             top.put(JSONObject().put("label", Fmt.emoji(it.name) + " " + it.name).put("amount", rub(it.sum)))
         }
         root.put("year", JSONObject().put("year", ym.year).put("months", months).put("top", top))
+
+        val depRows = JSONArray()
+        deposits.value.forEach { d ->
+            val info = Deposits.info(d, interest.value)
+            depRows.put(
+                JSONObject().put("label", "🐷 " + d.name).put("kind", d.kind).put("balance", rub(info.balance))
+                    .put("rate", Deposits.rateText(d)).put("monthly", rub(info.expectedMonthly))
+                    .put("received", rub(info.received))
+            )
+        }
+        root.put("deposits", depRows)
 
         val opsArr = JSONArray()
         md.ops.sortedBy { it.date }.forEach { o ->

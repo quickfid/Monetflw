@@ -168,7 +168,7 @@ fun ReportsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                     modifier = Modifier.fillMaxWidth().height(8.dp),
                                     color = if (over) expenseColor else if (warn) AppColors.warning() else MaterialTheme.colorScheme.primary
                                 )
-                                if (isCurrentMonth && elapsed >= 5 && !over) {
+                                if (isCurrentMonth && elapsed >= 5 && !over && !Fmt.isBill(name)) {
                                     val projected = Stats.projectCategory(spent, elapsed, ym.lengthOfMonth())
                                     if (projected > limit) {
                                         Text(
