@@ -1,5 +1,8 @@
 package ru.familybudget.app.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -136,8 +139,13 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             )
                         }
                     }
+                    val animatedXp by animateFloatAsState(
+                        targetValue = game.progress,
+                        animationSpec = tween(450),
+                        label = "xpProgress"
+                    )
                     LinearProgressIndicator(
-                        progress = { game.progress },
+                        progress = { animatedXp },
                         modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
                     )
                 }
@@ -231,11 +239,16 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         if (md.budget > 0) {
             item {
                 val fraction = (md.summary.expense.toFloat() / md.budget).coerceIn(0f, 1f)
+                val animatedFraction by animateFloatAsState(
+                    targetValue = fraction,
+                    animationSpec = tween(450),
+                    label = "budgetProgress"
+                )
                 val pct = ((md.summary.expense * 100) / md.budget).toInt().coerceAtLeast(0)
                 val over = md.summary.expense > md.budget
                 Section("Выполнение плана месяца · $pct%") {
                     LinearProgressIndicator(
-                        progress = { fraction },
+                        progress = { animatedFraction },
                         modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
                         color = if (over) expenseColor else MaterialTheme.colorScheme.primary
                     )
@@ -410,7 +423,9 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             Text("Другой совет", fontSize = 12.sp)
                         }
                     }
-                    Text(shownTip, style = MaterialTheme.typography.bodyMedium)
+                    AnimatedContent(targetState = shownTip, label = "tipText") { text ->
+                        Text(text, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
             }
         }

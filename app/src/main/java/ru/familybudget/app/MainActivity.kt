@@ -4,6 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.FloatingActionButton
@@ -72,50 +83,75 @@ private fun BudgetApp() {
         categoriesNow.any { !it.isIncome && Fmt.isBill(it.name) }
     ExportDialog(vm)
 
-    if (!settings.onboarded) {
-        OnboardingScreen(vm)
-    } else if (planMonth != null) {
-        PlanEditor(vm, planMonth)
-    } else if (editing != null) {
-        OperationEditor(vm, editing)
-    } else {
-        Scaffold(
-            bottomBar = {
-                NavigationBar {
-                    tabs.forEachIndexed { i, t ->
-                        NavigationBarItem(
-                            selected = tab == i,
-                            onClick = { tab = i },
-                            icon = { Icon(t.icon, contentDescription = t.title) },
-                            label = {
-                                Text(
-                                    t.title,
-                                    fontSize = 10.sp,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    overflow = TextOverflow.Ellipsis
+    val screenKey = when {
+        !settings.onboarded -> 0
+        planMonth != null -> 1
+        editing != null -> 2
+        else -> 3
+    }
+
+    AnimatedContent(
+        targetState = screenKey,
+        transitionSpec = {
+            (fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 16 }) togetherWith
+                (fadeOut(tween(180)) + slideOutVertically(tween(180)) { -it / 24 })
+        },
+        label = "rootScreen"
+    ) { screen ->
+        when (screen) {
+            0 -> OnboardingScreen(vm)
+            1 -> planMonth?.let { PlanEditor(vm, it) }
+            2 -> editing?.let { OperationEditor(vm, it) }
+            else -> {
+                Scaffold(
+                    bottomBar = {
+                        NavigationBar {
+                            tabs.forEachIndexed { i, t ->
+                                NavigationBarItem(
+                                    selected = tab == i,
+                                    onClick = { tab = i },
+                                    icon = { Icon(t.icon, contentDescription = t.title) },
+                                    label = {
+                                        Text(
+                                            t.title,
+                                            fontSize = 10.sp,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 )
                             }
-                        )
+                        }
+                    },
+                    floatingActionButton = {
+                        AnimatedVisibility(
+                            visible = tab == 0 || tab == 2,
+                            enter = scaleIn(tween(200)) + fadeIn(tween(200)),
+                            exit = scaleOut(tween(160)) + fadeOut(tween(160))
+                        ) {
+                            FloatingActionButton(onClick = { vm.startNew() }) {
+                                Icon(Icons.Rounded.Add, contentDescription = "Добавить операцию")
+                            }
+                        }
+                    }
+                ) { padding ->
+                    Crossfade(
+                        targetState = tab,
+                        animationSpec = tween(220),
+                        label = "mainTab"
+                    ) { currentTab ->
+                        when (currentTab) {
+                            0 -> HomeScreen(vm, padding)
+                            1 -> PlanScreen(vm, padding)
+                            2 -> OperationsScreen(vm, padding)
+                            3 -> DepositsPage(vm, padding)
+                            else -> SettingsScreen(vm, padding)
+                        }
                     }
                 }
-            },
-            floatingActionButton = {
-                if (tab == 0 || tab == 2) {
-                    FloatingActionButton(onClick = { vm.startNew() }) {
-                        Icon(Icons.Rounded.Add, contentDescription = "Добавить операцию")
-                    }
-                }
-            }
-        ) { padding ->
-            when (tab) {
-                0 -> HomeScreen(vm, padding)
-                1 -> PlanScreen(vm, padding)
-                2 -> OperationsScreen(vm, padding)
-                3 -> DepositsPage(vm, padding)
-                else -> SettingsScreen(vm, padding)
+                if (askFixed) FixedPaymentsDialog(vm, nowMonth)
             }
         }
-        if (askFixed) FixedPaymentsDialog(vm, nowMonth)
     }
 }

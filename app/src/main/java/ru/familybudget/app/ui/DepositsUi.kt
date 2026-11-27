@@ -1,5 +1,7 @@
 package ru.familybudget.app.ui
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -126,10 +128,15 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
         // Финансовая подушка (реальный прогресс)
         if (cushionGoal > 0) {
             val fraction = (totalSavings.toFloat() / cushionGoal).coerceIn(0f, 1f)
+            val animatedCushion by animateFloatAsState(
+                targetValue = fraction,
+                animationSpec = tween(500),
+                label = "cushionProgress"
+            )
             val monthsCovered = if (monthlyBase > 0) totalSavings.toDouble() / monthlyBase else 0.0
             Section("🛡️ Финансовая подушка (цель: 3 месяца)") {
                 LinearProgressIndicator(
-                    progress = { fraction },
+                    progress = { animatedCushion },
                     modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
                     color = savingsColor
                 )
