@@ -79,33 +79,41 @@ object AppUpdater {
             .build()
 
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
+        val partFile = File(dir, "update.apk.part")
         val outFile = File(dir, "update.apk")
 
-        client.newCall(req).execute().use { resp ->
-            if (!resp.isSuccessful) error("Ошибка загрузки: HTTP ${resp.code}")
-            val body = resp.body ?: error("Пустой ответ сервера")
-            val total = body.contentLength()
-            body.byteStream().use { input ->
-                FileOutputStream(outFile).use { output ->
-                    val buf = ByteArray(16 * 1024)
-                    var readTotal = 0L
-                    var lastPct = -1
-                    while (true) {
-                        val n = input.read(buf)
-                        if (n <= 0) break
-                        output.write(buf, 0, n)
-                        readTotal += n
-                        if (total > 0) {
-                            val pct = ((readTotal * 100) / total).toInt().coerceIn(0, 100)
-                            if (pct != lastPct) {
-                                lastPct = pct
-                                onProgress(pct)
+        try {
+            client.newCall(req).execute().use { resp ->
+                if (!resp.isSuccessful) error("Ошибка загрузки: HTTP ${resp.code}")
+                val body = resp.body ?: error("Пустой ответ сервера")
+                val total = body.contentLength()
+                body.byteStream().use { input ->
+                    FileOutputStream(partFile).use { output ->
+                        val buf = ByteArray(16 * 1024)
+                        var readTotal = 0L
+                        var lastPct = -1
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n <= 0) break
+                            output.write(buf, 0, n)
+                            readTotal += n
+                            if (total > 0) {
+                                val pct = ((readTotal * 100) / total).toInt().coerceIn(0, 100)
+                                if (pct != lastPct) {
+                                    lastPct = pct
+                                    onProgress(pct)
+                                }
                             }
                         }
+                        onProgress(100)
                     }
-                    onProgress(100)
                 }
             }
+            if (outFile.exists()) outFile.delete()
+            if (!partFile.renameTo(outFile)) error("Не удалось сохранить файл обновления")
+        } catch (e: Exception) {
+            partFile.delete()
+            throw e
         }
 
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", outFile)
