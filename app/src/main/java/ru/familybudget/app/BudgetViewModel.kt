@@ -60,22 +60,23 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     private val store = SettingsStore(app)
 
     val settings: StateFlow<AppSettings> = store.flow
+    private val shared = SharingStarted.WhileSubscribed(5_000)
     val operations: StateFlow<List<Operation>> =
-        dao.operations().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.operations().stateIn(viewModelScope, shared, emptyList())
     val categories: StateFlow<List<Category>> =
-        dao.categories().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.categories().stateIn(viewModelScope, shared, emptyList())
     val accounts: StateFlow<List<Account>> =
-        dao.accounts().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.accounts().stateIn(viewModelScope, shared, emptyList())
     val mandatory: StateFlow<List<Mandatory>> =
-        dao.mandatory().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.mandatory().stateIn(viewModelScope, shared, emptyList())
     val plans: StateFlow<List<PlanItem>> =
-        dao.plans().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.plans().stateIn(viewModelScope, shared, emptyList())
     val deposits: StateFlow<List<Deposit>> =
-        dao.deposits().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.deposits().stateIn(viewModelScope, shared, emptyList())
     val interest: StateFlow<List<InterestEntry>> =
-        dao.interest().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.interest().stateIn(viewModelScope, shared, emptyList())
     val unsyncedCount: StateFlow<Int> =
-        operations.map { list -> list.count { !it.synced } }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+        operations.map { list -> list.count { !it.synced } }.stateIn(viewModelScope, shared, 0)
 
     var month by mutableStateOf(YearMonth.now())
         private set
@@ -488,10 +489,11 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Тихая двусторонняя синхронизация при сворачивании/закрытии приложения. */
+    /** Тихая синхронизация при сворачивании: выполняется только если есть неотправленные операции или включена автосинхронизация. */
     fun syncOnBackground() {
         val st = settings.value
         if (syncing || st.apiUrl.isBlank() || st.token.isBlank()) return
+        if (!st.autoSync && unsyncedCount.value == 0) return
         viewModelScope.launch {
             syncing = true
             try {
