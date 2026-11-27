@@ -60,18 +60,18 @@ jobs:
           echo "next_version=$NEXT_VER" >> "$GITHUB_OUTPUT"
           echo "next_tag=$NEXT_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: 3. Настройка Java 17
+      - name: 3. Настройка Java 21
         if: steps.check.outputs.should_release == 'true'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
-      - name: 4. Настройка Gradle 8.14.8
+      - name: 4. Настройка Gradle 9.9.2
         if: steps.check.outputs.should_release == 'true'
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '8.14.8'
+          gradle-version: '9.9.2'
 
       - name: 5. Подготовка ключа подписи
         if: steps.check.outputs.should_release == 'true'
