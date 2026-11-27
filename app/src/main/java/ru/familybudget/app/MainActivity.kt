@@ -17,7 +17,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
@@ -213,8 +215,8 @@ private fun BudgetApp() {
     AnimatedContent(
         targetState = screenKey,
         transitionSpec = {
-            (fadeIn(tween(280, easing = FastOutSlowInEasing)) + slideInVertically(tween(280, easing = FastOutSlowInEasing)) { it / 18 }) togetherWith
-                (fadeOut(tween(220, easing = FastOutSlowInEasing)) + slideOutVertically(tween(220, easing = FastOutSlowInEasing)) { -it / 24 })
+            (fadeIn(tween(380, easing = FastOutSlowInEasing)) + slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it / 22 }) togetherWith
+                (fadeOut(tween(300, easing = FastOutSlowInEasing)) + slideOutVertically(tween(300, easing = FastOutSlowInEasing)) { -it / 28 })
         },
         label = "rootScreen"
     ) { screen ->
@@ -283,9 +285,15 @@ private fun BudgetApp() {
                         }
                     }
                 ) { padding ->
-                    Crossfade(
+                    AnimatedContent(
                         targetState = tab,
-                        animationSpec = tween(260, easing = FastOutSlowInEasing),
+                        transitionSpec = {
+                            val dir = if (targetState > initialState) 1 else -1
+                            (fadeIn(tween(360, easing = FastOutSlowInEasing)) +
+                                slideInHorizontally(tween(360, easing = FastOutSlowInEasing)) { dir * it / 12 }) togetherWith
+                                (fadeOut(tween(280, easing = FastOutSlowInEasing)) +
+                                    slideOutHorizontally(tween(280, easing = FastOutSlowInEasing)) { -dir * it / 16 })
+                        },
                         label = "mainTab"
                     ) { currentTab ->
                         when (currentTab) {

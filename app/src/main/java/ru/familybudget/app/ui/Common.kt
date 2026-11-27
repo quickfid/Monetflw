@@ -73,8 +73,8 @@ fun Modifier.bouncyClickable(enabled: Boolean = true, onClick: () -> Unit): Modi
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessLow),
         label = "bouncyScale"
     )
     this
@@ -107,8 +107,10 @@ fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifie
             AnimatedContent(
                 targetState = title,
                 transitionSpec = {
-                    (fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 3 }) togetherWith
-                        (fadeOut(tween(180)) + slideOutVertically(tween(180)) { -it / 3 })
+                    (fadeIn(tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)) +
+                        slideInVertically(tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { it / 4 }) togetherWith
+                        (fadeOut(tween(240, easing = androidx.compose.animation.core.FastOutSlowInEasing)) +
+                            slideOutVertically(tween(240, easing = androidx.compose.animation.core.FastOutSlowInEasing)) { -it / 4 })
                 },
                 label = "monthTitle"
             ) { label ->
