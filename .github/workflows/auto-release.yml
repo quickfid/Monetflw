@@ -119,14 +119,10 @@ jobs:
           APKSIGNER=$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools" -name apksigner -type f | sort -V | tail -n 1)
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "$NEXT_TAG"
-          git push origin "$NEXT_TAG"
-
           RELEASE_APK="FamilyBudget-${NEXT_TAG}-release.apk"
           cp "$APK_PATH" "$RELEASE_APK"
           gh release create "$NEXT_TAG" "$RELEASE_APK" \
+            --target main \
             --title "FamilyBudget ${NEXT_TAG}" \
             --generate-notes
 
