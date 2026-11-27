@@ -59,6 +59,7 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
     val cur = settings.currency
     var editing by remember { mutableStateOf<Deposit?>(null) }
     var history by remember { mutableStateOf<Deposit?>(null) }
+    var editingGoal by remember { mutableStateOf<ru.familybudget.app.data.SavingsGoal?>(null) }
     val incomeColor = AppColors.income()
     val savingsColor = AppColors.savings()
     val infos = remember(deposits, interest) { deposits.map { Deposits.info(it, interest) } }
@@ -146,6 +147,46 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
                     savingsColor
                 )
                 KeyValueRow("Цель (3 месяца бюджета)", Fmt.money(cushionGoal, cur, false))
+            }
+        }
+
+        // Финансовые цели (копилки на мечту)
+        Section("🎯 Финансовые цели") {
+            if (settings.goals.isEmpty()) {
+                HelpText("Создайте копилку на конкретную цель — например, отпуск, ремонт или новый телефон.")
+            } else {
+                settings.goals.forEachIndexed { idx, g ->
+                    if (idx > 0) HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                    val gRatio = if (g.targetCents > 0) (g.savedCents.toFloat() / g.targetCents).coerceIn(0f, 1f) else 0f
+                    val gPct = (gRatio * 100).toInt()
+                    Column(
+                        Modifier.fillMaxWidth().clickable { editingGoal = g },
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(g.title, fontWeight = FontWeight.SemiBold)
+                            Text("$gPct%", color = savingsColor, fontWeight = FontWeight.SemiBold)
+                        }
+                        LinearProgressIndicator(
+                            progress = { gRatio },
+                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                            color = savingsColor
+                        )
+                        KeyValueRow("Накоплено", "${Fmt.money(g.savedCents, cur, false)} из ${Fmt.money(g.targetCents, cur, false)}")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { vm.saveGoal(g.copy(savedCents = g.savedCents + 100_000L)) }) { Text("+1 000") }
+                            TextButton(onClick = { vm.saveGoal(g.copy(savedCents = g.savedCents + 500_000L)) }) { Text("+5 000") }
+                            TextButton(onClick = { editingGoal = g }) { Text("Изменить") }
+                        }
+                    }
+                }
+            }
+            OutlinedButton(
+                onClick = { editingGoal = ru.familybudget.app.data.SavingsGoal(0L, "", 0L, 0L) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Text("  Добавить цель")
             }
         }
 
@@ -308,6 +349,29 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
             ) {
                 MoneyField(amount, { amount = it }, "Пришло процентов, $cur")
             }
+        }
+    }
+
+    editingGoal?.let { g ->
+        val isNewGoal = g.id == 0L
+        var title by remember(g) { mutableStateOf(g.title) }
+        var target by remember(g) { mutableStateOf(if (g.targetCents > 0) Fmt.plain(g.targetCents) else "") }
+        var saved by remember(g) { mutableStateOf(if (g.savedCents > 0) Fmt.plain(g.savedCents) else "") }
+        val targetCents = Fmt.parseCents(target) ?: 0L
+        val savedCents = Fmt.parseCents(saved) ?: 0L
+        FormDialog(
+            title = if (isNewGoal) "Новая цель" else g.title,
+            onDismiss = { editingGoal = null },
+            confirmEnabled = title.isNotBlank() && targetCents > 0L,
+            onConfirm = {
+                vm.saveGoal(g.copy(title = title.trim(), targetCents = targetCents, savedCents = savedCents))
+                editingGoal = null
+            },
+            onDelete = if (!isNewGoal) ({ vm.deleteGoal(g.id); editingGoal = null }) else null
+        ) {
+            TextField2(title, { title = it }, "Название цели (например, Отпуск)")
+            MoneyField(target, { target = it }, "Нужная сумма, $cur")
+            MoneyField(saved, { saved = it }, "Уже накоплено, $cur")
         }
     }
 }

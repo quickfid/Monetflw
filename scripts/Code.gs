@@ -40,16 +40,19 @@ function doPost(e) {
       if (!operations) throw new Error('Не найден лист «Операции»');
       const requests = getRequestsSheet_(ss);
       const existing = findRequest_(requests, requestId);
-      if (existing) return json_({ ok:true, duplicate:true, row:existing, message:'already_added' });
-
       const when = /^\d{4}-\d{2}-\d{2}$/.test(String(data.date || ''))
         ? new Date(String(data.date) + 'T12:00:00') : new Date();
-      const row = operations.getLastRow() + 1;
-      // A:I: date, amount, type, category, comment, payment method, person, source account, destination account.
-      operations.getRange(row, 1, 1, 9).setValues([[
+      const rowValues = [[
         when, amount, type, category, comment, clean_(data.paymentMethod, 100), person,
         type === 'Перевод' ? source : '', type === 'Перевод' ? destination : ''
-      ]]);
+      ]];
+      if (existing) {
+        operations.getRange(existing, 1, 1, 9).setValues(rowValues);
+        return json_({ ok:true, duplicate:true, updated:true, row:existing, message:'operation_updated' });
+      }
+      const row = operations.getLastRow() + 1;
+      // A:I: date, amount, type, category, comment, payment method, person, source account, destination account.
+      operations.getRange(row, 1, 1, 9).setValues(rowValues);
       requests.appendRow([requestId, row, new Date()]);
       return json_({ ok:true, duplicate:false, row:row, message:'operation_added' });
     } finally {

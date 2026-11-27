@@ -102,13 +102,14 @@ jobs:
             echo "KEYSTORE_FILE=/tmp/familybudget-release.keystore" >> "$GITHUB_ENV"
           fi
 
-      - name: 7. Проверка Kotlin-компиляции
+      - name: 7. Проверка Kotlin-компиляции и unit-тестов
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           VERSION_CODE: ${{ inputs.version_code || github.run_number }}
         run: |
+          gradle testDebugUnitTest --stacktrace
           if [ "$ACTUAL_TYPE" = "debug" ]; then
             gradle compileDebugKotlin --stacktrace
           else

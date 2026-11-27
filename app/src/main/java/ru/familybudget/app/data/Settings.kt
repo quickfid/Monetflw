@@ -3,6 +3,15 @@ package ru.familybudget.app.data
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import org.json.JSONArray
+import org.json.JSONObject
+
+data class SavingsGoal(
+    val id: Long,
+    val title: String,
+    val targetCents: Long,
+    val savedCents: Long
+)
 
 private const val DEFAULT_API_URL =
     "https://script.google.com/macros/s/AKfycbwIJnvApZaZbpIF5C0k2zT2LPvn0GTNXVB0ffjC2BE1qDd0QI21pp057a6JQfcigDaV/exec"
@@ -28,7 +37,9 @@ data class AppSettings(
     /** Сколько процентов от дохода откладывать на подушку безопасности (5, 10, 15, 20). */
     val savingsPercent: Int = 10,
     /** Выбранная игровая стратегия накоплений (пусто — не выбрана). */
-    val activeStrategy: String = ""
+    val activeStrategy: String = "",
+    /** Финансовые цели (копилки на мечту). */
+    val goals: List<SavingsGoal> = emptyList()
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -55,8 +66,43 @@ class SettingsStore(context: Context) {
             fixedPromptYm = prefs.getString("fixedPromptYm", "").orEmpty(),
             dailyReminder = prefs.getBoolean("dailyReminder", false),
             savingsPercent = prefs.getInt("savingsPercent", 10),
-            activeStrategy = prefs.getString("activeStrategy", "").orEmpty()
+            activeStrategy = prefs.getString("activeStrategy", "").orEmpty(),
+            goals = parseGoals(prefs.getString("goals_json", "").orEmpty())
         )
+    }
+
+    private fun parseGoals(raw: String): List<SavingsGoal> {
+        if (raw.isBlank()) return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).mapNotNull { i ->
+                val o = arr.optJSONObject(i) ?: return@mapNotNull null
+                val title = o.optString("title").trim()
+                if (title.isEmpty()) return@mapNotNull null
+                SavingsGoal(
+                    id = o.optLong("id", i.toLong() + 1L),
+                    title = title,
+                    targetCents = o.optLong("targetCents", 0L).coerceAtLeast(0L),
+                    savedCents = o.optLong("savedCents", 0L).coerceAtLeast(0L)
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun serializeGoals(goals: List<SavingsGoal>): String {
+        val arr = JSONArray()
+        goals.forEach { g ->
+            arr.put(
+                JSONObject()
+                    .put("id", g.id)
+                    .put("title", g.title)
+                    .put("targetCents", g.targetCents)
+                    .put("savedCents", g.savedCents)
+            )
+        }
+        return arr.toString()
     }
 
     fun update(change: (AppSettings) -> AppSettings) {
@@ -76,6 +122,7 @@ class SettingsStore(context: Context) {
             .putBoolean("dailyReminder", next.dailyReminder)
             .putInt("savingsPercent", next.savingsPercent)
             .putString("activeStrategy", next.activeStrategy)
+            .putString("goals_json", serializeGoals(next.goals))
             .apply()
         state.value = next
     }

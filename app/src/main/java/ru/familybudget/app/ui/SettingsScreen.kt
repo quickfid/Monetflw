@@ -211,12 +211,23 @@ private fun ProfilePage(vm: BudgetViewModel) {
     var budget by remember(settings.monthlyBudget) {
         mutableStateOf(if (settings.monthlyBudget > 0) Fmt.plain(settings.monthlyBudget) else "")
     }
+    var savingsPct by remember(settings.savingsPercent) { mutableStateOf(settings.savingsPercent) }
     val incomeCents = Fmt.parseCents(income) ?: 0L
     val budgetCents = Fmt.parseCents(budget) ?: 0L
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextField2(name, { name = it }, "Ваше имя")
         MoneyField(income, { income = it }, "Доход в месяц, $cur")
+        ChipPicker(
+            label = "🛡️ Откладывать на подушку" +
+                if (incomeCents > 0) " (${Fmt.money(incomeCents * savingsPct / 100L, cur, false)}/мес)" else "",
+            value = "$savingsPct%",
+            options = listOf("5%", "10%", "15%", "20%"),
+            onSelect = {
+                savingsPct = it.removeSuffix("%").toIntOrNull() ?: 10
+                vm.setSavingsPercent(savingsPct)
+            }
+        )
         MoneyField(budget, { budget = it }, "План трат на месяц, $cur")
         if (incomeCents > 0 && budgetCents > 0) {
             val saving = incomeCents - budgetCents

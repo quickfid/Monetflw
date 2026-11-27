@@ -59,6 +59,18 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 }
 
+/** Восстанавливает ежедневное напоминание в 20:00 после перезагрузки устройства. */
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
+        if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
+            val prefs = context.applicationContext.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            if (prefs.getBoolean("dailyReminder", false)) {
+                ReminderScheduler.scheduleDaily20(context)
+            }
+        }
+    }
+}
+
 object ReminderScheduler {
     fun scheduleDaily20(context: Context) {
         val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager

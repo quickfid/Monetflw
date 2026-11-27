@@ -24,9 +24,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -82,8 +85,16 @@ private val tabs = listOf(
 private fun BudgetApp() {
     val vm: BudgetViewModel = viewModel()
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    val snackbarHostState = remember { SnackbarHostState() }
     val editing = vm.editing
     val settings by vm.settings.collectAsState()
+
+    LaunchedEffect(vm.message) {
+        if (vm.message.isNotBlank()) {
+            snackbarHostState.showSnackbar(vm.message)
+            vm.clearMessage()
+        }
+    }
 
     val planMonth = vm.planEditing
     val categoriesNow by vm.categories.collectAsState()
@@ -116,6 +127,7 @@ private fun BudgetApp() {
             2 -> editing?.let { OperationEditor(vm, it) }
             else -> {
                 Scaffold(
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
                     bottomBar = {
                         NavigationBar {
                             tabs.forEachIndexed { i, t ->

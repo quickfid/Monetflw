@@ -441,6 +441,17 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     }
     fun setSavingsPercent(pct: Int) { store.update { it.copy(savingsPercent = pct) } }
     fun setStrategy(id: String) { store.update { it.copy(activeStrategy = id) } }
+    fun saveGoal(goal: ru.familybudget.app.data.SavingsGoal) {
+        store.update { st ->
+            val id = if (goal.id == 0L) (st.goals.maxOfOrNull { it.id } ?: 0L) + 1L else goal.id
+            val next = goal.copy(id = id)
+            val list = if (st.goals.any { it.id == id }) st.goals.map { if (it.id == id) next else it } else st.goals + next
+            st.copy(goals = list)
+        }
+    }
+    fun deleteGoal(id: Long) {
+        store.update { st -> st.copy(goals = st.goals.filterNot { it.id == id }) }
+    }
 
     // ---------- синхронизация с Google-таблицей
     fun sync() {
