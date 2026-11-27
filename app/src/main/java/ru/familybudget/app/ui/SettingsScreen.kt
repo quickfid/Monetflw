@@ -190,14 +190,14 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         ) {
             Column {
                 orderedMenuKeys.forEachIndexed { idx, key ->
-                    val (title, sub, iconKey, targetPage) = when (key) {
-                        "profile" -> arrayOf("Профиль", "Имя, доход и даты поступлений", "other", Page.PROFILE)
-                        "accounts" -> arrayOf("Счета", "Карты и наличные", "income", Page.ACCOUNTS)
-                        "mandatory" -> arrayOf("Платежи", "Ежемесячные, окно дат и галочки", "utilities", Page.MANDATORY)
-                        "categories" -> arrayOf("Категории", "Расходы и доходы", "shopping", Page.CATEGORIES)
-                        "notifications" -> arrayOf("Уведомления", "Время, дни и напоминания", "phone", Page.NOTIFICATIONS)
-                        "people" -> arrayOf("Люди", settings.persons.joinToString(", "), "family", Page.PEOPLE)
-                        else -> arrayOf(
+                    val entry = when (key) {
+                        "profile" -> Quad("Профиль", "Имя, доход и даты поступлений", "other", Page.PROFILE)
+                        "accounts" -> Quad("Счета", "Карты и наличные", "income", Page.ACCOUNTS)
+                        "mandatory" -> Quad("Платежи", "Ежемесячные, окно дат и галочки", "utilities", Page.MANDATORY)
+                        "categories" -> Quad("Категории", "Расходы и доходы", "shopping", Page.CATEGORIES)
+                        "notifications" -> Quad("Уведомления", "Время, дни и напоминания", "phone", Page.NOTIFICATIONS)
+                        "people" -> Quad("Люди", settings.persons.joinToString(", "), "family", Page.PEOPLE)
+                        else -> Quad(
                             "Google Таблица",
                             if (settings.apiUrl.isBlank()) "Не подключена" else "Не отправлено: $unsynced",
                             "phone",
@@ -209,8 +209,8 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(Modifier.weight(1f)) {
-                            MenuItem(title as String, sub as String, iconKey as String) {
-                                if (!reorderMode) open(targetPage as Page)
+                            MenuItem(entry.title, entry.sub, entry.iconKey) {
+                                if (!reorderMode) open(entry.page)
                             }
                         }
                         if (reorderMode) {
