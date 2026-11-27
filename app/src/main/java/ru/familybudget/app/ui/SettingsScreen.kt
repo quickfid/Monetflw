@@ -112,6 +112,7 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
     val settings by vm.settings.collectAsState()
