@@ -226,6 +226,9 @@ interface BudgetDao {
     @Query("SELECT * FROM mandatory ORDER BY id")
     suspend fun mandatoryOnce(): List<Mandatory>
 
+    @Query("SELECT * FROM accounts ORDER BY id")
+    suspend fun accountsOnce(): List<Account>
+
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun categoryCount(): Int
 
