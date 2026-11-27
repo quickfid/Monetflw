@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,12 +18,14 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
@@ -84,8 +87,11 @@ private fun BudgetApp() {
 
     val planMonth = vm.planEditing
     val categoriesNow by vm.categories.collectAsState()
+    val plansNow by vm.plans.collectAsState()
     val nowMonth = remember { YearMonth.now() }
-    val askFixed = settings.onboarded && settings.fixedPromptYm != nowMonth.toString() &&
+    val askMonthlyGoals = settings.onboarded && settings.fixedPromptYm != nowMonth.toString() &&
+        !ru.familybudget.app.logic.Plans.hasPlan(plansNow, nowMonth)
+    val askFixed = settings.onboarded && !askMonthlyGoals && settings.fixedPromptYm != nowMonth.toString() &&
         categoriesNow.any { !it.isIncome && Fmt.isBill(it.name) }
     ExportDialog(vm)
 
@@ -99,8 +105,8 @@ private fun BudgetApp() {
     AnimatedContent(
         targetState = screenKey,
         transitionSpec = {
-            (fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 16 }) togetherWith
-                (fadeOut(tween(180)) + slideOutVertically(tween(180)) { -it / 24 })
+            (fadeIn(tween(280, easing = FastOutSlowInEasing)) + slideInVertically(tween(280, easing = FastOutSlowInEasing)) { it / 18 }) togetherWith
+                (fadeOut(tween(220, easing = FastOutSlowInEasing)) + slideOutVertically(tween(220, easing = FastOutSlowInEasing)) { -it / 24 })
         },
         label = "rootScreen"
     ) { screen ->
@@ -144,7 +150,7 @@ private fun BudgetApp() {
                 ) { padding ->
                     Crossfade(
                         targetState = tab,
-                        animationSpec = tween(220),
+                        animationSpec = tween(260, easing = FastOutSlowInEasing),
                         label = "mainTab"
                     ) { currentTab ->
                         when (currentTab) {
@@ -156,7 +162,23 @@ private fun BudgetApp() {
                         }
                     }
                 }
-                if (askFixed) FixedPaymentsDialog(vm, nowMonth)
+                if (askMonthlyGoals) {
+                    AlertDialog(
+                        onDismissRequest = { vm.dismissFixed(nowMonth) },
+                        title = { Text("🗓️ Цели на ${Fmt.monthTitle(nowMonth)}") },
+                        text = { Text("Начался новый месяц, а цели расходов ещё не заполнены. Хотите запланировать бюджет сейчас?") },
+                        confirmButton = {
+                            TextButton(onClick = { vm.dismissFixed(nowMonth); vm.openPlan(nowMonth) }) {
+                                Text("Заполнить цели")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { vm.dismissFixed(nowMonth) }) { Text("Позже") }
+                        }
+                    )
+                } else if (askFixed) {
+                    FixedPaymentsDialog(vm, nowMonth)
+                }
             }
         }
     }

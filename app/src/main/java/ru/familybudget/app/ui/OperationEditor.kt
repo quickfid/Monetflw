@@ -142,6 +142,11 @@ fun OperationEditor(vm: BudgetViewModel, initial: Operation) {
                 ChipPicker("На счёт", destAccount, accountNames, { destAccount = it })
             } else {
                 ChipPicker(if (type == OpType.INCOME) "Откуда деньги" else "На что потратили", category, categoryNames, { category = it })
+                TextField2(
+                    value = category,
+                    onChange = { category = it },
+                    label = "Или введите свою категорию вручную"
+                )
                 ChipPicker("Счёт", account, accountNames, { account = it })
             }
             if (settings.persons.size > 1) {

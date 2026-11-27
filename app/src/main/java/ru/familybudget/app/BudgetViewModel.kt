@@ -49,7 +49,9 @@ data class OnboardingData(
     /** План расходов на текущий месяц: категория → сумма в копейках. */
     val plan: Map<String, Long>,
     /** Обязательные платежи в этом месяце уже оплачены (остаток указан уже после них). */
-    val billsAlreadyPaid: Boolean = false
+    val billsAlreadyPaid: Boolean = false,
+    /** Сколько % от дохода откладывать на подушку безопасности (5, 10, 15, 20). */
+    val savingsPercent: Int = 10
 )
 
 class BudgetViewModel(app: Application) : AndroidViewModel(app) {
@@ -103,9 +105,13 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
                 dao.insertAccount(Account(name = "Наличные"))
             }
             if (dao.categoryCount() == 0) dao.insertCategories(defaultCategories())
-            // Для тех, кто обновился: гарантируем, что есть «Кредит» и «Прочие расходы».
+            // Для тех, кто обновился: гарантируем наличие ключевых категорий.
             val existing = dao.categoriesOnce().filter { !it.isIncome }.map { it.name }
-            listOf("Кредит", "Прочие расходы").forEach { n ->
+            listOf(
+                "Аренда квартиры", "Транспорт и бензин", "Связь и интернет",
+                "Стрижка, маникюр", "Продукты", "Развлечения и досуг", "Коммунальные платежи",
+                "Кафе и рестораны", "Подписки", "Подарки", "Спорт", "Кредит", "Прочие расходы"
+            ).forEach { n ->
                 if (n !in existing) dao.insertCategory(Category(name = n, isIncome = false))
             }
             ensureInterest()
@@ -134,7 +140,14 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
 
     fun saveOperation(op: Operation) {
         viewModelScope.launch {
-            if (op.id == 0L) dao.insertOperation(op) else dao.updateOperation(op)
+            val catName = op.category.trim()
+            if (op.type != OpType.TRANSFER && catName.isNotEmpty()) {
+                val isInc = op.type == OpType.INCOME
+                val exists = dao.categoriesOnce().any { it.isIncome == isInc && it.name.equals(catName, ignoreCase = true) }
+                if (!exists) dao.insertCategory(Category(name = catName, isIncome = isInc))
+            }
+            val clean = op.copy(category = catName, synced = false)
+            if (clean.id == 0L) dao.insertOperation(clean) else dao.updateOperation(clean)
             editing = null
             if (settings.value.autoSync) sync()
         }
@@ -189,6 +202,7 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
                     persons = if (people.isEmpty()) st.persons else people,
                     currency = d.currency.ifBlank { "₽" },
                     monthlyIncome = d.incomeCents,
+                    savingsPercent = d.savingsPercent,
                     fixedPromptYm = nowYm.toString(),
                     onboarded = true
                 )
@@ -425,6 +439,8 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         if (enabled) ru.familybudget.app.logic.ReminderScheduler.scheduleDaily20(ctx)
         else ru.familybudget.app.logic.ReminderScheduler.cancel(ctx)
     }
+    fun setSavingsPercent(pct: Int) { store.update { it.copy(savingsPercent = pct) } }
+    fun setStrategy(id: String) { store.update { it.copy(activeStrategy = id) } }
 
     // ---------- синхронизация с Google-таблицей
     fun sync() {
@@ -823,9 +839,11 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     private fun defaultCategories(): List<Category> {
         fun exp(name: String) = Category(name = name, isIncome = false, limitCents = 0)
         return listOf(
-            exp("Аренда жилья"), exp("Кредит"), exp("Транспорт и бензин"), exp("Связь и интернет"),
-            exp("Коммунальные платежи"), exp("Продукты"), exp("Здоровье"), exp("Одежда и обувь"),
-            exp("Досуг"), exp("Дом и быт"), exp("Подушка безопасности"), exp("Прочие расходы"),
+            exp("Аренда квартиры"), exp("Транспорт и бензин"), exp("Связь и интернет"),
+            exp("Стрижка, маникюр"), exp("Продукты"), exp("Развлечения и досуг"),
+            exp("Коммунальные платежи"), exp("Кафе и рестораны"), exp("Здоровье"),
+            exp("Одежда и обувь"), exp("Дом и быт"), exp("Подписки"), exp("Подарки"),
+            exp("Спорт"), exp("Кредит"), exp("Подушка безопасности"), exp("Прочие расходы"),
             Category(name = "Зарплата", isIncome = true),
             Category(name = "Аванс", isIncome = true),
             Category(name = "Подработка", isIncome = true),

@@ -149,27 +149,74 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
             }
         }
 
-        // Стратегии и советы по накоплениям
+        // Стратегии и советы по накоплениям (игровой вызов с отслеживанием прогресса)
+        val activeStrategy = settings.activeStrategy
+        val ops by vm.operations.collectAsState()
+        val nowYm = remember { YearMonth.now() }
+        val monthOps = remember(ops, nowYm) { ru.familybudget.app.logic.Stats.opsInMonth(ops, nowYm) }
+        val monthIncome = remember(monthOps) { monthOps.filter { it.type == ru.familybudget.app.data.OpType.INCOME }.sumOf { it.amountCents } }
+        val monthExpense = remember(monthOps) { monthOps.filter { it.type == ru.familybudget.app.data.OpType.EXPENSE }.sumOf { it.amountCents } }
+        val savedThisMonth = (monthIncome - monthExpense).coerceAtLeast(0L)
+        val daysLogged = remember(monthOps) { monthOps.map { it.date }.distinct().size }
+
+        val strategies = remember(settings.savingsPercent) {
+            listOf(
+                Triple("pay_yourself", "1. Сначала заплати себе", "Откладывайте ${settings.savingsPercent}% от дохода сразу в день получения, до основных трат."),
+                Triple("rule_50_30_20", "2. Правило 50 / 30 / 20", "50% дохода — на нужды, 30% — на желания, 20% — в накопления и вклады."),
+                Triple("rule_24h", "3. Правило 24 часов", "Откладывайте незапланированную покупку на сутки — половина импульсивных трат отпадёт сама."),
+                Triple("weekly_round", "4. Округление в конце недели", "Каждое воскресенье переводите «хвостик» с карты на накопительный счёт.")
+            )
+        }
+
+        if (activeStrategy.isNotBlank()) {
+            val activeInfo = strategies.firstOrNull { it.first == activeStrategy }
+            if (activeInfo != null) {
+                val targetPct = when (activeStrategy) {
+                    "rule_50_30_20" -> 20
+                    "pay_yourself" -> settings.savingsPercent.coerceAtLeast(5)
+                    else -> 0
+                }
+                val progressVal = when (activeStrategy) {
+                    "pay_yourself", "rule_50_30_20" -> {
+                        val goal = (if (monthIncome > 0) monthIncome else settings.monthlyIncome) * targetPct / 100L
+                        if (goal > 0) (savedThisMonth.toFloat() / goal).coerceIn(0f, 1f) else 0f
+                    }
+                    else -> (daysLogged.toFloat() / 14f).coerceIn(0f, 1f)
+                }
+                val animatedStrat by animateFloatAsState(
+                    targetValue = progressVal,
+                    animationSpec = tween(550),
+                    label = "strategyProgress"
+                )
+                val pctDone = (progressVal * 100).toInt()
+                Banner("🎮 Активный вызов: ${activeInfo.second}", Tone.INCOME) {
+                    Text(activeInfo.third, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    LinearProgressIndicator(
+                        progress = { animatedStrat },
+                        modifier = Modifier.fillMaxWidth().height(9.dp).clip(RoundedCornerShape(5.dp))
+                    )
+                    KeyValueRow("Прогресс месяца", "$pctDone%", incomeColor)
+                    TextButton(onClick = { vm.setStrategy("") }) { Text("Отказаться от вызова") }
+                }
+            }
+        }
+
         Section("🌱 Стратегии накоплений") {
-            StrategyItem(
-                "1. Сначала заплати себе",
-                "В день получения дохода сразу переводите 10% на накопительный счёт, до основных трат. Так накопления растут автоматически."
-            )
-            HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
-            StrategyItem(
-                "2. Правило 50 / 30 / 20",
-                "50% дохода — на обязательные нужды, 30% — на повседневные радости и желания, 20% — в копилку и вклады."
-            )
-            HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
-            StrategyItem(
-                "3. Правило 24 часов",
-                "Перед незапланированной покупкой подождите сутки. Большая часть импульсивных желаний проходит сама, а деньги остаются на счёте."
-            )
-            HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
-            StrategyItem(
-                "4. Округление в конце недели",
-                "Каждое воскресенье переводите «хвостик» с карты (например, до ровной тысячи) в накопления — незаметно для бюджета, но приятно в итоге."
-            )
+            strategies.forEachIndexed { idx, (id, title, desc) ->
+                if (idx > 0) HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                val isActive = activeStrategy == id
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (isActive) {
+                            TextButton(onClick = { vm.setStrategy("") }) { Text("Отказаться") }
+                        } else {
+                            OutlinedButton(onClick = { vm.setStrategy(id) }) { Text("Принять вызов 🎮") }
+                        }
+                    }
+                }
+            }
         }
     }
 
