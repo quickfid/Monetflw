@@ -60,9 +60,9 @@ class LogicTests {
             Operation(id = 2, date = day, amountCents = 10_000L, type = OpType.EXPENSE, category = "Связь", mandatoryId = 1L)
         )
         val state = Game.compute(ops, emptyList(), emptyList(), today)
-        // 2 ops * 10 + 1 distinct mandatory * 15 + 1 streak * 5 + 1 unlocked badge ("Первый шаг") * 25 = 65 XP
-        assertEquals(65, state.xp)
+        // 2 ops * 10 + 1 distinct mandatory * 15 + 1 streak * 5 + 1 unlocked bronze badge ("Первый шаг", +15 XP) = 55 XP
+        assertEquals(55, state.xp)
         assertTrue(state.streak == 1)
-        assertEquals(20, state.badges.size)
+        assertEquals(21, state.badges.size)
     }
 }
