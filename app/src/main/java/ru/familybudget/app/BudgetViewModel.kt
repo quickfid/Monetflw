@@ -480,7 +480,7 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 withContext(Dispatchers.IO) {
                     AppUpdater.downloadAndInstall(getApplication(), info.apkUrl) { pct ->
-                        updateProgress = pct
+                        viewModelScope.launch(Dispatchers.Main) { updateProgress = pct }
                     }
                 }
                 updateInfo = null

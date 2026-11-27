@@ -168,7 +168,7 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
                 modifier = Modifier.fillMaxWidth().clickable { editing = d },
                 shape = RoundedCornerShape(20.dp),
                 color = Sheet.glass(),
-                border = BorderStroke(1.dp, Sheet.border())
+                border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
             ) {
                 Column(
                     Modifier.fillMaxWidth().padding(14.dp),

@@ -46,10 +46,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import ru.familybudget.app.BudgetViewModel
 import ru.familybudget.app.data.Account
+import ru.familybudget.app.data.AppUpdater
 import ru.familybudget.app.data.Category
 import ru.familybudget.app.data.Mandatory
 import ru.familybudget.app.logic.Fmt
@@ -206,8 +208,10 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
             "🔄 Проверить обновления",
             if (vm.checkingUpdate) "Проверяем…" else "Установить новую версию прямо в приложении"
         ) { vm.checkForUpdate(silent = false) }
+        val ctx = LocalContext.current
+        val appVer = remember(ctx) { AppUpdater.currentVersion(ctx) }
         Text(
-            "Данные только на вашем телефоне · v1.4.0",
+            "Данные только на вашем телефоне · v$appVer",
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
