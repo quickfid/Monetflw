@@ -290,6 +290,108 @@ object CategoryIcons {
                 Color(0xFFE5F0F4), Color(0xFF396D85), Color(0xFF192B33), Color(0xFF8CC5DE)
             ),
             CategoryIconSpec(
+                "utilities", "Коммунальные платежи",
+                vec("OrigamiUtilities") {
+                    // Гранёная лампочка-капля оригами (отличается от дома «Аренда»)
+                    path(fill = s, fillAlpha = 0.24f) {
+                        moveTo(12f, 3.5f); lineTo(18f, 9f); lineTo(15.5f, 15.5f); lineTo(8.5f, 15.5f); lineTo(6f, 9f); close()
+                    }
+                    path(fill = s, fillAlpha = 0.14f) {
+                        moveTo(12f, 3.5f); lineTo(18f, 9f); lineTo(15.5f, 15.5f); lineTo(12f, 15.5f); close()
+                    }
+                    path(stroke = s, strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                        moveTo(12f, 3.5f); lineTo(18f, 9f); lineTo(15.5f, 15.5f); lineTo(8.5f, 15.5f); lineTo(6f, 9f); close()
+                        moveTo(9.5f, 18.2f); lineTo(14.5f, 18.2f)
+                        moveTo(10.5f, 20.5f); lineTo(13.5f, 20.5f)
+                    }
+                    path(stroke = s, strokeAlpha = 0.55f, strokeLineWidth = 1.15f, strokeLineCap = StrokeCap.Round) {
+                        moveTo(12f, 4.2f); lineTo(12f, 15f)
+                    }
+                },
+                Color(0xFFF6F1E1), Color(0xFF9C7B2E), Color(0xFF302918), Color(0xFFE6CE83)
+            ),
+            CategoryIconSpec(
+                "credit", "Кредит",
+                vec("OrigamiCredit") {
+                    // Гранёная банковская карта с диагональным ребром и чипом
+                    path(fill = s, fillAlpha = 0.24f) {
+                        moveTo(3.5f, 6.5f); lineTo(20.5f, 6.5f); lineTo(20.5f, 17.5f); lineTo(3.5f, 17.5f); close()
+                    }
+                    path(fill = s, fillAlpha = 0.14f) {
+                        moveTo(3.5f, 10.5f); lineTo(20.5f, 10.5f); lineTo(20.5f, 17.5f); lineTo(3.5f, 17.5f); close()
+                    }
+                    path(stroke = s, strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                        moveTo(3.5f, 6.5f); lineTo(20.5f, 6.5f); lineTo(20.5f, 17.5f); lineTo(3.5f, 17.5f); close()
+                        moveTo(3.5f, 10.5f); lineTo(20.5f, 10.5f)
+                        moveTo(7f, 14f); lineTo(10.5f, 14f)
+                    }
+                },
+                Color(0xFFEAEAF6), Color(0xFF4F5499), Color(0xFF1F2238), Color(0xFFAAB0EB)
+            ),
+            CategoryIconSpec(
+                "cafe", "Кафе и рестораны",
+                vec("OrigamiCafe") {
+                    // Гранёная чашка-оригами с паром
+                    path(fill = s, fillAlpha = 0.24f) {
+                        moveTo(5f, 9.5f); lineTo(16.5f, 9.5f); lineTo(15f, 18.5f); lineTo(6.5f, 18.5f); close()
+                    }
+                    path(stroke = s, strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                        moveTo(5f, 9.5f); lineTo(16.5f, 9.5f); lineTo(15f, 18.5f); lineTo(6.5f, 18.5f); close()
+                        moveTo(16.5f, 11f); lineTo(19.5f, 11f); lineTo(19.5f, 14.5f); lineTo(16f, 15.5f)
+                        moveTo(8.5f, 6.5f); lineTo(9.5f, 4.5f)
+                        moveTo(12.5f, 6.5f); lineTo(13.5f, 4.5f)
+                    }
+                },
+                Color(0xFFF6ECE5), Color(0xFFA05F3C), Color(0xFF32221A), Color(0xFFE6AE8C)
+            ),
+            CategoryIconSpec(
+                "sport", "Спорт",
+                vec("OrigamiSport") {
+                    // Гранёная молния-энергия оригами
+                    path(fill = s, fillAlpha = 0.24f) {
+                        moveTo(13.5f, 3.5f); lineTo(5.5f, 13f); lineTo(11.5f, 13f); lineTo(10.5f, 20.5f)
+                        lineTo(18.5f, 11f); lineTo(12.5f, 11f); close()
+                    }
+                    path(stroke = s, strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                        moveTo(13.5f, 3.5f); lineTo(5.5f, 13f); lineTo(11.5f, 13f); lineTo(10.5f, 20.5f)
+                        lineTo(18.5f, 11f); lineTo(12.5f, 11f); close()
+                    }
+                },
+                Color(0xFFE3F3F0), Color(0xFF28786C), Color(0xFF172E2A), Color(0xFF84D4C6)
+            ),
+            CategoryIconSpec(
+                "beauty", "Уход и красота",
+                vec("OrigamiBeauty") {
+                    // Гранёный цветок-кристалл оригами
+                    path(fill = s, fillAlpha = 0.24f) {
+                        moveTo(12f, 3.5f); lineTo(15f, 9f); lineTo(20.5f, 12f); lineTo(15f, 15f)
+                        lineTo(12f, 20.5f); lineTo(9f, 15f); lineTo(3.5f, 12f); lineTo(9f, 9f); close()
+                    }
+                    path(stroke = s, strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                        moveTo(12f, 3.5f); lineTo(15f, 9f); lineTo(20.5f, 12f); lineTo(15f, 15f)
+                        lineTo(12f, 20.5f); lineTo(9f, 15f); lineTo(3.5f, 12f); lineTo(9f, 9f); close()
+                    }
+                },
+                Color(0xFFF6EAF2), Color(0xFF9C5280), Color(0xFF331D2B), Color(0xFFE3A0CA)
+            ),
+            CategoryIconSpec(
+                "subscriptions", "Подписки",
+                vec("OrigamiSubscriptions") {
+                    // Гранёный двойной ромб-повтор оригами
+                    path(fill = s, fillAlpha = 0.24f) {
+                        moveTo(7.5f, 7.5f); lineTo(12f, 12f); lineTo(7.5f, 16.5f); lineTo(3f, 12f); close()
+                    }
+                    path(fill = s, fillAlpha = 0.14f) {
+                        moveTo(16.5f, 7.5f); lineTo(21f, 12f); lineTo(16.5f, 16.5f); lineTo(12f, 12f); close()
+                    }
+                    path(stroke = s, strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                        moveTo(7.5f, 7.5f); lineTo(12f, 12f); lineTo(7.5f, 16.5f); lineTo(3f, 12f); close()
+                        moveTo(16.5f, 7.5f); lineTo(21f, 12f); lineTo(16.5f, 16.5f); lineTo(12f, 12f); close()
+                    }
+                },
+                Color(0xFFECEAF7), Color(0xFF5D54A3), Color(0xFF221F38), Color(0xFFB7AFF0)
+            ),
+            CategoryIconSpec(
                 "other", "Прочее",
                 vec("OrigamiOther") {
                     path(fill = s, fillAlpha = 0.24f) {
@@ -315,15 +417,21 @@ object CategoryIcons {
     fun autoKey(name: String): String {
         val n = name.lowercase()
         return when {
-            listOf("продукт", "еда", "кафе", "ресторан", "кофе", "супермарк", "доставк").any { it in n } -> "food"
-            listOf("жил", "кварт", "аренд", "коммун", "жкх", "ипотек", "дом", "ремонт").any { it in n } -> "home"
+            listOf("кафе", "ресторан", "кофе", "доставк").any { it in n } -> "cafe"
+            listOf("продукт", "еда", "супермарк").any { it in n } -> "food"
+            listOf("коммун", "жкх", "свет", "вод", "электрич").any { it in n } -> "utilities"
+            listOf("жил", "кварт", "аренд", "ипотек", "дом", "ремонт").any { it in n } -> "home"
+            listOf("кредит", "займ", "долг").any { it in n } -> "credit"
+            listOf("сплит", "рассрочк", "долями", "подели").any { it in n } -> "installment"
             listOf("трансп", "авто", "бенз", "такси", "метро", "проезд", "парков").any { it in n } -> "car"
-            listOf("развлеч", "кино", "игр", "хобби", "отдых", "путеш", "отпуск").any { it in n } -> "fun"
-            listOf("здоров", "аптек", "врач", "медиц", "стомат", "спорт", "фитнес").any { it in n } -> "health"
-            listOf("одежд", "обув", "красот", "парикм", "космет").any { it in n } -> "cloth"
-            listOf("связ", "интерн", "телеф", "подпис").any { it in n } -> "net"
+            listOf("развлеч", "кино", "игр", "хобби", "отдых", "путеш", "отпуск", "досуг").any { it in n } -> "fun"
+            listOf("спорт", "фитнес", "тренир", "зал").any { it in n } -> "sport"
+            listOf("здоров", "аптек", "врач", "медиц", "стомат").any { it in n } -> "health"
+            listOf("стрижк", "маникюр", "красот", "парикм", "космет", "уход").any { it in n } -> "beauty"
+            listOf("одежд", "обув").any { it in n } -> "cloth"
+            listOf("подпис").any { it in n } -> "subscriptions"
+            listOf("связ", "интерн", "телеф").any { it in n } -> "net"
             listOf("маркетплейс", "ozon", "озон", "wildberries", "wb", "вайлдберриз", "яндекс маркет").any { it in n } -> "marketplace"
-            listOf("сплит", "рассрочк", "долями", "подели", "кредит").any { it in n } -> "installment"
             listOf("дет", "ребён", "ребен", "сад", "школ").any { it in n } -> "kids"
             listOf("питом", "кот", "собак", "живот", "вет").any { it in n } -> "pets"
             listOf("образ", "курс", "учёб", "учеб", "книг").any { it in n } -> "edu"
