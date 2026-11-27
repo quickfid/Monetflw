@@ -3,6 +3,14 @@ name: Сборка подписанного Release APK
 on:
   workflow_dispatch:
     inputs:
+      build_type:
+        description: 'Тип сборки: release (подписанный) или debug (отладочный)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
       version_code:
         description: 'Необязательный versionCode (по умолчанию номер запуска GitHub Actions)'
         required: false
@@ -47,6 +55,7 @@ jobs:
         run: gradle --version
 
       - name: 6. Подготовка постоянного ключа подписи из GitHub Secrets
+        if: ${{ inputs.build_type != 'debug' }}
         shell: bash
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -57,7 +66,7 @@ jobs:
           set -euo pipefail
           if [ -z "${KEYSTORE_BASE64:-}" ] || [ -z "${KEYSTORE_PASSWORD:-}" ] || [ -z "${KEY_ALIAS:-}" ] || [ -z "${KEY_PASSWORD:-}" ]; then
             echo "::error::Не заданы обязательные GitHub Secrets: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD."
-            echo "Добавьте постоянный keystore в Settings -> Secrets and variables -> Actions."
+            echo "Добавьте постоянный keystore в Settings -> Secrets and variables -> Actions или выберите build_type=debug при ручном запуске."
             exit 1
           fi
           echo "$KEYSTORE_BASE64" | base64 --decode > /tmp/familybudget-release.keystore
@@ -70,23 +79,39 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           VERSION_CODE: ${{ inputs.version_code || github.run_number }}
-        run: gradle compileReleaseKotlin --stacktrace
+        run: |
+          if [ "${{ inputs.build_type }}" = "debug" ]; then
+            gradle compileDebugKotlin --stacktrace
+          else
+            gradle compileReleaseKotlin --stacktrace
+          fi
 
-      - name: 8. Сборка подписанного Release APK
+      - name: 8. Сборка APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           VERSION_CODE: ${{ inputs.version_code || github.run_number }}
-        run: gradle assembleRelease --stacktrace
+        run: |
+          if [ "${{ inputs.build_type }}" = "debug" ]; then
+            gradle assembleDebug --stacktrace
+          else
+            gradle assembleRelease --stacktrace
+          fi
 
       - name: 9. Проверка подписи APK
         shell: bash
         run: |
           set -euo pipefail
-          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" -type f | head -n 1)
+          if [ "${{ inputs.build_type }}" = "debug" ]; then
+            APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -type f | head -n 1)
+            ARTIFACT_NAME="FamilyBudget-Debug-APK"
+          else
+            APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" -type f | head -n 1)
+            ARTIFACT_NAME="FamilyBudget-Release-APK"
+          fi
           if [ -z "$APK_PATH" ]; then
-            echo "::error::Release APK не найден."
+            echo "::error::APK не найден."
             exit 1
           fi
           echo "Найден APK: $APK_PATH"
@@ -97,11 +122,12 @@ jobs:
           fi
           "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
           echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
+          echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> "$GITHUB_ENV"
 
       - name: 10. Сохранение APK в Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: FamilyBudget-Release-APK
+          name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.APK_PATH }}
           if-no-files-found: error
 
