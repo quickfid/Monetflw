@@ -27,10 +27,15 @@ object Sheet {
         else Color.White.copy(alpha = a)
     }
     @Composable fun border(): Color = if (isSystemInDarkTheme()) Color(0x4DFFFFFF) else Color(0xD9FFFFFF)
-    @Composable fun glassBorderBrush(): Brush = if (isSystemInDarkTheme()) {
-        Brush.linearGradient(listOf(Color(0x73FFFFFF), Color(0x1AFFFFFF), Color(0x45FFFFFF)))
-    } else {
-        Brush.linearGradient(listOf(Color(0xFAFFFFFF), Color(0x59FFFFFF), Color(0xCCFFFFFF)))
+    @Composable fun glassBorderBrush(): Brush {
+        val calm = LocalAccentTheme.current == "calm_glass"
+        return if (isSystemInDarkTheme()) {
+            if (calm) Brush.linearGradient(listOf(Color(0x3DFFFFFF), Color(0x12FFFFFF), Color(0x29FFFFFF)))
+            else Brush.linearGradient(listOf(Color(0x73FFFFFF), Color(0x1AFFFFFF), Color(0x45FFFFFF)))
+        } else {
+            if (calm) Brush.linearGradient(listOf(Color(0xCCFFFFFF), Color(0x40FFFFFF), Color(0x99FFFFFF)))
+            else Brush.linearGradient(listOf(Color(0xFAFFFFFF), Color(0x59FFFFFF), Color(0xCCFFFFFF)))
+        }
     }
     @Composable fun tone(t: Tone): Color {
         val a = LocalGlassAlpha.current
@@ -73,6 +78,8 @@ object AppColors {
         val accent = LocalAccentTheme.current
         val dark = isSystemInDarkTheme()
         return when (accent) {
+            "calm_glass" -> if (dark) Brush.linearGradient(listOf(Color(0xB818232A), Color(0xB8121B21)))
+                else Brush.linearGradient(listOf(Color(0xCC293D47), Color(0xCC1E2E36)))
             "emerald" -> if (dark) Brush.linearGradient(listOf(Color(0xA60E4D36), Color(0xA60A3828)))
                 else Brush.linearGradient(listOf(Color(0xBD127A52), Color(0xBD0D5E41)))
             "indigo" -> if (dark) Brush.linearGradient(listOf(Color(0xA62A2D6B), Color(0xA61D2252)))

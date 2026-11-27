@@ -346,6 +346,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                     Text("Акцентный цвет", style = MaterialTheme.typography.bodyMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         listOf(
+                            Triple("calm_glass", "Матовое", Color(0xFF22343D)),
                             Triple("teal", "Бирюза", Color(0xFF1B6B7A)),
                             Triple("emerald", "Изумруд", Color(0xFF127A52)),
                             Triple("indigo", "Индиго", Color(0xFF3E44A8)),
