@@ -179,25 +179,29 @@ private fun BudgetApp() {
     val plansNow by vm.plans.collectAsState()
     val nowMonth = remember { YearMonth.now() }
 
-    // Всплывающее уведомление «Трофей получен!» в стиле PS5
+    // Всплывающее уведомление «Трофей получен!» в стиле PS5 — только при фактическом новом получении
     val unlockedNow = remember(opsNow, plansNow, mandatoryNow) {
         Game.compute(opsNow, plansNow, mandatoryNow, LocalDate.now()).badges.filter { it.unlocked }
     }
-    var seenBadges by remember { mutableStateOf<Set<String>?>(null) }
+    var badgesInitialized by remember { mutableStateOf(false) }
     var trophyToast by remember { mutableStateOf<Badge?>(null) }
     LaunchedEffect(unlockedNow) {
         val currentTitles = unlockedNow.map { it.title }.toSet()
-        val prev = seenBadges
-        if (prev == null) {
-            seenBadges = currentTitles
-        } else {
-            val newlyUnlocked = unlockedNow.firstOrNull { it.title !in prev }
-            seenBadges = prev + currentTitles
-            if (newlyUnlocked != null) {
-                trophyToast = newlyUnlocked
-                delay(3500)
-                if (trophyToast?.title == newlyUnlocked.title) trophyToast = null
-            }
+        if (currentTitles.isEmpty()) return@LaunchedEffect
+        val persisted = settings.seenBadges
+        if (!badgesInitialized && persisted.isEmpty()) {
+            // Первый запуск после обновления: тихо запоминаем уже полученные трофеи без спама
+            badgesInitialized = true
+            vm.markBadgesSeen(currentTitles)
+            return@LaunchedEffect
+        }
+        badgesInitialized = true
+        val newlyUnlocked = unlockedNow.firstOrNull { it.title !in persisted }
+        if (newlyUnlocked != null) {
+            vm.markBadgesSeen(currentTitles)
+            trophyToast = newlyUnlocked
+            delay(3500)
+            if (trophyToast?.title == newlyUnlocked.title) trophyToast = null
         }
     }
     val askMonthlyGoals = settings.onboarded && settings.fixedPromptYm != nowMonth.toString() &&

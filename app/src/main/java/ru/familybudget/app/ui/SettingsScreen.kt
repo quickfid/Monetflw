@@ -157,6 +157,13 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         )
     }
 
+    var reorderMode by remember { mutableStateOf(false) }
+    val defaultMenuKeys = remember { listOf("profile", "accounts", "mandatory", "categories", "notifications", "people", "sync") }
+    val orderedMenuKeys = remember(settings.menuOrder) {
+        val custom = settings.menuOrder.filter { it in defaultMenuKeys }
+        custom + defaultMenuKeys.filter { it !in custom }
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -164,24 +171,76 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Ещё", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Ещё", style = MaterialTheme.typography.headlineSmall)
+            TextButton(onClick = { reorderMode = !reorderMode }) {
+                Text(if (reorderMode) "Готово ✓" else "↕ Порядок")
+            }
+        }
         Surface(
             shape = RoundedCornerShape(22.dp),
             color = Sheet.glass(),
             border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
         ) {
             Column {
-                MenuItem("Профиль", "Имя и доход", "other") { open(Page.PROFILE) }
-                MenuItem("Категории", "Расходы и доходы", "shopping") { open(Page.CATEGORIES) }
-                MenuItem("Платежи", "Ежемесячные, окно дат и галочки", "utilities") { open(Page.MANDATORY) }
-                MenuItem("Уведомления", "Время, дни и напоминания", "phone") { open(Page.NOTIFICATIONS) }
-                MenuItem("Счета", "Карты и наличные", "income") { open(Page.ACCOUNTS) }
-                MenuItem("Люди", settings.persons.joinToString(", "), "family") { open(Page.PEOPLE) }
-                MenuItem(
-                    "Google Таблица",
-                    if (settings.apiUrl.isBlank()) "Не подключена" else "Не отправлено: $unsynced",
-                    "phone"
-                ) { open(Page.SYNC) }
+                orderedMenuKeys.forEachIndexed { idx, key ->
+                    val (title, sub, iconKey, targetPage) = when (key) {
+                        "profile" -> arrayOf("Профиль", "Имя, доход и даты поступлений", "other", Page.PROFILE)
+                        "accounts" -> arrayOf("Счета", "Карты и наличные", "income", Page.ACCOUNTS)
+                        "mandatory" -> arrayOf("Платежи", "Ежемесячные, окно дат и галочки", "utilities", Page.MANDATORY)
+                        "categories" -> arrayOf("Категории", "Расходы и доходы", "shopping", Page.CATEGORIES)
+                        "notifications" -> arrayOf("Уведомления", "Время, дни и напоминания", "phone", Page.NOTIFICATIONS)
+                        "people" -> arrayOf("Люди", settings.persons.joinToString(", "), "family", Page.PEOPLE)
+                        else -> arrayOf(
+                            "Google Таблица",
+                            if (settings.apiUrl.isBlank()) "Не подключена" else "Не отправлено: $unsynced",
+                            "phone",
+                            Page.SYNC
+                        )
+                    }
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(Modifier.weight(1f)) {
+                            MenuItem(title as String, sub as String, iconKey as String) {
+                                if (!reorderMode) open(targetPage as Page)
+                            }
+                        }
+                        if (reorderMode) {
+                            Row(Modifier.padding(end = 6.dp)) {
+                                TextButton(
+                                    onClick = {
+                                        if (idx > 0) {
+                                            val next = orderedMenuKeys.toMutableList()
+                                            val tmp = next[idx - 1]
+                                            next[idx - 1] = next[idx]
+                                            next[idx] = tmp
+                                            vm.setMenuOrder(next)
+                                        }
+                                    },
+                                    enabled = idx > 0
+                                ) { Text("↑") }
+                                TextButton(
+                                    onClick = {
+                                        if (idx < orderedMenuKeys.lastIndex) {
+                                            val next = orderedMenuKeys.toMutableList()
+                                            val tmp = next[idx + 1]
+                                            next[idx + 1] = next[idx]
+                                            next[idx] = tmp
+                                            vm.setMenuOrder(next)
+                                        }
+                                    },
+                                    enabled = idx < orderedMenuKeys.lastIndex
+                                ) { Text("↓") }
+                            }
+                        }
+                    }
+                }
                 MenuItem("Отчёты", "Анализ доходов, расходов и динамики", "savings") { open(Page.REPORTS) }
                 MenuItem("Отправить отчёт в таблицу", "Таблицы и графики для другого человека", "transfer") {
                     vm.exportReport(vm.month)
@@ -403,7 +462,9 @@ private fun CategoriesPage(vm: BudgetViewModel) {
     val cur = settings.currency
     var income by rememberSaveable { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<Category?>(null) }
-    val list = categories.filter { it.isIncome == income }
+    val list = categories
+        .filter { it.isIncome == income }
+        .sortedWith(compareByDescending<Category> { it.limitCents > 0L }.thenBy { it.name })
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -486,7 +547,7 @@ private fun MandatoryPage(vm: BudgetViewModel) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (items.isEmpty()) EmptyHint("Пока пусто. Отмеченный на обзоре платёж сам превращается в расход.")
-        items.forEach { m ->
+        items.sortedBy { it.day }.forEach { m ->
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Sheet.glass(),

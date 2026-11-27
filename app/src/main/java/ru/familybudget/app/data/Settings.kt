@@ -74,7 +74,11 @@ data class AppSettings(
     val salary1Days: String = "",
     val salary2Days: String = "",
     val benefitsDay: String = "",
-    val bonusDay: String = ""
+    val bonusDay: String = "",
+    /** Уже показанные трофеи (чтобы не показывать «Первый шаг» при каждом запуске). */
+    val seenBadges: Set<String> = emptySet(),
+    /** Пользовательский порядок пунктов в разделе «Ещё». */
+    val menuOrder: List<String> = emptyList()
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -128,7 +132,10 @@ class SettingsStore(context: Context) {
             salary1Days = prefs.getString("salary1Days", "").orEmpty(),
             salary2Days = prefs.getString("salary2Days", "").orEmpty(),
             benefitsDay = prefs.getString("benefitsDay", "").orEmpty(),
-            bonusDay = prefs.getString("bonusDay", "").orEmpty()
+            bonusDay = prefs.getString("bonusDay", "").orEmpty(),
+            seenBadges = prefs.getStringSet("seenBadges", emptySet())?.toSet() ?: emptySet(),
+            menuOrder = prefs.getString("menuOrder", "").orEmpty()
+                .split(",").map { it.trim() }.filter { it.isNotEmpty() }
         )
     }
 
@@ -232,6 +239,8 @@ class SettingsStore(context: Context) {
             .putString("salary2Days", next.salary2Days.trim())
             .putString("benefitsDay", next.benefitsDay.trim())
             .putString("bonusDay", next.bonusDay.trim())
+            .putStringSet("seenBadges", next.seenBadges)
+            .putString("menuOrder", next.menuOrder.joinToString(","))
             .apply()
         state.value = next
     }

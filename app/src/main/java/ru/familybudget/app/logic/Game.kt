@@ -110,10 +110,13 @@ object Game {
             // Бронза (+15 XP) — первые шаги и базовые привычки
             Badge("🌱", "Первый шаг", ops.isNotEmpty(), "Запишите свою первую операцию", TrophyTier.BRONZE),
             Badge("💰", "Первый доход", hasIncome, "Добавьте первый доход в бюджет", TrophyTier.BRONZE),
+            Badge("🔟", "Десятка", ops.size >= 10, "Запишите 10 операций", TrophyTier.BRONZE),
+            Badge("📝", "Первая заметка", withNotes >= 3, "Добавьте заметки к 3 операциям", TrophyTier.BRONZE),
             Badge("🔥", "3 дня подряд", best >= 3, "Ведите учёт 3 дня без перерыва", TrophyTier.BRONZE),
             Badge("📋", "План месяца", planMonths >= 1, "Составьте первый план бюджета", TrophyTier.BRONZE),
             Badge("🧘", "День без трат", zeroSpendDay, "Проведите хотя бы 1 день без единого расхода", TrophyTier.BRONZE),
             Badge("🛒", "Разнообразие", expenseCategories.size >= 5, "Используйте 5 разных категорий расходов", TrophyTier.BRONZE),
+            Badge("☑️", "Первый платёж", paidOps >= 1, "Отметьте первый обязательный платёж", TrophyTier.BRONZE),
             Badge("✅", "Платежи в срок", paidOps >= 3, "Отметьте 3 обязательных платежа", TrophyTier.BRONZE),
             Badge("👨‍👩‍👧", "Командная работа", persons.size >= 2, "Добавьте операции от 2 и более участников", TrophyTier.BRONZE),
 
@@ -121,15 +124,21 @@ object Game {
             Badge("⚡", "Неделя подряд", best >= 7, "Ведите учёт 7 дней подряд", TrophyTier.SILVER),
             Badge("🏆", "Железная привычка", best >= 14, "Серия из 14 дней подряд", TrophyTier.SILVER),
             Badge("✍️", "Внимание к деталям", withNotes >= 10, "Добавьте заметку к 10 операциям", TrophyTier.SILVER),
+            Badge("📒", "25 записей", ops.size >= 25, "Зафиксируйте 25 операций", TrophyTier.SILVER),
             Badge("🧾", "50 записей", ops.size >= 50, "Зафиксируйте 50 операций", TrophyTier.SILVER),
+            Badge("🗂️", "10 категорий", expenseCategories.size >= 10, "Используйте 10 разных категорий расходов", TrophyTier.SILVER),
+            Badge("📆", "Два месяца плана", planMonths >= 2, "Запланируйте бюджет на 2 месяца", TrophyTier.SILVER),
             Badge("📅", "Стратег", planMonths >= 3, "Запланируйте бюджет на 3 разных месяца", TrophyTier.SILVER),
             Badge("🛡️", "Без просрочек", paidOps >= 10, "Отметьте 10 обязательных платежей", TrophyTier.SILVER),
             Badge("🐷", "Накопитель", saver, "Отложите от 10% дохода за месяц", TrophyTier.SILVER),
 
             // Золото (+90 XP) — мастерство бюджета
             Badge("💎", "Месяц дисциплины", best >= 30, "Серия из 30 дней подряд", TrophyTier.GOLD),
+            Badge("🌟", "2 месяца подряд", best >= 60, "Серия из 60 дней подряд", TrophyTier.GOLD),
             Badge("💯", "100 записей", ops.size >= 100, "Зафиксируйте 100 операций", TrophyTier.GOLD),
             Badge("🚀", "Профи учёта", ops.size >= 250, "Зафиксируйте 250 операций", TrophyTier.GOLD),
+            Badge("🏛️", "500 записей", ops.size >= 500, "Зафиксируйте 500 операций", TrophyTier.GOLD),
+            Badge("🗓️", "Полгода плана", planMonths >= 6, "Запланируйте бюджет на 6 месяцев", TrophyTier.GOLD),
             Badge("🎯", "В рамках плана", keptPlan, "Закройте месяц без превышения плана", TrophyTier.GOLD),
             Badge("👑", "Супер-копилка", superSaver, "Отложите от 25% дохода за месяц", TrophyTier.GOLD)
         )
@@ -139,7 +148,7 @@ object Game {
             "🏆",
             "Платина · Мастер",
             allUnlocked,
-            "Соберите все 20 бронзовых, серебряных и золотых трофеев",
+            "Соберите все 29 бронзовых, серебряных и золотых трофеев",
             TrophyTier.PLATINUM
         )
         val badges = listOf(platinum) + coreBadges
