@@ -495,6 +495,39 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     fun dismissUpdate() {
         if (updateProgress == null) updateInfo = null
     }
+
+    /** Полный сброс локальных данных и возврат к экрану первоначальной настройки. */
+    fun resetAllData() {
+        viewModelScope.launch {
+            db.withTransaction {
+                dao.clearOperations()
+                dao.clearMandatory()
+                dao.clearCategories()
+                dao.clearAccounts()
+                dao.clearAllPlans()
+                dao.clearDeposits()
+                dao.clearAllInterest()
+                dao.insertAccount(Account(name = "Карта"))
+                dao.insertAccount(Account(name = "Наличные"))
+                listOf("Продукты", "Аренда квартиры", "Коммуналка", "Транспорт", "Связь и интернет", "Кредит", "Развлечения")
+                    .forEach { dao.insertCategory(Category(name = it, isIncome = false)) }
+                dao.insertCategory(Category(name = "Зарплата", isIncome = true))
+            }
+            store.update { st ->
+                st.copy(
+                    onboarded = false,
+                    monthlyIncome = 0L,
+                    monthlyBudget = 0L,
+                    fixedPromptYm = "",
+                    goals = emptyList(),
+                    activeStrategy = ""
+                )
+            }
+            editing = null
+            planEditing = null
+            message = "Данные сброшены — можно заполнить всё заново"
+        }
+    }
     fun setStrategy(id: String) { store.update { it.copy(activeStrategy = id) } }
     fun saveGoal(goal: ru.familybudget.app.data.SavingsGoal) {
         store.update { st ->
