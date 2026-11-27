@@ -175,7 +175,7 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.Add, contentDescription = null)
+            Icon(AppIcons.Add, contentDescription = null)
             Text("  Добавить вклад или счёт")
         }
 
@@ -344,7 +344,7 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
                 onClick = { editingGoal = ru.familybudget.app.data.SavingsGoal(0L, "", 0L, 0L) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(AppIcons.Add, contentDescription = null)
                 Text("  Добавить цель")
             }
         }

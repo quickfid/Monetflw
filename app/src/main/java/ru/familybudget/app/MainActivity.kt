@@ -335,7 +335,7 @@ private fun BudgetApp() {
                             exit = scaleOut(tween(160)) + fadeOut(tween(160))
                         ) {
                             FloatingActionButton(onClick = { vm.startNew() }) {
-                                Icon(Icons.Rounded.Add, contentDescription = "Добавить операцию")
+                                Icon(AppIcons.Add, contentDescription = "Добавить операцию")
                             }
                         }
                     }

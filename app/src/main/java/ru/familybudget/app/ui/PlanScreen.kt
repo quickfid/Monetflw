@@ -201,7 +201,7 @@ fun PlanEditor(vm: BudgetViewModel, ym: YearMonth) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { vm.closePlan() }) { Icon(Icons.Default.Close, contentDescription = "Закрыть") }
+                IconButton(onClick = { vm.closePlan() }) { Icon(AppIcons.Close, contentDescription = "Закрыть") }
                 Text("📋 План · " + Fmt.monthTitle(ym), style = MaterialTheme.typography.titleLarge)
             }
             MoneyField(income, { income = it }, "💼 Доход в месяц, $cur")

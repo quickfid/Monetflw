@@ -81,7 +81,7 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
         if (page != Page.MENU) {
             Row(Modifier.padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { page = Page.MENU }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                    Icon(AppIcons.Back, contentDescription = "Назад")
                 }
                 Text(
                     when (page) {
@@ -537,7 +537,7 @@ private fun CategoriesPage(vm: BudgetViewModel) {
             }
         }
         OutlinedButton(onClick = { dialog = Category(name = "", isIncome = income) }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Add, contentDescription = null)
+            Icon(AppIcons.Add, contentDescription = null)
             Text(if (income) "  Новая категория дохода" else "  Новая категория расхода")
         }
     }
@@ -618,7 +618,7 @@ private fun MandatoryPage(vm: BudgetViewModel) {
             onClick = { dialog = Mandatory(name = "", day = 1, amountCents = 0, category = expenseCategories.firstOrNull().orEmpty()) },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.Add, contentDescription = null)
+            Icon(AppIcons.Add, contentDescription = null)
             Text("  Новый платёж")
         }
     }
@@ -716,7 +716,7 @@ private fun AccountsPage(vm: BudgetViewModel) {
             }
         }
         OutlinedButton(onClick = { dialog = Account(name = "") }, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Add, contentDescription = null)
+            Icon(AppIcons.Add, contentDescription = null)
             Text("  Новый счёт")
         }
     }
