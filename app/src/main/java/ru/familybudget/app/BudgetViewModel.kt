@@ -60,7 +60,7 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     private val store = SettingsStore(app)
 
     val settings: StateFlow<AppSettings> = store.flow
-    private val shared = SharingStarted.WhileSubscribed(5_000)
+    private val shared = SharingStarted.Lazily
     val operations: StateFlow<List<Operation>> =
         dao.operations().stateIn(viewModelScope, shared, emptyList())
     val categories: StateFlow<List<Category>> =

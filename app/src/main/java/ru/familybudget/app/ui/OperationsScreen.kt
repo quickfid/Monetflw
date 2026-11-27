@@ -118,7 +118,7 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 }
             }
             items(dayOps, key = { it.id }) { op ->
-                OperationRow(op, cur) { vm.edit(op) }
+                OperationRow(op, cur, settings.categoryIcons) { vm.edit(op) }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             }
         }
@@ -126,7 +126,12 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
 }
 
 @Composable
-private fun OperationRow(op: Operation, currency: String, onClick: () -> Unit) {
+private fun OperationRow(
+    op: Operation,
+    currency: String,
+    iconOverrides: Map<String, String>,
+    onClick: () -> Unit
+) {
     val transfer = op.type == OpType.TRANSFER
     val title = if (transfer) "Перевод: ${op.account} → ${op.destAccount}" else op.category.ifBlank { "Без категории" }
     val subtitle = listOf(op.comment, op.person, if (transfer) "" else op.account)
@@ -143,8 +148,14 @@ private fun OperationRow(op: Operation, currency: String, onClick: () -> Unit) {
     }
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
+        CategoryBadge(
+            categoryName = if (transfer) "Перевод" else op.category.ifBlank { "Прочее" },
+            overrides = iconOverrides,
+            size = 36.dp
+        )
         Column(Modifier.weight(1f).padding(end = 8.dp)) {
             Text(title, fontWeight = FontWeight.Medium)
             if (subtitle.isNotEmpty()) {
