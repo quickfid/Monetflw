@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: 1. Получение исходников
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 2. Проверка структуры проекта и AndroidManifest
         shell: bash
@@ -48,7 +48,7 @@ jobs:
           java-version: '17'
 
       - name: 4. Настройка Gradle 8.9
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.9'
 
@@ -56,7 +56,7 @@ jobs:
         run: gradle --version
 
       - name: 5.5. Кэш постоянного debug-ключа (чтобы Debug APK ставился поверх предыдущего)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.android/debug.keystore
           key: familybudget-debug-keystore-v1
@@ -154,7 +154,7 @@ jobs:
           echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> "$GITHUB_ENV"
 
       - name: 10. Сохранение APK в Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.APK_PATH }}
