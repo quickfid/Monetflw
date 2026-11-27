@@ -87,6 +87,17 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         dao.deposits().stateIn(viewModelScope, shared, emptyList())
     val interest: StateFlow<List<InterestEntry>> =
         dao.interest().stateIn(viewModelScope, shared, emptyList())
+
+    init {
+        viewModelScope.launch {
+            val existing = dao.categoriesOnce().map { it.name.lowercase() }.toSet()
+            listOf("Маркетплейсы", "Сплит и рассрочки").forEach { name ->
+                if (name.lowercase() !in existing) {
+                    dao.insertCategory(Category(name = name, isIncome = false))
+                }
+            }
+        }
+    }
     val unsyncedCount: StateFlow<Int> =
         operations.map { list -> list.count { !it.synced } }.stateIn(viewModelScope, shared, 0)
 

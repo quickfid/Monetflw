@@ -886,14 +886,30 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     "Правило 24 часов: отложите спонтанную покупку на сутки — часто оказывается, что она не так уж нужна.",
                     "Раз в неделю заглядывайте в «Траты»: 2 минуты анализа экономят до 15% месячного бюджета.",
                     "Финансовая подушка на 3 месяца расходов даёт спокойствие при любых неожиданных ситуациях.",
-                    "Поддерживайте серию дней: ежедневная запись трат занимает 10 секунд и приносит +10 XP."
+                    "Поддерживайте серию дней: ежедневная запись трат занимает 10 секунд и приносит +10 XP.",
+                    "Правило 24 часов: перед покупкой на маркетплейсе подождите сутки — 60% импульсивных трат отпадают сами.",
+                    "Переводите 10% от каждого дохода в финансовую подушку сразу в день зарплаты, пока деньги не разошлись.",
+                    "День без трат — лучший тренажёр дисциплины: нажмите «🧘 Сегодня без трат» в квестах дня и получите +20 XP.",
+                    "Проверяйте активные подписки раз в месяц: часто 2–3 ненужные подписки съедают 1 500–3 000 ₽.",
+                    "Отмечайте рассрочки и сплит в виджете на Главной, чтобы видеть реальную нагрузку на бюджет.",
+                    "Свободный остаток в конце месяца можно в 1 касание перенести в финансовую подушку в разделе «Накопления».",
+                    "Используйте быструю строку вроде «продукты 1450» — так запись расхода занимает меньше 3 секунд.",
+                    "Разделяйте крупные цели на этапы: когда видите прогресс-бар цели, копить гораздо проще и приятнее.",
+                    "Сравнивайте траты текущего месяца с прошлым — даже небольшое снижение на 5% даёт заметный плюс за год."
                 )
+            }
+            androidx.compose.runtime.LaunchedEffect(extraTips.size) {
+                while (true) {
+                    kotlinx.coroutines.delay(10_000L)
+                    tipIdx = (tipIdx + 1) % (extraTips.size + 1)
+                }
             }
             val shownTip = if (tipIdx == 0) tip else extraTips[(tipIdx - 1) % extraTips.size]
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 color = AppColors.accentBlue(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -902,7 +918,8 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             if (tipIdx == 0) "💡 Персональная подсказка" else "✨ Совет по финансам",
                             modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         TextButton(
                             onClick = { tipIdx = (tipIdx + 1) % (extraTips.size + 1) },
@@ -912,7 +929,11 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         }
                     }
                     AnimatedContent(targetState = shownTip, label = "tipText") { text ->
-                        Text(text, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }
