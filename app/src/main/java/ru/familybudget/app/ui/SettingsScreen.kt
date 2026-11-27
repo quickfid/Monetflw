@@ -345,16 +345,28 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        "Тема оформления",
+                        "Стиль интерфейса",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("classic" to "Классика", "modern" to "Матовое стекло").forEach { (key, label) ->
+                            FilterChip(
+                                selected = settings.uiStyle == key,
+                                onClick = { vm.setUiStyle(key) },
+                                label = { Text(label) }
+                            )
+                        }
+                    }
+                    Text(
+                        "Акцентный цвет",
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(
-                            Triple("calm_glass", "Матовое", Color(0xFF22343D)),
                             Triple("teal", "Бирюза", Color(0xFF1B6B7A)),
                             Triple("emerald", "Изумруд", Color(0xFF127A52)),
                             Triple("indigo", "Индиго", Color(0xFF3E44A8)),

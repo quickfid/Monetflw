@@ -303,7 +303,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         .padding(18.dp)
                 ) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    val isCalm = LocalAccentTheme.current == "calm_glass"
+                    val isCalm = LocalUiStyle.current == "modern"
                     if (isCalm) {
                         Row(
                             Modifier.fillMaxWidth(),

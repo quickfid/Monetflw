@@ -63,6 +63,8 @@ data class AppSettings(
     val blurRadius: Int = 48,
     /** Акцентная цветовая тема: teal, emerald, indigo, graphite. */
     val accentTheme: String = "teal",
+    /** Стиль интерфейса: classic (исходный) или modern (новое матовое стекло). */
+    val uiStyle: String = "modern",
     /** Отдельная сумма финансовой подушки безопасности (в копейках, не зависит от вкладов). */
     val cushionCents: Long = 0L,
     // Умные локальные уведомления

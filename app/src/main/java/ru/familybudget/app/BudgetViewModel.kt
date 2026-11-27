@@ -514,6 +514,10 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         store.update { it.copy(accentTheme = theme) }
     }
 
+    fun setUiStyle(style: String) {
+        store.update { it.copy(uiStyle = style) }
+    }
+
     fun setCushionCents(cents: Long) {
         store.update { it.copy(cushionCents = cents.coerceAtLeast(0L)) }
         message = "Финансовая подушка обновлена 🛡️"

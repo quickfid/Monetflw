@@ -242,7 +242,8 @@ private fun BudgetApp() {
     }
     androidx.compose.runtime.CompositionLocalProvider(
         ru.familybudget.app.ui.LocalGlassAlpha provides settings.glassOpacity,
-        ru.familybudget.app.ui.LocalAccentTheme provides settings.accentTheme
+        ru.familybudget.app.ui.LocalAccentTheme provides settings.accentTheme,
+        ru.familybudget.app.ui.LocalUiStyle provides settings.uiStyle
     ) {
         Box(bgModifier) {
                     Scaffold(
@@ -310,7 +311,7 @@ private fun BudgetApp() {
                                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                                                 color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                            if (settings.accentTheme == "calm_glass") {
+                                            if (settings.uiStyle == "modern") {
                                                 Box(
                                                     modifier = Modifier
                                                         .width(22.dp)
