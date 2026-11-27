@@ -1,5 +1,6 @@
 package ru.familybudget.app
 
+import android.graphics.PixelFormat
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
@@ -107,20 +108,36 @@ private fun BudgetApp() {
     val settings by vm.settings.collectAsState()
     val view = LocalView.current
 
-    LaunchedEffect(settings.wallpaperBackground) {
-        val window = (view.context as? ComponentActivity)?.window ?: return@LaunchedEffect
+    val isDarkTheme = isSystemInDarkTheme()
+    LaunchedEffect(settings.wallpaperBackground, isDarkTheme) {
+        val activity = view.context as? ComponentActivity ?: return@LaunchedEffect
+        val window = activity.window ?: return@LaunchedEffect
         if (settings.wallpaperBackground) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                activity.setTranslucent(true)
+            }
+            window.setFormat(PixelFormat.TRANSLUCENT)
             window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
             window.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-                window.setBackgroundBlurRadius(64)
+                val attrs = window.attributes
+                attrs.blurBehindRadius = 48
+                window.attributes = attrs
             }
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-                window.setBackgroundBlurRadius(0)
+                val attrs = window.attributes
+                attrs.blurBehindRadius = 0
+                window.attributes = attrs
+            }
+            window.setBackgroundDrawable(
+                ColorDrawable(if (isDarkTheme) 0xFF0A1216.toInt() else 0xFFEAF4F8.toInt())
+            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                activity.setTranslucent(false)
             }
         }
     }
