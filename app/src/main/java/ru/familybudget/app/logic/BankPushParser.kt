@@ -46,7 +46,9 @@ object BankPushParser {
     )
     private val minusAmountRegex = Regex("""[-−]\s*\d""")
     private val balanceTailRegex = Regex("""(?i)(баланс|доступно|остаток).*""")
-    private val noiseWordsRegex = Regex("""(?i)\b(покупка|оплата|по\s+сбп|сбп|списание|карта|вы\s+оплатили|платёж|платеж)\b|\*\d{4}""")
+    private val noiseWordsRegex = Regex(
+        """(?i)(?:^|[\s·.,:;—−-])(покупка|оплата|по\s+сбп|сбп|списание|карта|вы\s+оплатили|платёж|платеж)(?=$|[\s·.,:;—−-])|\*\d{4}"""
+    )
     private val spacesRegex = Regex("""[\s\u00A0\u2009\u202F]+""")
 
     fun isSupportedBank(packageName: String): Boolean {
