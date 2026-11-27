@@ -4,11 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       build_type:
-        description: 'Тип сборки: release (подписанный) или debug (отладочный)'
+        description: 'Тип сборки: auto (release при наличии секретов, иначе debug), release или debug'
         required: true
-        default: 'release'
+        default: 'auto'
         type: choice
         options:
+          - auto
           - release
           - debug
       version_code:
@@ -54,24 +55,46 @@ jobs:
       - name: 5. Проверка Gradle
         run: gradle --version
 
-      - name: 6. Подготовка постоянного ключа подписи из GitHub Secrets
-        if: ${{ inputs.build_type != 'debug' }}
+      - name: 6. Определение типа сборки и подготовка ключа подписи
         shell: bash
         env:
+          REQUESTED_TYPE: ${{ inputs.build_type || 'auto' }}
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "${KEYSTORE_BASE64:-}" ] || [ -z "${KEYSTORE_PASSWORD:-}" ] || [ -z "${KEY_ALIAS:-}" ] || [ -z "${KEY_PASSWORD:-}" ]; then
-            echo "::error::Не заданы обязательные GitHub Secrets: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD."
-            echo "Добавьте постоянный keystore в Settings -> Secrets and variables -> Actions или выберите build_type=debug при ручном запуске."
-            exit 1
+          HAS_SECRETS=false
+          if [ -n "${KEYSTORE_BASE64:-}" ] && [ -n "${KEYSTORE_PASSWORD:-}" ] && [ -n "${KEY_ALIAS:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
+            HAS_SECRETS=true
           fi
-          echo "$KEYSTORE_BASE64" | base64 --decode > /tmp/familybudget-release.keystore
-          test -s /tmp/familybudget-release.keystore
-          echo "KEYSTORE_FILE=/tmp/familybudget-release.keystore" >> "$GITHUB_ENV"
+
+          if [ "$REQUESTED_TYPE" = "debug" ]; then
+            ACTUAL_TYPE="debug"
+          elif [ "$REQUESTED_TYPE" = "release" ]; then
+            if [ "$HAS_SECRETS" != "true" ]; then
+              echo "::error::Запрошена сборка release, но не заданы GitHub Secrets: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD."
+              exit 1
+            fi
+            ACTUAL_TYPE="release"
+          else
+            if [ "$HAS_SECRETS" = "true" ]; then
+              ACTUAL_TYPE="release"
+            else
+              echo "::notice::Секреты подписи ещё не настроены — собираем отладочный Debug APK. После добавления 4 секретов сборка автоматически переключится на подписанный Release APK."
+              ACTUAL_TYPE="debug"
+            fi
+          fi
+
+          echo "ACTUAL_TYPE=$ACTUAL_TYPE" >> "$GITHUB_ENV"
+          echo "Выбран режим сборки: $ACTUAL_TYPE"
+
+          if [ "$ACTUAL_TYPE" = "release" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > /tmp/familybudget-release.keystore
+            test -s /tmp/familybudget-release.keystore
+            echo "KEYSTORE_FILE=/tmp/familybudget-release.keystore" >> "$GITHUB_ENV"
+          fi
 
       - name: 7. Проверка Kotlin-компиляции
         env:
@@ -80,7 +103,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           VERSION_CODE: ${{ inputs.version_code || github.run_number }}
         run: |
-          if [ "${{ inputs.build_type }}" = "debug" ]; then
+          if [ "$ACTUAL_TYPE" = "debug" ]; then
             gradle compileDebugKotlin --stacktrace
           else
             gradle compileReleaseKotlin --stacktrace
@@ -93,7 +116,7 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           VERSION_CODE: ${{ inputs.version_code || github.run_number }}
         run: |
-          if [ "${{ inputs.build_type }}" = "debug" ]; then
+          if [ "$ACTUAL_TYPE" = "debug" ]; then
             gradle assembleDebug --stacktrace
           else
             gradle assembleRelease --stacktrace
@@ -103,7 +126,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ inputs.build_type }}" = "debug" ]; then
+          if [ "$ACTUAL_TYPE" = "debug" ]; then
             APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -type f | head -n 1)
             ARTIFACT_NAME="FamilyBudget-Debug-APK"
           else
