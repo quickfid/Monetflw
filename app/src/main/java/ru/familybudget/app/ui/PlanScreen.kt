@@ -107,8 +107,7 @@ fun PlanScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 color = Sheet.glass(),
-                border = BorderStroke(1.dp, Sheet.border()),
-                shadowElevation = 2.dp
+                border = BorderStroke(1.dp, Sheet.border())
             ) {
                 Column(
                     Modifier.fillMaxWidth().padding(14.dp),

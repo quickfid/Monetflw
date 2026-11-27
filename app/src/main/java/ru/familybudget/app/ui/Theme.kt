@@ -11,25 +11,25 @@ import androidx.compose.ui.graphics.Color
 enum class Tone { NEUTRAL, INCOME, EXPENSE, WARN, SAVINGS }
 
 object Sheet {
-    @Composable fun header(): Color = if (isSystemInDarkTheme()) Color(0xCC1E2C27) else Color(0xD9EBF3F7)
-    /** Полупрозрачная «стеклянная» поверхность в стиле Apple. */
-    @Composable fun glass(): Color = if (isSystemInDarkTheme()) Color(0xB8182320) else Color(0xDBFFFFFF)
-    @Composable fun border(): Color = if (isSystemInDarkTheme()) Color(0x2EFFFFFF) else Color(0xB3FFFFFF)
+    @Composable fun header(): Color = if (isSystemInDarkTheme()) Color(0xFF1E2C27) else Color(0xFFEAF2F6)
+    /** Чистая поверхность карточки без артефактов тени. */
+    @Composable fun glass(): Color = if (isSystemInDarkTheme()) Color(0xFF18221F) else Color(0xFFFFFFFF)
+    @Composable fun border(): Color = if (isSystemInDarkTheme()) Color(0xFF2A3B35) else Color(0xFFDCE4EE)
     @Composable fun tone(t: Tone): Color = if (isSystemInDarkTheme()) {
         when (t) {
-            Tone.NEUTRAL -> Color(0xB8182320)
-            Tone.INCOME -> Color(0xC4133227)
-            Tone.EXPENSE -> Color(0xC4361C20)
-            Tone.WARN -> Color(0xC4362B14)
-            Tone.SAVINGS -> Color(0xC4332812)
+            Tone.NEUTRAL -> Color(0xFF18221F)
+            Tone.INCOME -> Color(0xFF142E24)
+            Tone.EXPENSE -> Color(0xFF331D20)
+            Tone.WARN -> Color(0xFF332915)
+            Tone.SAVINGS -> Color(0xFF302614)
         }
     } else {
         when (t) {
-            Tone.NEUTRAL -> Color(0xDBFFFFFF)
-            Tone.INCOME -> Color(0xD9E4F6EE)
-            Tone.EXPENSE -> Color(0xD9FDEAEA)
-            Tone.WARN -> Color(0xD9FFF5DC)
-            Tone.SAVINGS -> Color(0xD9FEF5E0)
+            Tone.NEUTRAL -> Color(0xFFFFFFFF)
+            Tone.INCOME -> Color(0xFFEAF7F0)
+            Tone.EXPENSE -> Color(0xFFFDEFEF)
+            Tone.WARN -> Color(0xFFFFF6E0)
+            Tone.SAVINGS -> Color(0xFFFEF7E5)
         }
     }
 }

@@ -59,8 +59,7 @@ fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifie
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         color = Sheet.glass(),
-        border = BorderStroke(1.dp, Sheet.border()),
-        shadowElevation = 2.dp
+        border = BorderStroke(1.dp, Sheet.border())
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
@@ -80,8 +79,7 @@ fun Section(title: String, modifier: Modifier = Modifier, content: @Composable C
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         color = Sheet.glass(),
-        border = BorderStroke(1.dp, Sheet.border()),
-        shadowElevation = 2.dp
+        border = BorderStroke(1.dp, Sheet.border())
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
@@ -102,8 +100,7 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier, tone: 
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
         color = Sheet.tone(tone),
-        border = BorderStroke(1.dp, Sheet.border()),
-        shadowElevation = 2.dp
+        border = BorderStroke(1.dp, Sheet.border())
     ) {
         Column(
             Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 10.dp),
@@ -335,8 +332,7 @@ fun Banner(title: String, tone: Tone, modifier: Modifier = Modifier, content: @C
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         color = Sheet.tone(tone),
-        border = BorderStroke(1.dp, Sheet.border()),
-        shadowElevation = 2.dp
+        border = BorderStroke(1.dp, Sheet.border())
     ) {
         Column(
             Modifier.fillMaxWidth().padding(14.dp),
