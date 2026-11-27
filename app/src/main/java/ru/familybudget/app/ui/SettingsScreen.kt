@@ -119,6 +119,20 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         if (granted) vm.setDailyReminder(true)
     }
     var confirmRestore by remember { mutableStateOf(false) }
+    var confirmReset by remember { mutableStateOf(false) }
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            title = { Text("Сбросить все данные?") },
+            text = { Text("Все операции, счета, планы и вклады на этом телефоне будут удалены, и откроется стартовая настройка заново.") },
+            confirmButton = {
+                TextButton(onClick = { confirmReset = false; vm.resetAllData() }) {
+                    Text("Сбросить", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Отмена") } }
+        )
+    }
     if (confirmRestore) {
         AlertDialog(
             onDismissRequest = { confirmRestore = false },
@@ -167,6 +181,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                     backupLauncher.launch("family_budget_backup_${LocalDate.now()}.json")
                 }
                 MenuItem("♻️ Восстановить", "Из файла резервной копии") { confirmRestore = true }
+                MenuItem("🗑️ Сбросить все данные", "Очистить всё и пройти настройку заново") { confirmReset = true }
             }
         }
         Surface(
