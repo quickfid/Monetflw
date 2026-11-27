@@ -539,6 +539,12 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         store.update { it.copy(menuOrder = order) }
     }
 
+    fun markNoSpendToday() {
+        val todayStr = LocalDate.now().toString()
+        store.update { it.copy(noSpendDays = it.noSpendDays + todayStr) }
+        message = "🧘 День без трат засчитан! +20 XP"
+    }
+
     fun addToCushion(deltaCents: Long, deductFromAccount: Boolean = false) {
         if (deltaCents <= 0L) return
         store.update { it.copy(cushionCents = (it.cushionCents + deltaCents).coerceAtLeast(0L)) }

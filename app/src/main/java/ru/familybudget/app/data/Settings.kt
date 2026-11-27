@@ -135,7 +135,8 @@ class SettingsStore(context: Context) {
             bonusDay = prefs.getString("bonusDay", "").orEmpty(),
             seenBadges = prefs.getStringSet("seenBadges", emptySet())?.toSet() ?: emptySet(),
             menuOrder = prefs.getString("menuOrder", "").orEmpty()
-                .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                .split(",").map { it.trim() }.filter { it.isNotEmpty() },
+            noSpendDays = prefs.getStringSet("noSpendDays", emptySet())?.toSet() ?: emptySet()
         )
     }
 
@@ -241,6 +242,7 @@ class SettingsStore(context: Context) {
             .putString("bonusDay", next.bonusDay.trim())
             .putStringSet("seenBadges", next.seenBadges)
             .putString("menuOrder", next.menuOrder.joinToString(","))
+            .putStringSet("noSpendDays", next.noSpendDays)
             .apply()
         state.value = next
     }
