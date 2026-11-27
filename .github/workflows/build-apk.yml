@@ -19,6 +19,14 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
 
 jobs:
   build_release_apk:
@@ -160,6 +168,24 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.APK_PATH }}
           if-no-files-found: error
+
+      - name: 11. Автоматическая публикация GitHub Release (при теге v*)
+        if: startsWith(github.ref, 'refs/tags/v') && env.ACTUAL_TYPE == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          RELEASE_APK="FamilyBudget-${TAG}-release.apk"
+          cp "$APK_PATH" "$RELEASE_APK"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$RELEASE_APK" --clobber
+          else
+            gh release create "$TAG" "$RELEASE_APK" \
+              --title "FamilyBudget ${TAG}" \
+              --generate-notes
+          fi
 
       - name: Очистка временного ключа
         if: always()
