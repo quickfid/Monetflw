@@ -112,11 +112,8 @@ private fun BudgetApp() {
     LaunchedEffect(settings.wallpaperBackground, isDarkTheme) {
         val activity = view.context as? ComponentActivity ?: return@LaunchedEffect
         val window = activity.window ?: return@LaunchedEffect
+        window.setFormat(PixelFormat.TRANSLUCENT)
         if (settings.wallpaperBackground) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                activity.setTranslucent(true)
-            }
-            window.setFormat(PixelFormat.TRANSLUCENT)
             window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
             window.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -126,7 +123,6 @@ private fun BudgetApp() {
                 window.attributes = attrs
             }
         } else {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
                 val attrs = window.attributes
@@ -136,9 +132,6 @@ private fun BudgetApp() {
             window.setBackgroundDrawable(
                 ColorDrawable(if (isDarkTheme) 0xFF0A1216.toInt() else 0xFFEAF4F8.toInt())
             )
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                activity.setTranslucent(false)
-            }
         }
     }
 
