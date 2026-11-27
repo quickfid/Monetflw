@@ -518,6 +518,18 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         message = "Тестовое уведомление отправлено 🔔"
     }
 
+    fun setIncomeDates(salary1Days: String, salary2Days: String, benefitsDay: String, bonusDay: String) {
+        store.update {
+            it.copy(
+                salary1Days = salary1Days.trim(),
+                salary2Days = salary2Days.trim(),
+                benefitsDay = benefitsDay.trim(),
+                bonusDay = bonusDay.trim()
+            )
+        }
+        message = "Даты поступлений сохранены 📅"
+    }
+
     fun addToCushion(deltaCents: Long, deductFromAccount: Boolean = false) {
         if (deltaCents <= 0L) return
         store.update { it.copy(cushionCents = (it.cushionCents + deltaCents).coerceAtLeast(0L)) }

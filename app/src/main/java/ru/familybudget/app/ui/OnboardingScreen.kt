@@ -65,6 +65,10 @@ fun OnboardingScreen(vm: BudgetViewModel) {
     var recordIncome by rememberSaveable { mutableStateOf(false) }
     var billsAlreadyPaid by rememberSaveable { mutableStateOf(false) }
     var savingsPercent by rememberSaveable { mutableIntStateOf(10) }
+    var salary1Days by rememberSaveable { mutableStateOf("") }
+    var salary2Days by rememberSaveable { mutableStateOf("") }
+    var benefitsDay by rememberSaveable { mutableStateOf("") }
+    var bonusDay by rememberSaveable { mutableStateOf("") }
 
     // Вклады на старте (Шаг 2)
     val deposits = remember { mutableStateListOf<OnboardingDeposit>() }
@@ -172,6 +176,24 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                                 Checkbox(checked = recordIncome, onCheckedChange = { recordIncome = it })
                                 Text("Записать этот доход в текущий месяц", style = MaterialTheme.typography.bodySmall)
                             }
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = Sheet.glass(),
+                        border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+                    ) {
+                        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("📅 Даты поступлений (необязательно)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Укажите числа месяца (через запятую, если аванс и зарплата, напр. 10, 25). Потом их всегда можно изменить в «Ещё» → «Профиль».",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextField2(salary1Days, { salary1Days = it }, "Зарплата 1-го участника (напр. 10, 25)")
+                            TextField2(salary2Days, { salary2Days = it }, "Зарплата 2-го участника (напр. 5, 20)")
+                            TextField2(benefitsDay, { benefitsDay = it }, "Пособия (число месяца, напр. 3)")
+                            TextField2(bonusDay, { bonusDay = it }, "Ежемесячные премии (число, напр. 15)")
                         }
                     }
                 }
@@ -352,6 +374,9 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                                     initialDeposits = deposits.toList()
                                 )
                             )
+                            if (salary1Days.isNotBlank() || salary2Days.isNotBlank() || benefitsDay.isNotBlank() || bonusDay.isNotBlank()) {
+                                vm.setIncomeDates(salary1Days, salary2Days, benefitsDay, bonusDay)
+                            }
                         }
                     },
                     modifier = Modifier.weight(1f)

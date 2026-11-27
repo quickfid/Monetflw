@@ -1,5 +1,8 @@
 package ru.familybudget.app.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,14 +15,18 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.font.FontWeight
+import androidx.core.content.ContextCompat
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -363,6 +370,26 @@ private fun ProfilePage(vm: BudgetViewModel) {
             onClick = { vm.saveProfile(name, incomeCents, budgetCents) },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Сохранить") }
+
+        var sal1 by remember(settings.salary1Days) { mutableStateOf(settings.salary1Days) }
+        var sal2 by remember(settings.salary2Days) { mutableStateOf(settings.salary2Days) }
+        var benef by remember(settings.benefitsDay) { mutableStateOf(settings.benefitsDay) }
+        var bonus by remember(settings.bonusDay) { mutableStateOf(settings.bonusDay) }
+        Section("📅 Даты поступлений") {
+            Text(
+                "Укажите числа месяца (через запятую, если аванс и зарплата, например: 10, 25)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextField2(sal1, { sal1 = it }, "Зарплата 1-го участника (напр. 10, 25)")
+            TextField2(sal2, { sal2 = it }, "Зарплата 2-го участника (напр. 5, 20)")
+            TextField2(benef, { benef = it }, "Пособия (число месяца, напр. 3)")
+            TextField2(bonus, { bonus = it }, "Ежемесячные премии (число, напр. 15)")
+            OutlinedButton(
+                onClick = { vm.setIncomeDates(sal1, sal2, benef, bonus) },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Сохранить даты поступлений") }
+        }
         if (vm.message.isNotEmpty()) Text(vm.message, color = MaterialTheme.colorScheme.primary)
     }
 }
