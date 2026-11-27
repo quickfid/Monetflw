@@ -103,9 +103,9 @@ class LogicTests {
         // Переводы не искажают доходы и расходы месяца
         val catStats = Stats.categoryStats(ops, OpType.EXPENSE)
         assertEquals(2, catStats.size)
-        assertEquals("Продукты", catStats[0].category)
-        assertEquals(1_500_000L, catStats[0].amountCents)
-        assertEquals(500_000L, catStats[1].amountCents)
+        assertEquals("Продукты", catStats[0].name)
+        assertEquals(1_500_000L, catStats[0].sum)
+        assertEquals(500_000L, catStats[1].sum)
 
         // Ежедневные расходы и прогноз по категории
         val daily = Stats.dailyExpenses(ops, ym)
