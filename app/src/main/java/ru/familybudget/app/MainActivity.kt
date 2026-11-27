@@ -1,6 +1,9 @@
 package ru.familybudget.app
 
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,6 +20,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -42,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import java.time.YearMonth
@@ -95,6 +100,25 @@ private fun BudgetApp() {
     val snackbarHostState = remember { SnackbarHostState() }
     val editing = vm.editing
     val settings by vm.settings.collectAsState()
+    val view = LocalView.current
+
+    LaunchedEffect(settings.wallpaperBackground) {
+        val window = (view.context as? ComponentActivity)?.window ?: return@LaunchedEffect
+        if (settings.wallpaperBackground) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+            window.setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                window.setBackgroundBlurRadius(64)
+            }
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                window.setBackgroundBlurRadius(0)
+            }
+        }
+    }
 
     LaunchedEffect(vm.message) {
         if (vm.message.isNotBlank()) {
@@ -133,7 +157,15 @@ private fun BudgetApp() {
             1 -> planMonth?.let { PlanEditor(vm, it) }
             2 -> editing?.let { OperationEditor(vm, it) }
             else -> {
-                Box(Modifier.fillMaxSize().background(AppColors.ambientBackground())) {
+                val isDark = isSystemInDarkTheme()
+                val bgModifier = if (settings.wallpaperBackground) {
+                    Modifier.fillMaxSize().background(
+                        if (isDark) Color.Black.copy(alpha = 0.42f) else Color.White.copy(alpha = 0.28f)
+                    )
+                } else {
+                    Modifier.fillMaxSize().background(AppColors.ambientBackground())
+                }
+                Box(bgModifier) {
                     Scaffold(
                         containerColor = Color.Transparent,
                         snackbarHost = { SnackbarHost(snackbarHostState) },

@@ -441,6 +441,10 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         else ru.familybudget.app.logic.ReminderScheduler.cancel(ctx)
     }
     fun setSavingsPercent(pct: Int) { store.update { it.copy(savingsPercent = pct) } }
+
+    fun setWallpaperBackground(enabled: Boolean) {
+        store.update { it.copy(wallpaperBackground = enabled) }
+    }
     fun setStrategy(id: String) { store.update { it.copy(activeStrategy = id) } }
     fun saveGoal(goal: ru.familybudget.app.data.SavingsGoal) {
         store.update { st ->

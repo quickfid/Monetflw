@@ -41,7 +41,9 @@ data class AppSettings(
     /** Финансовые цели (копилки на мечту). */
     val goals: List<SavingsGoal> = emptyList(),
     /** Пользовательские иконки категорий: название категории → ключ иконки. */
-    val categoryIcons: Map<String, String> = emptyMap()
+    val categoryIcons: Map<String, String> = emptyMap(),
+    /** Использовать размытые обои рабочего стола как фон приложения. */
+    val wallpaperBackground: Boolean = false
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -70,7 +72,8 @@ class SettingsStore(context: Context) {
             savingsPercent = prefs.getInt("savingsPercent", 10),
             activeStrategy = prefs.getString("activeStrategy", "").orEmpty(),
             goals = parseGoals(prefs.getString("goals_json", "").orEmpty()),
-            categoryIcons = parseIcons(prefs.getString("category_icons_json", "").orEmpty())
+            categoryIcons = parseIcons(prefs.getString("category_icons_json", "").orEmpty()),
+            wallpaperBackground = prefs.getBoolean("wallpaperBackground", false)
         )
     }
 
@@ -149,6 +152,7 @@ class SettingsStore(context: Context) {
             .putString("activeStrategy", next.activeStrategy)
             .putString("goals_json", serializeGoals(next.goals))
             .putString("category_icons_json", serializeIcons(next.categoryIcons))
+            .putBoolean("wallpaperBackground", next.wallpaperBackground)
             .apply()
         state.value = next
     }

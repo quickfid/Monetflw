@@ -188,6 +188,19 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                 }
             )
         }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("🖼️ Размытые обои рабочего стола", style = MaterialTheme.typography.bodyLarge)
+                Text("Фон из обоев телефона с эффектом Liquid Glass", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(
+                checked = settings.wallpaperBackground,
+                onCheckedChange = { vm.setWallpaperBackground(it) }
+            )
+        }
         Text(
             "Данные только на вашем телефоне · v1.4.0",
             modifier = Modifier.padding(16.dp),
