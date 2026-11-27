@@ -9,12 +9,12 @@ val releaseKeystore: String? = System.getenv("KEYSTORE_FILE")
 
 android {
     namespace = "ru.familybudget.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "ru.familybudget.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // Для магазина versionCode должен расти с каждой загрузкой: берём номер запуска GitHub Actions.
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionName = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "1.4.0"
