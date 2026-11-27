@@ -530,6 +530,15 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         message = "Даты поступлений сохранены 📅"
     }
 
+    fun markBadgesSeen(titles: Set<String>) {
+        if (titles.isEmpty()) return
+        store.update { it.copy(seenBadges = it.seenBadges + titles) }
+    }
+
+    fun setMenuOrder(order: List<String>) {
+        store.update { it.copy(menuOrder = order) }
+    }
+
     fun addToCushion(deltaCents: Long, deductFromAccount: Boolean = false) {
         if (deltaCents <= 0L) return
         store.update { it.copy(cushionCents = (it.cushionCents + deltaCents).coerceAtLeast(0L)) }
