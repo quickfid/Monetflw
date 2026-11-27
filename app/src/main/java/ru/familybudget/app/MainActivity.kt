@@ -33,10 +33,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -307,6 +309,16 @@ private fun BudgetApp() {
                                                 overflow = TextOverflow.Ellipsis,
                                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                                                 color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(22.dp)
+                                                    .height(2.5.dp)
+                                                    .clip(RoundedCornerShape(50))
+                                                    .background(
+                                                        if (selected) MaterialTheme.colorScheme.primary
+                                                        else Color.Transparent
+                                                    )
                                             )
                                         }
                                     }

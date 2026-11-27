@@ -303,22 +303,55 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         .padding(18.dp)
                 ) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        "На счетах сейчас (свободно)",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color.White.copy(alpha = 0.85f)
-                    )
-                    val animatedBalance by animateFloatAsState(
-                        targetValue = balance.toFloat(),
-                        animationSpec = tween(720, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-                        label = "heroBalance"
-                    )
-                    Text(
-                        money(animatedBalance.toLong()),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(46.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = Color.White.copy(alpha = 0.14f),
+                            border = BorderStroke(1.dp, Sheet.glassBorderBrush())
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                CategoryBadge("Зарплата", settings.categoryIcons, size = 34.dp)
+                            }
+                        }
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                "На счетах сейчас",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White.copy(alpha = 0.85f)
+                            )
+                            val animatedBalance by animateFloatAsState(
+                                targetValue = balance.toFloat(),
+                                animationSpec = tween(720, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                                label = "heroBalance"
+                            )
+                            Text(
+                                money(animatedBalance.toLong()),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            if (expectedInterest > 0L) {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = incomeColor.copy(alpha = 0.22f),
+                                    border = BorderStroke(0.8.dp, incomeColor.copy(alpha = 0.45f))
+                                ) {
+                                    Text(
+                                        "↗ +${money(expectedInterest, false)}/мес",
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF9EEAC2)
+                                    )
+                                }
+                            }
+                        }
+                    }
                     if (depositInfos.isNotEmpty()) {
                         Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(
@@ -382,14 +415,27 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     contentColor = MaterialTheme.colorScheme.onSurface,
                     border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                "− Расход",
-                                maxLines = 1,
-                                softWrap = false,
-                                fontWeight = FontWeight.SemiBold,
-                                color = expenseColor
-                            )
+                    Row(
+                        Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(22.dp),
+                            shape = CircleShape,
+                            color = expenseColor.copy(alpha = 0.26f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("−", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = expenseColor)
+                            }
+                        }
+                        Text(
+                            "Расход",
+                            maxLines = 1,
+                            softWrap = false,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
                 Surface(
@@ -399,13 +445,26 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     contentColor = MaterialTheme.colorScheme.onSurface,
                     border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    Row(
+                        Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(22.dp),
+                            shape = CircleShape,
+                            color = incomeColor.copy(alpha = 0.26f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("+", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = incomeColor)
+                            }
+                        }
                         Text(
-                            "+ Доход",
+                            "Доход",
                             maxLines = 1,
                             softWrap = false,
                             fontWeight = FontWeight.SemiBold,
-                            color = incomeColor
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -668,9 +727,9 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 )
                 MonthSwitcher(Fmt.monthTitle(ym), onPrev = { vm.shiftMonth(-1) }, onNext = { vm.shiftMonth(1) })
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatCard("Доходы", Fmt.money(md.summary.income, cur, false), Modifier.weight(1f), Tone.INCOME)
-                    StatCard("Расходы", Fmt.money(md.summary.expense, cur, false), Modifier.weight(1f), Tone.EXPENSE)
-                    StatCard("Остаток", Fmt.money(md.summary.closing, cur, false), Modifier.weight(1f))
+                    StatCard("↓ Доходы", Fmt.money(md.summary.income, cur, false), Modifier.weight(1f), Tone.INCOME)
+                    StatCard("↑ Расходы", Fmt.money(md.summary.expense, cur, false), Modifier.weight(1f), Tone.EXPENSE)
+                    StatCard("⚖️ Остаток", Fmt.money(md.summary.closing, cur, false), Modifier.weight(1f))
                 }
             }
         }
