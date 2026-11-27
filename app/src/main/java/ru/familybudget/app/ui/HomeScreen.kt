@@ -137,9 +137,9 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 }
                 if (settings.apiUrl.isNotBlank() && settings.token.isNotBlank()) {
                     Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (unsynced > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, Sheet.border()),
+                        shape = RoundedCornerShape(50),
+                        color = Sheet.glass(),
+                        border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
                         modifier = Modifier.clickable(enabled = !vm.syncing) { vm.syncAll() }
                     ) {
                         Text(
@@ -217,22 +217,31 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // 3. Практичные быстрые кнопки под рукой
+        // 3. Практичные быстрые кнопки-капсулы в стиле Liquid Glass
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
                     onClick = { vm.startNew(OpType.EXPENSE) },
-                    modifier = Modifier.weight(1f).height(46.dp),
-                    shape = RoundedCornerShape(14.dp)
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(50)
                 ) {
                     Text("− Расход (+10 XP)", maxLines = 1, softWrap = false, fontWeight = FontWeight.SemiBold)
                 }
-                OutlinedButton(
-                    onClick = { vm.startNew(OpType.INCOME) },
-                    modifier = Modifier.weight(1f).height(46.dp),
-                    shape = RoundedCornerShape(14.dp)
+                Surface(
+                    modifier = Modifier.weight(1f).height(48.dp).clickable { vm.startNew(OpType.INCOME) },
+                    shape = RoundedCornerShape(50),
+                    color = Sheet.glass(),
+                    border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
                 ) {
-                    Text("+ Доход", maxLines = 1, softWrap = false, fontWeight = FontWeight.SemiBold)
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            "+ Доход",
+                            maxLines = 1,
+                            softWrap = false,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }

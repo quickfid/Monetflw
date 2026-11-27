@@ -11,40 +11,52 @@ import androidx.compose.ui.graphics.Color
 enum class Tone { NEUTRAL, INCOME, EXPENSE, WARN, SAVINGS }
 
 object Sheet {
-    @Composable fun header(): Color = if (isSystemInDarkTheme()) Color(0xFF1E2C27) else Color(0xFFEAF2F6)
-    /** Чистая поверхность карточки без артефактов тени. */
-    @Composable fun glass(): Color = if (isSystemInDarkTheme()) Color(0xFF18221F) else Color(0xFFFFFFFF)
-    @Composable fun border(): Color = if (isSystemInDarkTheme()) Color(0xFF2A3B35) else Color(0xFFDCE4EE)
+    @Composable fun header(): Color = if (isSystemInDarkTheme()) Color(0x59223631) else Color(0x99FFFFFF)
+    /** Настоящее полупрозрачное «жидкое стекло» (Apple Liquid Glass) без тени-артефакта. */
+    @Composable fun glass(): Color = if (isSystemInDarkTheme()) Color(0x52182623) else Color(0xA8FFFFFF)
+    @Composable fun border(): Color = if (isSystemInDarkTheme()) Color(0x40FFFFFF) else Color(0xCCFFFFFF)
+    @Composable fun glassBorderBrush(): Brush = if (isSystemInDarkTheme()) {
+        Brush.linearGradient(listOf(Color(0x55FFFFFF), Color(0x14FFFFFF), Color(0x33FFFFFF)))
+    } else {
+        Brush.linearGradient(listOf(Color(0xF2FFFFFF), Color(0x55FFFFFF), Color(0xB3FFFFFF)))
+    }
     @Composable fun tone(t: Tone): Color = if (isSystemInDarkTheme()) {
         when (t) {
-            Tone.NEUTRAL -> Color(0xFF18221F)
-            Tone.INCOME -> Color(0xFF142E24)
-            Tone.EXPENSE -> Color(0xFF331D20)
-            Tone.WARN -> Color(0xFF332915)
-            Tone.SAVINGS -> Color(0xFF302614)
+            Tone.NEUTRAL -> Color(0x52182623)
+            Tone.INCOME -> Color(0x66123B2D)
+            Tone.EXPENSE -> Color(0x664A1E24)
+            Tone.WARN -> Color(0x664A3914)
+            Tone.SAVINGS -> Color(0x66473412)
         }
     } else {
         when (t) {
-            Tone.NEUTRAL -> Color(0xFFFFFFFF)
-            Tone.INCOME -> Color(0xFFEAF7F0)
-            Tone.EXPENSE -> Color(0xFFFDEFEF)
-            Tone.WARN -> Color(0xFFFFF6E0)
-            Tone.SAVINGS -> Color(0xFFFEF7E5)
+            Tone.NEUTRAL -> Color(0xA8FFFFFF)
+            Tone.INCOME -> Color(0xB3D8F5E7)
+            Tone.EXPENSE -> Color(0xB3FCE1E1)
+            Tone.WARN -> Color(0xB3FEF0CC)
+            Tone.SAVINGS -> Color(0xB3FDF1D2)
         }
     }
 }
 
 object AppColors {
-    @Composable fun income(): Color = if (isSystemInDarkTheme()) Color(0xFF34D399) else Color(0xFF16A364)
-    @Composable fun expense(): Color = if (isSystemInDarkTheme()) Color(0xFFF87171) else Color(0xFFDC5B57)
-    @Composable fun warning(): Color = if (isSystemInDarkTheme()) Color(0xFFFBBF24) else Color(0xFFD98B1C)
-    @Composable fun savings(): Color = if (isSystemInDarkTheme()) Color(0xFFF59E0B) else Color(0xFFC78A1A)
-    @Composable fun accentBlue(): Color = if (isSystemInDarkTheme()) Color(0xFF1A2A2D) else Color(0xFFEAF3F8)
+    @Composable fun income(): Color = if (isSystemInDarkTheme()) Color(0xFF34D399) else Color(0xFF128A54)
+    @Composable fun expense(): Color = if (isSystemInDarkTheme()) Color(0xFFF87171) else Color(0xFFD14845)
+    @Composable fun warning(): Color = if (isSystemInDarkTheme()) Color(0xFFFBBF24) else Color(0xFFC47A10)
+    @Composable fun savings(): Color = if (isSystemInDarkTheme()) Color(0xFFF59E0B) else Color(0xFFB87B12)
+    @Composable fun accentBlue(): Color = if (isSystemInDarkTheme()) Color(0x591B3342) else Color(0xA8E0F1FA)
+
+    /** Мягкий атмосферный градиент фона, сквозь который просвечивают стеклянные карточки. */
+    @Composable fun ambientBackground(): Brush = if (isSystemInDarkTheme()) {
+        Brush.verticalGradient(listOf(Color(0xFF0C1D24), Color(0xFF0E1B1A), Color(0xFF0B1418)))
+    } else {
+        Brush.verticalGradient(listOf(Color(0xFFD4ECFA), Color(0xFFE4F2F0), Color(0xFFDAEBF8)))
+    }
 
     @Composable fun heroBrush(): Brush = if (isSystemInDarkTheme()) {
-        Brush.linearGradient(listOf(Color(0xFF1B362D), Color(0xFF12231E)))
+        Brush.linearGradient(listOf(Color(0xCC1B4338), Color(0xCC12303B)))
     } else {
-        Brush.linearGradient(listOf(Color(0xFF1B6B7A), Color(0xFF13505E)))
+        Brush.linearGradient(listOf(Color(0xE61B6B7A), Color(0xE6155670)))
     }
 
     val chart: List<Color> = listOf(

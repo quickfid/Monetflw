@@ -16,6 +16,9 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
@@ -36,14 +39,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import java.time.YearMonth
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
+import ru.familybudget.app.ui.AppColors
 import ru.familybudget.app.ui.AppIcons
 import ru.familybudget.app.ui.BudgetTheme
+import ru.familybudget.app.ui.Sheet
 import ru.familybudget.app.logic.Fmt
 import ru.familybudget.app.ui.ExportDialog
 import ru.familybudget.app.ui.FixedPaymentsDialog
@@ -126,10 +133,12 @@ private fun BudgetApp() {
             1 -> planMonth?.let { PlanEditor(vm, it) }
             2 -> editing?.let { OperationEditor(vm, it) }
             else -> {
-                Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
-                    bottomBar = {
-                        NavigationBar {
+                Box(Modifier.fillMaxSize().background(AppColors.ambientBackground())) {
+                    Scaffold(
+                        containerColor = Color.Transparent,
+                        snackbarHost = { SnackbarHost(snackbarHostState) },
+                        bottomBar = {
+                            NavigationBar(containerColor = Sheet.glass()) {
                             tabs.forEachIndexed { i, t ->
                                 NavigationBarItem(
                                     selected = tab == i,
@@ -190,6 +199,7 @@ private fun BudgetApp() {
                     )
                 } else if (askFixed) {
                     FixedPaymentsDialog(vm, nowMonth)
+                }
                 }
             }
         }

@@ -77,9 +77,9 @@ fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifie
 fun Section(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         color = Sheet.glass(),
-        border = BorderStroke(1.dp, Sheet.border())
+        border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
@@ -98,9 +98,9 @@ fun Section(title: String, modifier: Modifier = Modifier, content: @Composable C
 fun StatCard(label: String, value: String, modifier: Modifier = Modifier, tone: Tone = Tone.NEUTRAL) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(22.dp),
         color = Sheet.tone(tone),
-        border = BorderStroke(1.dp, Sheet.border())
+        border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
         Column(
             Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 10.dp),
@@ -330,9 +330,9 @@ fun ChipPicker(label: String, value: String, options: List<String>, onSelect: (S
 fun Banner(title: String, tone: Tone, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(24.dp),
         color = Sheet.tone(tone),
-        border = BorderStroke(1.dp, Sheet.border())
+        border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
         Column(
             Modifier.fillMaxWidth().padding(14.dp),
