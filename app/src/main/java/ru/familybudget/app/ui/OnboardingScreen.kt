@@ -163,10 +163,10 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text("💰 Деньги сейчас", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                            AmountField(card, { card = it }, "На карте ($currency)")
+                            MoneyField(card, { card = it }, "На карте ($currency)")
                             QuickChips(listOf(5_000L, 10_000L, 20_000L, 50_000L)) { d -> card = addDelta(card, d) }
-                            AmountField(cash, { cash = it }, "Наличными ($currency)")
-                            AmountField(income, { income = it }, "Ежемесячный доход ($currency)")
+                            MoneyField(cash, { cash = it }, "Наличными ($currency)")
+                            MoneyField(income, { income = it }, "Ежемесячный доход ($currency)")
                             QuickChips(listOf(50_000L, 100_000L, 150_000L, 200_000L)) { d -> income = addDelta(income, d) }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(checked = recordIncome, onCheckedChange = { recordIncome = it })
@@ -190,9 +190,9 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             TextField2(depName, { depName = it }, "Название (например, Накопительный счёт)")
-                            AmountField(depAmount, { depAmount = it }, "Сумма на вкладе ($currency)")
+                            MoneyField(depAmount, { depAmount = it }, "Сумма на вкладе ($currency)")
                             QuickChips(listOf(10_000L, 50_000L, 100_000L, 250_000L)) { d -> depAmount = addDelta(depAmount, d) }
-                            AmountField(depRate, { depRate = it }, "Ставка % годовых (например, 18)")
+                            MoneyField(depRate, { depRate = it }, "Ставка % годовых (например, 18)")
                             OutlinedButton(
                                 onClick = {
                                     val cents = Fmt.parseCents(depAmount) ?: 0L
@@ -312,7 +312,7 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             names.forEach { cat ->
                                 val curVal = values[cat].orEmpty()
-                                AmountField(curVal, { values[cat] = it }, cat)
+                                MoneyField(curVal, { values[cat] = it }, cat)
                                 QuickChips(listOf(5_000L, 10_000L, 20_000L)) { d ->
                                     values[cat] = addDelta(values[cat].orEmpty(), d)
                                 }
