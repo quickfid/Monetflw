@@ -93,7 +93,7 @@ fun OperationEditor(vm: BudgetViewModel, initial: Operation) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { vm.closeEditor() }) { Icon(Icons.Default.Close, contentDescription = "Закрыть") }
+                IconButton(onClick = { vm.closeEditor() }) { Icon(AppIcons.Close, contentDescription = "Закрыть") }
                 Text(
                     if (isNew) "Новая операция" else "Редактирование",
                     style = MaterialTheme.typography.titleLarge

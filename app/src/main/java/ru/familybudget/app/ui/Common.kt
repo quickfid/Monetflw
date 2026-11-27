@@ -104,7 +104,7 @@ fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifie
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(onClick = onPrev) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Предыдущий период") }
+            IconButton(onClick = onPrev) { Icon(AppIcons.ChevronLeft, contentDescription = "Предыдущий период") }
             AnimatedContent(
                 targetState = title,
                 transitionSpec = {
@@ -117,7 +117,7 @@ fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifie
             ) { label ->
                 Text(label, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
-            IconButton(onClick = onNext) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Следующий период") }
+            IconButton(onClick = onNext) { Icon(AppIcons.ChevronRight, contentDescription = "Следующий период") }
         }
     }
 }
@@ -220,7 +220,7 @@ fun Picker(
                 Text(label, style = MaterialTheme.typography.labelSmall)
                 Text(value.ifBlank { "—" })
             }
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+            Icon(AppIcons.ArrowDropDown, contentDescription = null)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             options.forEach { option ->
@@ -244,7 +244,7 @@ fun DateField(epochDay: Long, onChange: (Long) -> Unit, modifier: Modifier = Mod
         },
         modifier = modifier.fillMaxWidth()
     ) {
-        Icon(Icons.Default.DateRange, contentDescription = null)
+        Icon(AppIcons.Calendar, contentDescription = null)
         Spacer(Modifier.width(8.dp))
         Text(ru.familybudget.app.logic.Fmt.date(epochDay))
     }
