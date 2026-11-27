@@ -1,0 +1,126 @@
+name: Автоматический релиз (проверка каждый час)
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  auto_release:
+    name: Проверка изменений и авторелиз Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Получение исходников и тегов
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: 2. Проверка наличия новых изменений и секретов подписи
+        id: check
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_BASE64:-}" ] || [ -z "${KEYSTORE_PASSWORD:-}" ] || [ -z "${KEY_ALIAS:-}" ] || [ -z "${KEY_PASSWORD:-}" ]; then
+            echo "::notice::Секреты подписи ещё не заданы — авторелиз пропущен."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          LAST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n 1 || true)
+          if [ -n "$LAST_TAG" ]; then
+            NEW_COMMITS=$(git rev-list --count "${LAST_TAG}..HEAD")
+            echo "Последний тег: $LAST_TAG, новых коммитов: $NEW_COMMITS"
+            if [ "$NEW_COMMITS" -eq 0 ]; then
+              echo "Новых изменений нет — релиз не требуется."
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            VER="${LAST_TAG#v}"
+            MAJOR=$(echo "$VER" | cut -d. -f1)
+            MINOR=$(echo "$VER" | cut -d. -f2)
+            PATCH=$(echo "$VER" | cut -d. -f3)
+            NEXT_VER="${MAJOR}.${MINOR}.$((PATCH + 1))"
+          else
+            NEXT_VER="1.4.1"
+          fi
+
+          NEXT_TAG="v${NEXT_VER}"
+          echo "Планируется релиз: $NEXT_TAG"
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+          echo "next_version=$NEXT_VER" >> "$GITHUB_OUTPUT"
+          echo "next_tag=$NEXT_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: 3. Настройка Java 17
+        if: steps.check.outputs.should_release == 'true'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 4. Настройка Gradle 8.14.8
+        if: steps.check.outputs.should_release == 'true'
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.14.8'
+
+      - name: 5. Подготовка ключа подписи
+        if: steps.check.outputs.should_release == 'true'
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          echo "$KEYSTORE_BASE64" | base64 --decode > /tmp/familybudget-release.keystore
+          test -s /tmp/familybudget-release.keystore
+          echo "KEYSTORE_FILE=/tmp/familybudget-release.keystore" >> "$GITHUB_ENV"
+
+      - name: 6. Тесты и сборка подписанного Release APK
+        if: steps.check.outputs.should_release == 'true'
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: ${{ steps.check.outputs.next_version }}
+        run: |
+          gradle testDebugUnitTest --stacktrace
+          gradle assembleRelease --stacktrace
+
+      - name: 7. Проверка подписи и публикация GitHub Release
+        if: steps.check.outputs.should_release == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_TAG: ${{ steps.check.outputs.next_tag }}
+        run: |
+          set -euo pipefail
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" -type f | head -n 1)
+          test -n "$APK_PATH"
+          APKSIGNER=$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools" -name apksigner -type f | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK_PATH"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$NEXT_TAG"
+          git push origin "$NEXT_TAG"
+
+          RELEASE_APK="FamilyBudget-${NEXT_TAG}-release.apk"
+          cp "$APK_PATH" "$RELEASE_APK"
+          gh release create "$NEXT_TAG" "$RELEASE_APK" \
+            --title "FamilyBudget ${NEXT_TAG}" \
+            --generate-notes
+
+      - name: Очистка временного ключа
+        if: always()
+        shell: bash
+        run: rm -f /tmp/familybudget-release.keystore

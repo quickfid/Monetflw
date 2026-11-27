@@ -17,7 +17,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.familybudget.app.data.Account
 import ru.familybudget.app.data.AppSettings
+import ru.familybudget.app.data.AppUpdater
 import ru.familybudget.app.data.BudgetDb
+import ru.familybudget.app.data.UpdateInfo
 import ru.familybudget.app.data.Category
 import ru.familybudget.app.data.Deposit
 import ru.familybudget.app.data.InterestEntry
@@ -87,6 +89,12 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     var syncing by mutableStateOf(false)
         private set
     var message by mutableStateOf("")
+        private set
+    var updateInfo by mutableStateOf<UpdateInfo?>(null)
+        private set
+    var updateProgress by mutableStateOf<Int?>(null)
+        private set
+    var checkingUpdate by mutableStateOf(false)
         private set
     /** Месяц, для которого сейчас открыт редактор плана (null — закрыт). */
     var planEditing by mutableStateOf<YearMonth?>(null)
@@ -444,6 +452,48 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setWallpaperBackground(enabled: Boolean) {
         store.update { it.copy(wallpaperBackground = enabled) }
+    }
+
+    fun checkForUpdate(silent: Boolean = true) {
+        if (checkingUpdate || updateProgress != null) return
+        viewModelScope.launch {
+            checkingUpdate = true
+            try {
+                val info = withContext(Dispatchers.IO) { AppUpdater.checkLatest(getApplication()) }
+                updateInfo = info
+                if (info == null && !silent) {
+                    message = "У вас установлена последняя версия (${AppUpdater.currentVersion(getApplication())})"
+                }
+            } catch (_: Exception) {
+                if (!silent) message = "Не удалось проверить обновления"
+            } finally {
+                checkingUpdate = false
+            }
+        }
+    }
+
+    fun startAppUpdate() {
+        val info = updateInfo ?: return
+        if (updateProgress != null) return
+        viewModelScope.launch {
+            updateProgress = 0
+            try {
+                withContext(Dispatchers.IO) {
+                    AppUpdater.downloadAndInstall(getApplication(), info.apkUrl) { pct ->
+                        updateProgress = pct
+                    }
+                }
+                updateInfo = null
+            } catch (e: Exception) {
+                message = "Ошибка обновления: ${e.message ?: "не удалось скачать"}"
+            } finally {
+                updateProgress = null
+            }
+        }
+    }
+
+    fun dismissUpdate() {
+        if (updateProgress == null) updateInfo = null
     }
     fun setStrategy(id: String) { store.update { it.copy(activeStrategy = id) } }
     fun saveGoal(goal: ru.familybudget.app.data.SavingsGoal) {

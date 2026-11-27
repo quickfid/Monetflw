@@ -18,7 +18,7 @@ android {
         targetSdk = 35
         // Для магазина versionCode должен расти с каждой загрузкой: берём номер запуска GitHub Actions.
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
-        versionName = "1.4.0"
+        versionName = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "1.4.0"
     }
 
     signingConfigs {

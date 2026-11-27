@@ -21,13 +21,17 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -48,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.YearMonth
 import androidx.lifecycle.ViewModelProvider
@@ -118,6 +123,10 @@ private fun BudgetApp() {
                 window.setBackgroundBlurRadius(0)
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        vm.checkForUpdate(silent = true)
     }
 
     LaunchedEffect(vm.message) {
@@ -231,6 +240,43 @@ private fun BudgetApp() {
                     )
                 } else if (askFixed) {
                     FixedPaymentsDialog(vm, nowMonth)
+                }
+                val upd = vm.updateInfo
+                if (upd != null) {
+                    val prog = vm.updateProgress
+                    AlertDialog(
+                        onDismissRequest = { vm.dismissUpdate() },
+                        title = { Text("✨ Доступно обновление ${upd.version}") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                if (upd.notes.isNotBlank()) {
+                                    Text(upd.notes)
+                                } else {
+                                    Text("Вышла новая версия приложения. Все ваши данные и настройки сохранятся.")
+                                }
+                                if (prog != null) {
+                                    LinearProgressIndicator(
+                                        progress = { prog / 100f },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    Text("Загрузка: $prog%")
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = { vm.startAppUpdate() },
+                                enabled = prog == null
+                            ) {
+                                Text(if (prog == null) "Обновить" else "Загрузка…")
+                            }
+                        },
+                        dismissButton = {
+                            if (prog == null) {
+                                TextButton(onClick = { vm.dismissUpdate() }) { Text("Позже") }
+                            }
+                        }
+                    )
                 }
                 }
             }
