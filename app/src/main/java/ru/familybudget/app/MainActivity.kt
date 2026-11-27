@@ -21,16 +21,21 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -52,16 +57,27 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.delay
+import ru.familybudget.app.logic.Badge
+import ru.familybudget.app.logic.Game
+import ru.familybudget.app.logic.TrophyTier
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ru.familybudget.app.ui.AppColors
@@ -153,9 +169,33 @@ private fun BudgetApp() {
     }
 
     val planMonth = vm.planEditing
+    val opsNow by vm.operations.collectAsState()
+    val mandatoryNow by vm.mandatory.collectAsState()
     val categoriesNow by vm.categories.collectAsState()
     val plansNow by vm.plans.collectAsState()
     val nowMonth = remember { YearMonth.now() }
+
+    // Всплывающее уведомление «Трофей получен!» в стиле PS5
+    val unlockedNow = remember(opsNow, plansNow, mandatoryNow) {
+        Game.compute(opsNow, plansNow, mandatoryNow, LocalDate.now()).badges.filter { it.unlocked }
+    }
+    var seenBadges by remember { mutableStateOf<Set<String>?>(null) }
+    var trophyToast by remember { mutableStateOf<Badge?>(null) }
+    LaunchedEffect(unlockedNow) {
+        val currentTitles = unlockedNow.map { it.title }.toSet()
+        val prev = seenBadges
+        if (prev == null) {
+            seenBadges = currentTitles
+        } else {
+            val newlyUnlocked = unlockedNow.firstOrNull { it.title !in prev }
+            seenBadges = prev + currentTitles
+            if (newlyUnlocked != null) {
+                trophyToast = newlyUnlocked
+                delay(3500)
+                if (trophyToast?.title == newlyUnlocked.title) trophyToast = null
+            }
+        }
+    }
     val askMonthlyGoals = settings.onboarded && settings.fixedPromptYm != nowMonth.toString() &&
         !ru.familybudget.app.logic.Plans.hasPlan(plansNow, nowMonth)
     val askFixed = settings.onboarded && !askMonthlyGoals && settings.fixedPromptYm != nowMonth.toString() &&
@@ -305,6 +345,58 @@ private fun BudgetApp() {
                             }
                         }
                     )
+                }
+                AnimatedVisibility(
+                    visible = trophyToast != null,
+                    enter = slideInVertically(tween(300)) { -it } + fadeIn(tween(250)),
+                    exit = slideOutVertically(tween(260)) { -it } + fadeOut(tween(200)),
+                    modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    trophyToast?.let { t ->
+                        val iconRes = when (t.tier) {
+                            TrophyTier.PLATINUM -> R.drawable.trophy_platinum
+                            TrophyTier.GOLD -> R.drawable.trophy_gold
+                            TrophyTier.SILVER -> R.drawable.trophy_silver
+                            TrophyTier.BRONZE -> R.drawable.trophy_bronze
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(24.dp),
+                            color = Color(0xEB101B24),
+                            border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())
+                        ) {
+                            Row(
+                                Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(iconRes),
+                                    contentDescription = t.tier.label,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(38.dp).clip(CircleShape)
+                                )
+                                Column {
+                                    Text(
+                                        "Трофей получен!",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF93C5FD),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        t.title,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        "${t.tier.label} · +${t.tier.xp} XP",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFFFDE68A)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
                 }
             }
