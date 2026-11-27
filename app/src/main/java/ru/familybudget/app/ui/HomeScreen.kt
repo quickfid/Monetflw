@@ -4,8 +4,10 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -37,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -76,7 +79,9 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val depositInfos = remember(deposits, interest) { deposits.map { Deposits.info(it, interest) } }
     val savings = remember(depositInfos) { depositInfos.sumOf { it.balance } }
     val expectedInterest = remember(depositInfos) { depositInfos.sumOf { it.expectedMonthly } }
-    val recentOps = remember(md.ops) { md.ops.sortedWith(compareByDescending<ru.familybudget.app.data.Operation> { it.date }.thenByDescending { it.id }).take(5) }
+    val recentOps = remember(md.ops) {
+        md.ops.sortedWith(compareByDescending<ru.familybudget.app.data.Operation> { it.date }.thenByDescending { it.id }).take(5)
+    }
 
     val f = md.forecast
     val incomeColor = AppColors.income()
@@ -104,101 +109,142 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 92.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. Приветствие и компактный статус прогресса
+        // 1. Компактная шапка: приветствие + серия + кнопка синхронизации справа
         item {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, Sheet.border()),
-                shadowElevation = 1.dp
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                if (settings.userName.isBlank()) "Добрый день!" else "Привет, ${settings.userName}!",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                "${game.avatar} Уровень ${game.level} · ${game.title} · ${game.xp} XP",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = Sheet.header()
-                        ) {
-                            Text(
-                                "🔥 ${game.streak} дн.",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                    val animatedXp by animateFloatAsState(
-                        targetValue = game.progress,
-                        animationSpec = tween(450),
-                        label = "xpProgress"
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (settings.userName.isBlank()) "Добрый день!" else "Привет, ${settings.userName}!",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    LinearProgressIndicator(
-                        progress = { animatedXp },
-                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
+                    Text(
+                        "${game.avatar} Ур. ${game.level} · ${game.title} · 🔥 ${game.streak} дн.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-            }
-        }
-
-        // Быстрые действия в одно нажатие
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = { vm.startNew(OpType.EXPENSE) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("− Расход (+10 XP)", maxLines = 1, softWrap = false)
-                    }
-                    OutlinedButton(
-                        onClick = { vm.startNew(OpType.INCOME) },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text("+ Доход", maxLines = 1, softWrap = false)
-                    }
                 }
                 if (settings.apiUrl.isNotBlank() && settings.token.isNotBlank()) {
-                    OutlinedButton(
-                        onClick = { vm.syncAll() },
-                        enabled = !vm.syncing,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp)
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (unsynced > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, Sheet.border()),
+                        modifier = Modifier.clickable(enabled = !vm.syncing) { vm.syncAll() }
                     ) {
                         Text(
                             when {
-                                vm.syncing -> "⏳ Синхронизация с таблицей..."
-                                unsynced > 0 -> "☁️ Отправить в таблицу ($unsynced)"
-                                else -> "☁️ Синхронизировать с таблицей"
+                                vm.syncing -> "⏳"
+                                unsynced > 0 -> "☁️ $unsynced"
+                                else -> "☁️ ✓"
                             },
-                            maxLines = 1,
-                            softWrap = false
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
         }
 
-        // Переключатель месяца
+        // 2. Главная акцентная карточка баланса (градиент)
         item {
-            MonthSwitcher(Fmt.monthTitle(ym), onPrev = { vm.shiftMonth(-1) }, onNext = { vm.shiftMonth(1) })
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(AppColors.heroBrush())
+                    .padding(18.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        if (depositInfos.isEmpty()) "Доступно сейчас на счетах" else "Всего средств (счета + накопления)",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                    Text(
+                        Fmt.money(balance + savings, cur),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    if (depositInfos.isNotEmpty()) {
+                        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text(
+                                "На счетах: ${Fmt.money(balance, cur, false)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.88f)
+                            )
+                            Text(
+                                "Накопления: ${Fmt.money(savings, cur, false)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFFFDE68A),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    if (f.isCurrent && (md.budget > 0 || f.safeDaily > 0)) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 6.dp),
+                            color = Color.White.copy(alpha = 0.18f)
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(
+                                "Безопасно тратить в день",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                            Text(
+                                Fmt.money(f.safeDaily, cur, false),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFA7F3D0)
+                            )
+                        }
+                    }
+                }
+            }
         }
 
-        // 2. Краткий финансовый статус, прогноз и дневной лимит
+        // 3. Практичные быстрые кнопки под рукой
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = { vm.startNew(OpType.EXPENSE) },
+                    modifier = Modifier.weight(1f).height(46.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("− Расход (+10 XP)", maxLines = 1, softWrap = false, fontWeight = FontWeight.SemiBold)
+                }
+                OutlinedButton(
+                    onClick = { vm.startNew(OpType.INCOME) },
+                    modifier = Modifier.weight(1f).height(46.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("+ Доход", maxLines = 1, softWrap = false, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+
+        // 4. Переключатель месяца + Доходы / Расходы / Остаток
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                MonthSwitcher(Fmt.monthTitle(ym), onPrev = { vm.shiftMonth(-1) }, onNext = { vm.shiftMonth(1) })
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatCard("Доходы", Fmt.money(md.summary.income, cur, false), Modifier.weight(1f), Tone.INCOME)
+                    StatCard("Расходы", Fmt.money(md.summary.expense, cur, false), Modifier.weight(1f), Tone.EXPENSE)
+                    StatCard("Остаток", Fmt.money(md.summary.closing, cur, false), Modifier.weight(1f))
+                }
+            }
+        }
+
+        // 5. Статус бюджета и прогресс плана
         item {
             val tone = when (f.verdict) {
                 Verdict.GOOD -> Tone.INCOME
@@ -215,9 +261,28 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 else -> "Прогноз месяца"
             }
             Banner(title, tone) {
+                if (md.budget > 0) {
+                    val fraction = (md.summary.expense.toFloat() / md.budget).coerceIn(0f, 1f)
+                    val animatedFraction by animateFloatAsState(
+                        targetValue = fraction,
+                        animationSpec = tween(450),
+                        label = "budgetProgress"
+                    )
+                    val pct = ((md.summary.expense * 100) / md.budget).toInt().coerceAtLeast(0)
+                    val over = md.summary.expense > md.budget
+                    LinearProgressIndicator(
+                        progress = { animatedFraction },
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                        color = if (over) expenseColor else MaterialTheme.colorScheme.primary
+                    )
+                    KeyValueRow(
+                        if (over) "Превышение плана ($pct%)" else "Осталось по плану ($pct%)",
+                        Fmt.money(kotlin.math.abs(md.budget - md.summary.expense), cur, false),
+                        if (over) expenseColor else incomeColor
+                    )
+                }
                 if (f.isPast) {
                     KeyValueRow("Потрачено за месяц", Fmt.money(f.spent, cur, false))
-                    KeyValueRow("Итоговый остаток", Fmt.money(md.summary.closing, cur, false))
                 } else {
                     KeyValueRow(
                         "Прогноз расходов",
@@ -225,119 +290,19 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     )
                     if (f.isCurrent) {
                         KeyValueRow("Ожидаемый остаток", Fmt.money(f.projectedBalance, cur, false))
-                        if (md.budget > 0 || f.safeDaily > 0) {
-                            KeyValueRow("Можно тратить в день", Fmt.money(f.safeDaily, cur, false), incomeColor)
-                        }
                         if (!f.reliable) {
-                            HelpText("В начале месяца прогноз ориентировочный — через несколько дней он станет точнее.")
+                            HelpText("В начале месяца прогноз ориентировочный — через пару дней он станет точнее.")
                         }
                     }
                 }
             }
         }
 
-        // 3–5. Главные цифры: доступно, доходы, расходы, остаток
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (depositInfos.isEmpty()) {
-                    StatCard("Доступно сейчас на счетах", Fmt.money(balance, cur), Modifier.fillMaxWidth())
-                } else {
-                    StatCard("Всего денег (счета + накопления)", Fmt.money(balance + savings, cur), Modifier.fillMaxWidth())
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StatCard("На счетах", Fmt.money(balance, cur, false), Modifier.weight(1f))
-                        StatCard("Накопления", Fmt.money(savings, cur, false), Modifier.weight(1f), Tone.SAVINGS)
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatCard("Доходы", Fmt.money(md.summary.income, cur, false), Modifier.weight(1f), Tone.INCOME)
-                    StatCard("Расходы", Fmt.money(md.summary.expense, cur, false), Modifier.weight(1f), Tone.EXPENSE)
-                    StatCard("Остаток", Fmt.money(md.summary.closing, cur, false), Modifier.weight(1f))
-                }
-            }
-        }
-
-        // 9. Прогресс выполнения месячного плана
-        if (md.budget > 0) {
-            item {
-                val fraction = (md.summary.expense.toFloat() / md.budget).coerceIn(0f, 1f)
-                val animatedFraction by animateFloatAsState(
-                    targetValue = fraction,
-                    animationSpec = tween(450),
-                    label = "budgetProgress"
-                )
-                val pct = ((md.summary.expense * 100) / md.budget).toInt().coerceAtLeast(0)
-                val over = md.summary.expense > md.budget
-                Section("Выполнение плана месяца · $pct%") {
-                    LinearProgressIndicator(
-                        progress = { animatedFraction },
-                        modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
-                        color = if (over) expenseColor else MaterialTheme.colorScheme.primary
-                    )
-                    KeyValueRow(
-                        if (over) "Превышение плана" else "Осталось по плану",
-                        Fmt.money(kotlin.math.abs(md.budget - md.summary.expense), cur, false),
-                        if (over) expenseColor else incomeColor
-                    )
-                }
-            }
-        }
-
-        // График трат по дням
-        if ((f.isCurrent || f.isPast) && f.spent > 0) {
-            item {
-                Section("Динамика расходов по дням") {
-                    BurnChart(
-                        actual = f.cumulative,
-                        daysInMonth = f.daysInMonth,
-                        projectedEnd = if (f.isCurrent) f.projectedExpense else null,
-                        budget = md.budget,
-                        actualColor = MaterialTheme.colorScheme.primary,
-                        projectionColor = warnColor,
-                        budgetColor = expenseColor
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Text("● факт", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
-                        if (f.isCurrent) Text("┅ прогноз", color = warnColor, fontSize = 12.sp)
-                        if (md.budget > 0) Text("┅ план", color = expenseColor, fontSize = 12.sp)
-                    }
-                }
-            }
-        }
-
-        // 8. Краткая информация о накоплениях
-        item {
-            Section("Накопления и вклады") {
-                if (depositInfos.isEmpty()) {
-                    HelpText("У вас пока нет добавленных вкладов. Перейдите во вкладку «Накопления», чтобы начать вести копилку.")
-                } else {
-                    KeyValueRow("Общая сумма накоплений", Fmt.money(savings, cur, false), savingsColor)
-                    KeyValueRow("Ожидаемые проценты за месяц", "+" + Fmt.money(expectedInterest, cur, false), incomeColor)
-                    depositInfos.take(3).forEach { info ->
-                        HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(info.deposit.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                                Text(
-                                    Deposits.rateText(info.deposit) + " · +" + Fmt.money(info.expectedMonthly, cur, false) + "/мес",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Text(Fmt.money(info.balance, cur, false), fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-        }
-
-        // 10. Последние операции
+        // 6. Последние операции (подняты выше для быстрого доступа)
         item {
             Section("Последние операции") {
                 if (recentOps.isEmpty()) {
-                    HelpText("В этом месяце пока нет записей. Нажмите «+» внизу, чтобы добавить первый расход или доход.")
-                    OutlinedButton(onClick = { vm.startNew() }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Записать первую операцию")
-                    }
+                    HelpText("В этом месяце пока нет записей. Нажмите «− Расход» или «+ Доход» выше.")
                 } else {
                     recentOps.forEachIndexed { idx, op ->
                         if (idx > 0) HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
@@ -385,7 +350,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // Обязательные платежи
+        // 7. Обязательные платежи
         if (mandatory.isNotEmpty()) {
             item {
                 Section("Обязательные платежи") {
@@ -410,7 +375,39 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // 11. Полезная финансовая подсказка и совет дня
+        // 8. График трат по дням
+        if ((f.isCurrent || f.isPast) && f.spent > 0) {
+            item {
+                Section("Динамика расходов по дням") {
+                    BurnChart(
+                        actual = f.cumulative,
+                        daysInMonth = f.daysInMonth,
+                        projectedEnd = if (f.isCurrent) f.projectedExpense else null,
+                        budget = md.budget,
+                        actualColor = MaterialTheme.colorScheme.primary,
+                        projectionColor = warnColor,
+                        budgetColor = expenseColor
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text("● факт", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
+                        if (f.isCurrent) Text("┅ прогноз", color = warnColor, fontSize = 12.sp)
+                        if (md.budget > 0) Text("┅ план", color = expenseColor, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+
+        // 9. Краткая сводка по накоплениям
+        if (depositInfos.isNotEmpty()) {
+            item {
+                Section("Накопления и вклады") {
+                    KeyValueRow("Общая сумма накоплений", Fmt.money(savings, cur, false), savingsColor)
+                    KeyValueRow("Ожидаемые проценты за месяц", "+" + Fmt.money(expectedInterest, cur, false), incomeColor)
+                }
+            }
+        }
+
+        // 10. Полезная финансовая подсказка и совет дня
         item {
             var tipIdx by remember { mutableIntStateOf(0) }
             val extraTips = remember {
@@ -451,9 +448,19 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // Задания и достижения (компактно, чтобы мотивировать, но не отвлекать)
+        // 11. Прогресс уровня, задания и достижения
         item {
+            val animatedXp by animateFloatAsState(
+                targetValue = game.progress,
+                animationSpec = tween(450),
+                label = "xpProgress"
+            )
             Section("Задания и достижения · ${game.badges.count { it.unlocked }} из ${game.badges.size}") {
+                LinearProgressIndicator(
+                    progress = { animatedXp },
+                    modifier = Modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(4.dp))
+                )
+                HelpText("⭐ ${game.xp} XP · ещё ${game.xpToNext} до уровня ${game.level + 1}")
                 QuestRow(md.hasPlan, "План на месяц", "+100 XP", if (!md.hasPlan && canPlan) "Создать" else null) { vm.openPlan(ym) }
                 QuestRow(ops.any { it.date == todayDay }, "Записать траты за сегодня", "+10 XP", "Добавить") { vm.startNew() }
                 if (mandatory.isNotEmpty()) {
