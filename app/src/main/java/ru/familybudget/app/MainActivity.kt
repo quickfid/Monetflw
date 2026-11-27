@@ -131,7 +131,7 @@ private fun BudgetApp() {
     val view = LocalView.current
 
     val isDarkTheme = isSystemInDarkTheme()
-    LaunchedEffect(settings.wallpaperBackground, isDarkTheme) {
+    LaunchedEffect(settings.wallpaperBackground, settings.blurRadius, isDarkTheme) {
         val activity = view.context as? ComponentActivity ?: return@LaunchedEffect
         val window = activity.window ?: return@LaunchedEffect
         window.setFormat(PixelFormat.TRANSLUCENT)
@@ -141,7 +141,7 @@ private fun BudgetApp() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
                 val attrs = window.attributes
-                attrs.blurBehindRadius = 48
+                attrs.blurBehindRadius = settings.blurRadius
                 window.attributes = attrs
             }
         } else {
@@ -223,14 +223,18 @@ private fun BudgetApp() {
             2 -> editing?.let { OperationEditor(vm, it) }
             else -> {
                 val isDark = isSystemInDarkTheme()
-                val bgModifier = if (settings.wallpaperBackground) {
-                    Modifier.fillMaxSize().background(
-                        if (isDark) Color.Black.copy(alpha = 0.42f) else Color.White.copy(alpha = 0.28f)
-                    )
-                } else {
-                    Modifier.fillMaxSize().background(AppColors.ambientBackground())
-                }
-                Box(bgModifier) {
+    val bgModifier = if (settings.wallpaperBackground) {
+        Modifier.fillMaxSize().background(
+            if (isDark) Color.Black.copy(alpha = 0.42f) else Color.White.copy(alpha = 0.28f)
+        )
+    } else {
+        Modifier.fillMaxSize().background(AppColors.ambientBackground())
+    }
+    androidx.compose.runtime.CompositionLocalProvider(
+        ru.familybudget.app.ui.LocalGlassAlpha provides settings.glassOpacity,
+        ru.familybudget.app.ui.LocalAccentTheme provides settings.accentTheme
+    ) {
+        Box(bgModifier) {
                     Scaffold(
                         containerColor = Color.Transparent,
                         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -397,6 +401,7 @@ private fun BudgetApp() {
                             }
                         }
                     }
+                }
                 }
                 }
             }

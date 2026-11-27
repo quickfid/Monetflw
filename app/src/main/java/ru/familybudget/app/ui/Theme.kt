@@ -5,36 +5,52 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+
+val LocalGlassAlpha = compositionLocalOf { 0.40f }
+val LocalAccentTheme = compositionLocalOf { "teal" }
 
 enum class Tone { NEUTRAL, INCOME, EXPENSE, WARN, SAVINGS }
 
 object Sheet {
-    @Composable fun header(): Color = if (isSystemInDarkTheme()) Color(0x40223631) else Color(0x66FFFFFF)
+    @Composable fun header(): Color {
+        val a = LocalGlassAlpha.current
+        return if (isSystemInDarkTheme()) Color(0xFF223631).copy(alpha = (a * 0.75f).coerceIn(0.18f, 0.75f))
+        else Color.White.copy(alpha = a)
+    }
     /** Настоящее полупрозрачное «жидкое стекло» (Apple Liquid Glass) без тени-артефакта. */
-    @Composable fun glass(): Color = if (isSystemInDarkTheme()) Color(0x3D14222A) else Color(0x66FFFFFF)
+    @Composable fun glass(): Color {
+        val a = LocalGlassAlpha.current
+        return if (isSystemInDarkTheme()) Color(0xFF14222A).copy(alpha = (a * 0.7f).coerceIn(0.16f, 0.75f))
+        else Color.White.copy(alpha = a)
+    }
     @Composable fun border(): Color = if (isSystemInDarkTheme()) Color(0x4DFFFFFF) else Color(0xD9FFFFFF)
     @Composable fun glassBorderBrush(): Brush = if (isSystemInDarkTheme()) {
         Brush.linearGradient(listOf(Color(0x73FFFFFF), Color(0x1AFFFFFF), Color(0x45FFFFFF)))
     } else {
         Brush.linearGradient(listOf(Color(0xFAFFFFFF), Color(0x59FFFFFF), Color(0xCCFFFFFF)))
     }
-    @Composable fun tone(t: Tone): Color = if (isSystemInDarkTheme()) {
-        when (t) {
-            Tone.NEUTRAL -> Color(0x3D14222A)
-            Tone.INCOME -> Color(0x4D124735)
-            Tone.EXPENSE -> Color(0x4D5C2229)
-            Tone.WARN -> Color(0x4D594316)
-            Tone.SAVINGS -> Color(0x4D543D14)
-        }
-    } else {
-        when (t) {
-            Tone.NEUTRAL -> Color(0x66FFFFFF)
-            Tone.INCOME -> Color(0x66B8F2D6)
-            Tone.EXPENSE -> Color(0x66FBCACA)
-            Tone.WARN -> Color(0x66FEE4A6)
-            Tone.SAVINGS -> Color(0x66FCE5AE)
+    @Composable fun tone(t: Tone): Color {
+        val a = LocalGlassAlpha.current
+        return if (isSystemInDarkTheme()) {
+            val da = (a * 0.78f).coerceIn(0.18f, 0.78f)
+            when (t) {
+                Tone.NEUTRAL -> Color(0xFF14222A).copy(alpha = da)
+                Tone.INCOME -> Color(0xFF124735).copy(alpha = da)
+                Tone.EXPENSE -> Color(0xFF5C2229).copy(alpha = da)
+                Tone.WARN -> Color(0xFF594316).copy(alpha = da)
+                Tone.SAVINGS -> Color(0xFF543D14).copy(alpha = da)
+            }
+        } else {
+            when (t) {
+                Tone.NEUTRAL -> Color.White.copy(alpha = a)
+                Tone.INCOME -> Color(0xFFB8F2D6).copy(alpha = a)
+                Tone.EXPENSE -> Color(0xFFFBCACA).copy(alpha = a)
+                Tone.WARN -> Color(0xFFFEE4A6).copy(alpha = a)
+                Tone.SAVINGS -> Color(0xFFFCE5AE).copy(alpha = a)
+            }
         }
     }
 }
@@ -53,10 +69,19 @@ object AppColors {
         Brush.verticalGradient(listOf(Color(0xFFAADDFB), Color(0xFFC8EFE9), Color(0xFFBADAFB)))
     }
 
-    @Composable fun heroBrush(): Brush = if (isSystemInDarkTheme()) {
-        Brush.linearGradient(listOf(Color(0xA61B4D42), Color(0xA612394A)))
-    } else {
-        Brush.linearGradient(listOf(Color(0xB81B6B7A), Color(0xB8145975)))
+    @Composable fun heroBrush(): Brush {
+        val accent = LocalAccentTheme.current
+        val dark = isSystemInDarkTheme()
+        return when (accent) {
+            "emerald" -> if (dark) Brush.linearGradient(listOf(Color(0xA60E4D36), Color(0xA60A3828)))
+                else Brush.linearGradient(listOf(Color(0xBD127A52), Color(0xBD0D5E41)))
+            "indigo" -> if (dark) Brush.linearGradient(listOf(Color(0xA62A2D6B), Color(0xA61D2252)))
+                else Brush.linearGradient(listOf(Color(0xBD3E44A8), Color(0xBD2D328A)))
+            "graphite" -> if (dark) Brush.linearGradient(listOf(Color(0xB3222A33), Color(0xB3161C24)))
+                else Brush.linearGradient(listOf(Color(0xBD2E3A47), Color(0xBD1E2733)))
+            else -> if (dark) Brush.linearGradient(listOf(Color(0xA61B4D42), Color(0xA612394A)))
+                else Brush.linearGradient(listOf(Color(0xB81B6B7A), Color(0xB8145975)))
+        }
     }
 
     val chart: List<Color> = listOf(

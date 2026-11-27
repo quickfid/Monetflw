@@ -413,12 +413,55 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         label = "budgetProgress"
                     )
                     val pct = ((md.summary.expense * 100) / md.budget).toInt().coerceAtLeast(0)
+                    val leftPct = (100 - pct).coerceIn(0, 100)
                     val over = md.summary.expense > md.budget
-                    LinearProgressIndicator(
-                        progress = { animatedFraction },
-                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                        color = if (over) expenseColor else MaterialTheme.colorScheme.primary
-                    )
+                    val ringColor = if (over) expenseColor else MaterialTheme.colorScheme.primary
+                    Row(
+                        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Box(Modifier.size(68.dp), contentAlignment = Alignment.Center) {
+                            androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+                                val stroke = androidx.compose.ui.graphics.drawscope.Stroke(
+                                    width = 8.dp.toPx(),
+                                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                )
+                                drawArc(
+                                    color = Color.White.copy(alpha = 0.35f),
+                                    startAngle = 0f,
+                                    sweepAngle = 360f,
+                                    useCenter = false,
+                                    style = stroke
+                                )
+                                drawArc(
+                                    color = ringColor,
+                                    startAngle = -90f,
+                                    sweepAngle = 360f * animatedFraction,
+                                    useCenter = false,
+                                    style = stroke
+                                )
+                            }
+                            Text(
+                                "${leftPct}%",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = if (over) expenseColor else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                if (over) "Перерасход плана" else "Осталось $leftPct% от плана",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "${money(md.summary.expense, false)} из ${money(md.budget, false)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                     KeyValueRow(
                         if (over) "Превышение плана ($pct%)" else "Осталось по плану ($pct%)",
                         Fmt.money(kotlin.math.abs(md.budget - md.summary.expense), cur, false),
