@@ -7,7 +7,20 @@ import ru.familybudget.app.data.PlanItem
 import java.time.LocalDate
 import java.time.YearMonth
 
-data class Badge(val emoji: String, val title: String, val unlocked: Boolean, val hint: String = "")
+enum class TrophyTier(val label: String, val xp: Int) {
+    BRONZE("Бронза", 15),
+    SILVER("Серебро", 30),
+    GOLD("Золото", 90),
+    PLATINUM("Платина", 300)
+}
+
+data class Badge(
+    val emoji: String,
+    val title: String,
+    val unlocked: Boolean,
+    val hint: String = "",
+    val tier: TrophyTier = TrophyTier.BRONZE
+)
 
 data class GameState(
     val xp: Int,
@@ -93,30 +106,45 @@ object Game {
         val zeroSpendDay = firstDay != null && firstDay < todayDay &&
             (firstDay until todayDay).any { d -> !expenseDays.contains(d) }
 
-        val badges = listOf(
-            Badge("🌱", "Первый шаг", ops.isNotEmpty(), "Запишите свою первую операцию"),
-            Badge("💰", "Первый доход", hasIncome, "Добавьте первый доход в бюджет"),
-            Badge("🔥", "3 дня подряд", best >= 3, "Ведите учёт 3 дня без перерыва"),
-            Badge("⚡", "Неделя подряд", best >= 7, "Ведите учёт 7 дней подряд"),
-            Badge("🏆", "Железная привычка", best >= 14, "Серия из 14 дней подряд"),
-            Badge("💎", "Месяц дисциплины", best >= 30, "Серия из 30 дней подряд"),
-            Badge("📋", "План месяца", planMonths >= 1, "Составьте первый план бюджета"),
-            Badge("📅", "Стратег", planMonths >= 3, "Запланируйте бюджет на 3 разных месяца"),
-            Badge("🧘", "День без трат", zeroSpendDay, "Проведите хотя бы 1 день без единого расхода"),
-            Badge("🛒", "Разнообразие", expenseCategories.size >= 5, "Используйте 5 разных категорий расходов"),
-            Badge("✍️", "Внимание к деталям", withNotes >= 10, "Добавьте заметку к 10 операциям"),
-            Badge("🧾", "50 записей", ops.size >= 50, "Зафиксируйте 50 операций"),
-            Badge("💯", "100 записей", ops.size >= 100, "Зафиксируйте 100 операций"),
-            Badge("🚀", "Профи учёта", ops.size >= 250, "Зафиксируйте 250 операций"),
-            Badge("✅", "Платежи в срок", paidOps >= 3, "Отметьте 3 обязательных платежа"),
-            Badge("🛡️", "Без просрочек", paidOps >= 10, "Отметьте 10 обязательных платежей"),
-            Badge("🎯", "В рамках плана", keptPlan, "Закройте месяц без превышения плана"),
-            Badge("🐷", "Накопитель", saver, "Отложите от 10% дохода за месяц"),
-            Badge("👑", "Супер-копилка", superSaver, "Отложите от 25% дохода за месяц"),
-            Badge("👨‍👩‍👧", "Командная работа", persons.size >= 2, "Добавьте операции от 2 и более участников")
+        val coreBadges = listOf(
+            // Бронза (+15 XP) — первые шаги и базовые привычки
+            Badge("🌱", "Первый шаг", ops.isNotEmpty(), "Запишите свою первую операцию", TrophyTier.BRONZE),
+            Badge("💰", "Первый доход", hasIncome, "Добавьте первый доход в бюджет", TrophyTier.BRONZE),
+            Badge("🔥", "3 дня подряд", best >= 3, "Ведите учёт 3 дня без перерыва", TrophyTier.BRONZE),
+            Badge("📋", "План месяца", planMonths >= 1, "Составьте первый план бюджета", TrophyTier.BRONZE),
+            Badge("🧘", "День без трат", zeroSpendDay, "Проведите хотя бы 1 день без единого расхода", TrophyTier.BRONZE),
+            Badge("🛒", "Разнообразие", expenseCategories.size >= 5, "Используйте 5 разных категорий расходов", TrophyTier.BRONZE),
+            Badge("✅", "Платежи в срок", paidOps >= 3, "Отметьте 3 обязательных платежа", TrophyTier.BRONZE),
+            Badge("👨‍👩‍👧", "Командная работа", persons.size >= 2, "Добавьте операции от 2 и более участников", TrophyTier.BRONZE),
+
+            // Серебро (+30 XP) — уверенная финансовая дисциплина
+            Badge("⚡", "Неделя подряд", best >= 7, "Ведите учёт 7 дней подряд", TrophyTier.SILVER),
+            Badge("🏆", "Железная привычка", best >= 14, "Серия из 14 дней подряд", TrophyTier.SILVER),
+            Badge("✍️", "Внимание к деталям", withNotes >= 10, "Добавьте заметку к 10 операциям", TrophyTier.SILVER),
+            Badge("🧾", "50 записей", ops.size >= 50, "Зафиксируйте 50 операций", TrophyTier.SILVER),
+            Badge("📅", "Стратег", planMonths >= 3, "Запланируйте бюджет на 3 разных месяца", TrophyTier.SILVER),
+            Badge("🛡️", "Без просрочек", paidOps >= 10, "Отметьте 10 обязательных платежей", TrophyTier.SILVER),
+            Badge("🐷", "Накопитель", saver, "Отложите от 10% дохода за месяц", TrophyTier.SILVER),
+
+            // Золото (+90 XP) — мастерство бюджета
+            Badge("💎", "Месяц дисциплины", best >= 30, "Серия из 30 дней подряд", TrophyTier.GOLD),
+            Badge("💯", "100 записей", ops.size >= 100, "Зафиксируйте 100 операций", TrophyTier.GOLD),
+            Badge("🚀", "Профи учёта", ops.size >= 250, "Зафиксируйте 250 операций", TrophyTier.GOLD),
+            Badge("🎯", "В рамках плана", keptPlan, "Закройте месяц без превышения плана", TrophyTier.GOLD),
+            Badge("👑", "Супер-копилка", superSaver, "Отложите от 25% дохода за месяц", TrophyTier.GOLD)
         )
 
-        val badgeXp = badges.count { it.unlocked } * 25
+        val allUnlocked = coreBadges.all { it.unlocked }
+        val platinum = Badge(
+            "🏆",
+            "Платина · Мастер",
+            allUnlocked,
+            "Соберите все 20 бронзовых, серебряных и золотых трофеев",
+            TrophyTier.PLATINUM
+        )
+        val badges = listOf(platinum) + coreBadges
+
+        val badgeXp = badges.filter { it.unlocked }.sumOf { it.tier.xp }
         val xp = ops.size * 10 + paidOps * 15 + planMonths * 100 + streak * 5 + badgeXp
         val level = xp / XP_PER_LEVEL + 1
         val idx = (level - 1).coerceAtMost(titles.size - 1)

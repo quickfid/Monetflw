@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +19,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -38,19 +41,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.familybudget.app.BudgetViewModel
+import ru.familybudget.app.R
 import ru.familybudget.app.data.OpType
 import ru.familybudget.app.logic.Deposits
 import ru.familybudget.app.logic.Fmt
 import ru.familybudget.app.logic.Game
 import ru.familybudget.app.logic.Plans
+import ru.familybudget.app.logic.TrophyTier
 import ru.familybudget.app.logic.Verdict
 import ru.familybudget.app.logic.delta
 import java.time.LocalDate
@@ -522,42 +530,118 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     QuestRow(md.summary.expense <= md.budget, "Уложиться в план месяца", "🏅", null) {}
                 }
                 HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                // Сводка трофеев в стиле PS5: Платина / Золото / Серебро / Бронза
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    listOf(
+                        TrophyTier.PLATINUM,
+                        TrophyTier.GOLD,
+                        TrophyTier.SILVER,
+                        TrophyTier.BRONZE
+                    ).forEach { tier ->
+                        val earned = game.badges.count { it.tier == tier && it.unlocked }
+                        val total = game.badges.count { it.tier == tier }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(trophyDrawable(tier)),
+                                contentDescription = tier.label,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(22.dp).clip(CircleShape)
+                            )
+                            Text(
+                                "$earned/$total",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
                 var selectedBadge by remember { mutableStateOf<ru.familybudget.app.logic.Badge?>(null) }
                 selectedBadge?.let { b ->
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = { selectedBadge = null },
-                        title = { Text("${b.emoji} ${b.title}") },
+                        icon = {
+                            Image(
+                                painter = painterResource(trophyDrawable(b.tier)),
+                                contentDescription = b.tier.label,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .alpha(if (b.unlocked) 1f else 0.45f)
+                            )
+                        },
+                        title = { Text(b.title, textAlign = TextAlign.Center) },
                         text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(if (b.unlocked) "✅ Достижение получено (+25 XP)" else "🔒 Ещё не получено (+25 XP)")
-                                if (b.hint.isNotBlank()) Text(b.hint)
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    "${b.tier.label} · +${b.tier.xp} XP · " +
+                                        if (b.unlocked) "✅ Получено" else "🔒 Не получено",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (b.unlocked) incomeColor else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (b.hint.isNotBlank()) {
+                                    Text(b.hint, textAlign = TextAlign.Center)
+                                }
                             }
                         },
                         confirmButton = {
-                            TextButton(onClick = { selectedBadge = null }) { Text("Понятно") }
+                            TextButton(onClick = { selectedBadge = null }) { Text("Отлично") }
                         }
                     )
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     game.badges.forEach { b ->
+                        val cardTone = when {
+                            !b.unlocked -> Sheet.glass()
+                            b.tier == TrophyTier.PLATINUM -> AppColors.accentBlue()
+                            b.tier == TrophyTier.GOLD -> Sheet.tone(Tone.SAVINGS)
+                            b.tier == TrophyTier.SILVER -> Sheet.glass()
+                            else -> Sheet.tone(Tone.WARN)
+                        }
                         Surface(
                             modifier = Modifier.width(96.dp).clickable { selectedBadge = b },
                             shape = RoundedCornerShape(16.dp),
-                            color = if (b.unlocked) Sheet.tone(Tone.SAVINGS) else Sheet.glass(),
+                            color = cardTone,
                             border = BorderStroke(1.dp, Sheet.glassBorderBrush())
                         ) {
                             Column(
                                 Modifier.padding(8.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(if (b.unlocked) b.emoji else "🔒", fontSize = 22.sp)
+                                Image(
+                                    painter = painterResource(trophyDrawable(b.tier)),
+                                    contentDescription = b.tier.label,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(CircleShape)
+                                        .alpha(if (b.unlocked) 1f else 0.32f)
+                                )
                                 Text(
                                     b.title,
                                     fontSize = 11.sp,
                                     textAlign = TextAlign.Center,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
+                                    fontWeight = if (b.unlocked) FontWeight.SemiBold else FontWeight.Normal,
                                     color = if (b.unlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    "${b.tier.label} · +${b.tier.xp}",
+                                    fontSize = 9.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -566,6 +650,13 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
     }
+}
+
+private fun trophyDrawable(tier: TrophyTier): Int = when (tier) {
+    TrophyTier.PLATINUM -> R.drawable.trophy_platinum
+    TrophyTier.GOLD -> R.drawable.trophy_gold
+    TrophyTier.SILVER -> R.drawable.trophy_silver
+    TrophyTier.BRONZE -> R.drawable.trophy_bronze
 }
 
 @Composable
