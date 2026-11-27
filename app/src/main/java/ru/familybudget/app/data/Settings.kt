@@ -69,7 +69,12 @@ data class AppSettings(
     val notifWeeklyHour: Int = 19,
     val notifCushionEnabled: Boolean = false,
     val notifCushionDay: Int = 1, // 1..28
-    val notifCushionHour: Int = 11
+    val notifCushionHour: Int = 11,
+    // Даты регулярных поступлений (зарплата для двоих, пособия, премии)
+    val salary1Days: String = "",
+    val salary2Days: String = "",
+    val benefitsDay: String = "",
+    val bonusDay: String = ""
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -119,7 +124,11 @@ class SettingsStore(context: Context) {
             notifWeeklyHour = prefs.getInt("notifWeeklyHour", 19).coerceIn(0, 23),
             notifCushionEnabled = prefs.getBoolean("notifCushionEnabled", false),
             notifCushionDay = prefs.getInt("notifCushionDay", 1).coerceIn(1, 28),
-            notifCushionHour = prefs.getInt("notifCushionHour", 11).coerceIn(0, 23)
+            notifCushionHour = prefs.getInt("notifCushionHour", 11).coerceIn(0, 23),
+            salary1Days = prefs.getString("salary1Days", "").orEmpty(),
+            salary2Days = prefs.getString("salary2Days", "").orEmpty(),
+            benefitsDay = prefs.getString("benefitsDay", "").orEmpty(),
+            bonusDay = prefs.getString("bonusDay", "").orEmpty()
         )
     }
 
@@ -219,6 +228,10 @@ class SettingsStore(context: Context) {
             .putBoolean("notifCushionEnabled", next.notifCushionEnabled)
             .putInt("notifCushionDay", next.notifCushionDay.coerceIn(1, 28))
             .putInt("notifCushionHour", next.notifCushionHour.coerceIn(0, 23))
+            .putString("salary1Days", next.salary1Days.trim())
+            .putString("salary2Days", next.salary2Days.trim())
+            .putString("benefitsDay", next.benefitsDay.trim())
+            .putString("bonusDay", next.bonusDay.trim())
             .apply()
         state.value = next
     }
