@@ -303,54 +303,74 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         .padding(18.dp)
                 ) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            modifier = Modifier.size(46.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            color = Color.White.copy(alpha = 0.14f),
-                            border = BorderStroke(1.dp, Sheet.glassBorderBrush())
+                    val isCalm = LocalAccentTheme.current == "calm_glass"
+                    if (isCalm) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                CategoryBadge("Зарплата", settings.categoryIcons, size = 34.dp)
+                            Surface(
+                                modifier = Modifier.size(46.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color.White.copy(alpha = 0.14f),
+                                border = BorderStroke(1.dp, Sheet.glassBorderBrush())
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    CategoryBadge("Зарплата", settings.categoryIcons, size = 34.dp)
+                                }
                             }
-                        }
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                "На счетах сейчас",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = Color.White.copy(alpha = 0.85f)
-                            )
-                            val animatedBalance by animateFloatAsState(
-                                targetValue = balance.toFloat(),
-                                animationSpec = tween(720, easing = androidx.compose.animation.core.FastOutSlowInEasing),
-                                label = "heroBalance"
-                            )
-                            Text(
-                                money(animatedBalance.toLong()),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            if (expectedInterest > 0L) {
-                                Surface(
-                                    shape = RoundedCornerShape(50),
-                                    color = incomeColor.copy(alpha = 0.22f),
-                                    border = BorderStroke(0.8.dp, incomeColor.copy(alpha = 0.45f))
-                                ) {
-                                    Text(
-                                        "↗ +${money(expectedInterest, false)}/мес",
-                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 2.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Color(0xFF9EEAC2)
-                                    )
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    "На счетах сейчас",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = Color.White.copy(alpha = 0.85f)
+                                )
+                                val animatedBalance by animateFloatAsState(
+                                    targetValue = balance.toFloat(),
+                                    animationSpec = tween(720, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                                    label = "heroBalance"
+                                )
+                                Text(
+                                    money(animatedBalance.toLong()),
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                                if (expectedInterest > 0L) {
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = incomeColor.copy(alpha = 0.22f),
+                                        border = BorderStroke(0.8.dp, incomeColor.copy(alpha = 0.45f))
+                                    ) {
+                                        Text(
+                                            "↗ +${money(expectedInterest, false)}/мес",
+                                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFF9EEAC2)
+                                        )
+                                    }
                                 }
                             }
                         }
+                    } else {
+                        Text(
+                            "На счетах сейчас (свободно)",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                        val animatedBalance by animateFloatAsState(
+                            targetValue = balance.toFloat(),
+                            animationSpec = tween(720, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                            label = "heroBalance"
+                        )
+                        Text(
+                            money(animatedBalance.toLong()),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     }
                     if (depositInfos.isNotEmpty()) {
                         Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {

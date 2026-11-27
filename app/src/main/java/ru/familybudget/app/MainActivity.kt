@@ -310,16 +310,18 @@ private fun BudgetApp() {
                                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                                                 color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(22.dp)
-                                                    .height(2.5.dp)
-                                                    .clip(RoundedCornerShape(50))
-                                                    .background(
-                                                        if (selected) MaterialTheme.colorScheme.primary
-                                                        else Color.Transparent
-                                                    )
-                                            )
+                                            if (settings.accentTheme == "calm_glass") {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .width(22.dp)
+                                                        .height(2.5.dp)
+                                                        .clip(RoundedCornerShape(50))
+                                                        .background(
+                                                            if (selected) MaterialTheme.colorScheme.primary
+                                                            else Color.Transparent
+                                                        )
+                                                )
+                                            }
                                         }
                                     }
                                 }
