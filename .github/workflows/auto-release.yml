@@ -90,9 +90,10 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: ${{ steps.check.outputs.next_version }}
         run: |
+          export VERSION_CODE=$(( $(date +%s) / 60 ))
+          echo "Используем versionCode=$VERSION_CODE, versionName=$VERSION_NAME"
           gradle testDebugUnitTest --stacktrace
           gradle assembleRelease --stacktrace
 
