@@ -70,6 +70,8 @@ import java.time.LocalDate
 
 private enum class Page { MENU, PROFILE, CATEGORIES, MANDATORY, ACCOUNTS, PEOPLE, NOTIFICATIONS, SYNC, REPORTS }
 
+private data class Quad(val title: String, val sub: String, val iconKey: String, val page: Page)
+
 @Composable
 fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
     var page by rememberSaveable { mutableStateOf(Page.MENU) }
