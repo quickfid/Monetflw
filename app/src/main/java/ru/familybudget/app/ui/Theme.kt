@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 
 val LocalGlassAlpha = compositionLocalOf { 0.40f }
 val LocalAccentTheme = compositionLocalOf { "teal" }
+val LocalUiStyle = compositionLocalOf { "modern" }
 
 enum class Tone { NEUTRAL, INCOME, EXPENSE, WARN, SAVINGS }
 
@@ -28,7 +29,7 @@ object Sheet {
     }
     @Composable fun border(): Color = if (isSystemInDarkTheme()) Color(0x4DFFFFFF) else Color(0xD9FFFFFF)
     @Composable fun glassBorderBrush(): Brush {
-        val calm = LocalAccentTheme.current == "calm_glass"
+        val calm = LocalUiStyle.current == "modern"
         return if (isSystemInDarkTheme()) {
             if (calm) Brush.linearGradient(listOf(Color(0x3DFFFFFF), Color(0x12FFFFFF), Color(0x29FFFFFF)))
             else Brush.linearGradient(listOf(Color(0x73FFFFFF), Color(0x1AFFFFFF), Color(0x45FFFFFF)))
