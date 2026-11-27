@@ -1,5 +1,6 @@
 package ru.familybudget.app.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,11 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -59,48 +61,67 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
 
     LazyColumn(
         Modifier.fillMaxSize().padding(padding),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp)
+        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 92.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 MonthSwitcher(Fmt.monthTitle(ym), onPrev = { vm.shiftMonth(-1) }, onNext = { vm.shiftMonth(1) })
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    (listOf(ALL) + OpType.all).forEach { t ->
-                        FilterChip(selected = filter == t, onClick = { filter = t }, label = { Text(t) })
-                    }
-                }
-                if (settings.persons.size > 1) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        (listOf(ALL) + settings.persons).forEach { p ->
-                            FilterChip(selected = personFilter == p, onClick = { personFilter = p }, label = { Text(p) })
+                Surface(
+                    shape = RoundedCornerShape(22.dp),
+                    color = Sheet.glass(),
+                    border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            (listOf(ALL) + OpType.all).forEach { t ->
+                                FilterChip(selected = filter == t, onClick = { filter = t }, label = { Text(t) })
+                            }
                         }
+                        if (settings.persons.size > 1) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                (listOf(ALL) + settings.persons).forEach { p ->
+                                    FilterChip(selected = personFilter == p, onClick = { personFilter = p }, label = { Text(p) })
+                                }
+                            }
+                        }
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            label = { Text("🔍 Поиск") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text("🔍 Поиск") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
         if (list.isEmpty()) {
             item {
-                Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                    Text("🧾", fontSize = 40.sp)
-                    EmptyHint(
-                        if (monthOps.isEmpty()) "Пока пусто. Запишите первую трату!"
-                        else "Ничего не найдено"
-                    )
-                    if (monthOps.isEmpty()) {
-                        androidx.compose.material3.Button(onClick = { vm.startNew() }) { Text("Добавить операцию") }
+                Surface(
+                    shape = RoundedCornerShape(22.dp),
+                    color = Sheet.glass(),
+                    border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(vertical = 24.dp, horizontal = 16.dp),
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                    ) {
+                        Text("🧾", fontSize = 40.sp)
+                        EmptyHint(
+                            if (monthOps.isEmpty()) "Пока пусто. Запишите первую трату!"
+                            else "Ничего не найдено"
+                        )
+                        if (monthOps.isEmpty()) {
+                            androidx.compose.material3.Button(onClick = { vm.startNew() }) { Text("Добавить операцию") }
+                        }
                     }
                 }
             }
         }
         grouped.forEach { (day, dayOps) ->
-            item(key = "h$day") {
+            item(key = "day_$day") {
                 val dayTotal = dayOps.sumOf {
                     when (it.type) {
                         OpType.EXPENSE -> -it.amountCents
@@ -108,18 +129,37 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         else -> 0L
                     }
                 }
-                Row(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(Fmt.date(day), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                    Text(
-                        (if (dayTotal > 0) "+" else "") + Fmt.money(dayTotal, cur, false),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Surface(
+                    shape = RoundedCornerShape(22.dp),
+                    color = Sheet.glass(),
+                    border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                Fmt.date(day),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                (if (dayTotal > 0) "+" else "") + Fmt.money(dayTotal, cur, false),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                        dayOps.forEachIndexed { idx, op ->
+                            if (idx > 0) HorizontalDivider(color = Sheet.border().copy(alpha = 0.4f))
+                            OperationRow(op, cur, settings.categoryIcons) { vm.edit(op) }
+                        }
+                    }
                 }
-            }
-            items(dayOps, key = { it.id }) { op ->
-                OperationRow(op, cur, settings.categoryIcons) { vm.edit(op) }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             }
         }
     }

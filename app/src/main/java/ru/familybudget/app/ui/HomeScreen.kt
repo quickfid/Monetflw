@@ -142,13 +142,24 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         color = Sheet.glass(),
                         border = BorderStroke(1.dp, Sheet.glassBorderBrush())
                     ) {
-                        Text(
-                            "${game.avatar} Ур. ${game.level} · ${game.title} · 🔥 ${game.streak} дн.",
+                        Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(levelDrawable(game.level)),
+                                contentDescription = "Уровень ${game.level}",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(20.dp).clip(CircleShape)
+                            )
+                            Text(
+                                "Ур. ${game.level} · ${game.title} · 🔥 ${game.streak} дн.",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
                 if (settings.apiUrl.isNotBlank() && settings.token.isNotBlank()) {
@@ -671,6 +682,13 @@ private fun trophyDrawable(tier: TrophyTier): Int = when (tier) {
     TrophyTier.GOLD -> R.drawable.trophy_gold
     TrophyTier.SILVER -> R.drawable.trophy_silver
     TrophyTier.BRONZE -> R.drawable.trophy_bronze
+}
+
+private fun levelDrawable(level: Int): Int = when {
+    level >= 7 -> R.drawable.level_platinum
+    level >= 5 -> R.drawable.level_gold
+    level >= 3 -> R.drawable.level_silver
+    else -> R.drawable.level_bronze
 }
 
 @Composable
