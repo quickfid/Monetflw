@@ -78,7 +78,9 @@ data class AppSettings(
     /** Уже показанные трофеи (чтобы не показывать «Первый шаг» при каждом запуске). */
     val seenBadges: Set<String> = emptySet(),
     /** Пользовательский порядок пунктов в разделе «Ещё». */
-    val menuOrder: List<String> = emptyList()
+    val menuOrder: List<String> = emptyList(),
+    /** Дни, отмеченные кнопкой «🧘 Сегодня без трат» (ISO yyyy-MM-dd). */
+    val noSpendDays: Set<String> = emptySet()
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
