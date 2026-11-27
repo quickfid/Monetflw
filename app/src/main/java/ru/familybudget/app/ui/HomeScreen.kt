@@ -86,21 +86,47 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         if (hidden) "•••• $cur" else Fmt.money(cents, cur, showCents)
 
     var showQuickExpense by remember { mutableStateOf(false) }
+    var quickPreselectedCat by remember { mutableStateOf<String?>(null) }
     val expenseCats = remember(categories) { Plans.orderedExpenseCategories(categories) }
+    val topCats = remember(ops, expenseCats) {
+        val freq = ops.filter { it.type == OpType.EXPENSE && it.category.isNotBlank() }
+            .groupingBy { it.category }.eachCount()
+        val sorted = freq.entries.sortedByDescending { it.value }.map { it.key }.filter { it in expenseCats }
+        (sorted + expenseCats.filter { it !in sorted }).take(5)
+    }
     if (showQuickExpense) {
-        var quickCat by remember { mutableStateOf(expenseCats.firstOrNull() ?: "Продукты") }
+        var quickCat by remember(quickPreselectedCat) {
+            mutableStateOf(quickPreselectedCat ?: expenseCats.firstOrNull() ?: "Продукты")
+        }
         var quickAmt by remember { mutableStateOf("") }
-        ModalBottomSheet(onDismissRequest = { showQuickExpense = false }) {
+        var smartLine by remember { mutableStateOf("") }
+        ModalBottomSheet(onDismissRequest = { showQuickExpense = false; quickPreselectedCat = null }) {
             Column(
                 Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("⚡ Быстрый расход", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    TextButton(onClick = { showQuickExpense = false; vm.startNew(OpType.EXPENSE) }) {
+                    TextButton(onClick = { showQuickExpense = false; quickPreselectedCat = null; vm.startNew(OpType.EXPENSE) }) {
                         Text("Подробно →")
                     }
                 }
+                TextField2(
+                    value = smartLine,
+                    onChange = { raw ->
+                        smartLine = raw
+                        val numMatch = Regex("""(\d+(?:[.,]\d{1,2})?)""").find(raw)
+                        if (numMatch != null) {
+                            quickAmt = numMatch.groupValues[1]
+                        }
+                        val wordPart = raw.replace(Regex("""\d+(?:[.,]\d{1,2})?"""), "").trim().lowercase()
+                        if (wordPart.length >= 2) {
+                            val matched = expenseCats.firstOrNull { it.lowercase().contains(wordPart) }
+                            if (matched != null) quickCat = matched
+                        }
+                    },
+                    label = "Быстрая строка (напр. продукты 1450)"
+                )
                 MoneyField(quickAmt, { quickAmt = it }, "Сумма ($cur)")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(200L, 500L, 1_000L, 2_000L, 5_000L).forEach { v ->
@@ -378,6 +404,107 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             fontWeight = FontWeight.SemiBold,
                             color = incomeColor
                         )
+                    }
+                }
+            }
+        }
+
+        // 3.5. Умные кнопки частых категорий (1А: 1 тап → сразу ввод суммы)
+        if (topCats.isNotEmpty()) {
+            item {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    topCats.forEach { cat ->
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .bouncyClickable {
+                                    quickPreselectedCat = cat
+                                    showQuickExpense = true
+                                }
+                                .padding(vertical = 2.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Sheet.glass(),
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                                border = BorderStroke(1.1.dp, Sheet.glassBorderBrush())
+                            ) {
+                                Box(Modifier.padding(4.dp), contentAlignment = Alignment.Center) {
+                                    CategoryBadge(cat, settings.categoryIcons, size = 34.dp)
+                                }
+                            }
+                            Text(
+                                cat,
+                                fontSize = 10.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3.6. Компактные «Квесты дня» (сворачиваемые, без визуального шума) + «День без трат»
+        item {
+            val todayIso = today.toString()
+            val todayOps = remember(ops, todayDay) { ops.filter { it.date == todayDay } }
+            val todayExpense = remember(todayOps) {
+                todayOps.filter { it.type == OpType.EXPENSE }.sumOf { it.amountCents }
+            }
+            val markedNoSpend = todayIso in settings.noSpendDays
+            val q1Done = todayOps.isNotEmpty() || markedNoSpend
+            val q2Done = f.safeDaily <= 0L || todayExpense <= f.safeDaily
+            val q3Done = mandatory.isEmpty() || paidCount > 0
+            val doneCount = listOf(q1Done, q2Done, q3Done).count { it }
+            var questsOpen by remember { mutableStateOf(false) }
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = Sheet.glass(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                border = BorderStroke(1.1.dp, Sheet.glassBorderBrush())
+            ) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().clickable { questsOpen = !questsOpen },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            "🎯 Квесты дня ($doneCount/3)" + if (doneCount == 3) " · ✅" else "",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            if (questsOpen) "Свернуть ▴" else "Развернуть ▾",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    androidx.compose.animation.AnimatedVisibility(visible = questsOpen) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            QuestRow(q1Done, "Записать операцию или день без трат", "+15 XP", null) {}
+                            QuestRow(q2Done, "Уложиться в дневной лимит", "+25 XP", null) {}
+                            QuestRow(q3Done, "Отметить обязательные платежи", "+10 XP", null) {}
+                            if (todayExpense == 0L && !markedNoSpend) {
+                                OutlinedButton(
+                                    onClick = { vm.markNoSpendToday() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(50)
+                                ) {
+                                    Text("🧘 Сегодня без трат (+20 XP)")
+                                }
+                            }
+                        }
                     }
                 }
             }
