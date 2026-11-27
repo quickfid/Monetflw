@@ -97,9 +97,11 @@ fun PlanScreen(vm: BudgetViewModel, padding: PaddingValues) {
             val spent = md.spentByCategory[name] ?: 0L
             val ratio = if (plan > 0) spent.toFloat() / plan else 0f
             val over = plan > 0 && spent > plan
+            val exactDone = plan > 0 && spent == plan
             val status = when {
                 plan <= 0 -> "➕ вне плана"
-                over -> "🔥 +" + Fmt.money(spent - plan, cur, false)
+                over -> "🔥 перерасход +" + Fmt.money(spent - plan, cur, false)
+                exactDone -> "✅ Оплачено полностью"
                 ratio >= 0.85f -> "⚠️ осталось " + Fmt.money(plan - spent, cur, false)
                 else -> "✅ осталось " + Fmt.money(plan - spent, cur, false)
             }
@@ -129,7 +131,12 @@ fun PlanScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         LinearProgressIndicator(
                             progress = { ratio.coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth().height(9.dp),
-                            color = if (over) expenseColor else if (ratio >= 0.85f) warnColor else MaterialTheme.colorScheme.primary
+                            color = when {
+                                over -> expenseColor
+                                exactDone -> AppColors.income()
+                                ratio >= 0.85f -> warnColor
+                                else -> MaterialTheme.colorScheme.primary
+                            }
                         )
                     }
                     Text(
