@@ -3,15 +3,21 @@ package ru.familybudget.app.ui
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,6 +33,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -103,6 +110,9 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
     val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) vm.importBackup(uri)
     }
+    val notifPermLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) vm.setDailyReminder(true)
+    }
     var confirmRestore by remember { mutableStateOf(false) }
     if (confirmRestore) {
         AlertDialog(
@@ -158,8 +168,41 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         if (vm.message.isNotEmpty()) {
             Text(vm.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)
         }
+        HorizontalDivider()
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("🔔 Напоминание в 20:00", style = MaterialTheme.typography.bodyLarge)
+                Text("Ежедневно вечером, чтобы не забыть записать траты", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(
+                checked = settings.dailyReminder,
+                onCheckedChange = { enabled ->
+                    if (enabled && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        notifPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        vm.setDailyReminder(enabled)
+                    }
+                }
+            )
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("🖼️ Размытые обои рабочего стола", style = MaterialTheme.typography.bodyLarge)
+                Text("Фон из обоев телефона с эффектом Liquid Glass", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(
+                checked = settings.wallpaperBackground,
+                onCheckedChange = { vm.setWallpaperBackground(it) }
+            )
+        }
         Text(
-            "Данные только на вашем телефоне · v1.3.0",
+            "Данные только на вашем телефоне · v1.4.0",
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -188,12 +231,23 @@ private fun ProfilePage(vm: BudgetViewModel) {
     var budget by remember(settings.monthlyBudget) {
         mutableStateOf(if (settings.monthlyBudget > 0) Fmt.plain(settings.monthlyBudget) else "")
     }
+    var savingsPct by remember(settings.savingsPercent) { mutableStateOf(settings.savingsPercent) }
     val incomeCents = Fmt.parseCents(income) ?: 0L
     val budgetCents = Fmt.parseCents(budget) ?: 0L
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         TextField2(name, { name = it }, "Ваше имя")
         MoneyField(income, { income = it }, "Доход в месяц, $cur")
+        ChipPicker(
+            label = "🛡️ Откладывать на подушку" +
+                if (incomeCents > 0) " (${Fmt.money(incomeCents * savingsPct / 100L, cur, false)}/мес)" else "",
+            value = "$savingsPct%",
+            options = listOf("5%", "10%", "15%", "20%"),
+            onSelect = {
+                savingsPct = it.removeSuffix("%").toIntOrNull() ?: 10
+                vm.setSavingsPercent(savingsPct)
+            }
+        )
         MoneyField(budget, { budget = it }, "План трат на месяц, $cur")
         if (incomeCents > 0 && budgetCents > 0) {
             val saving = incomeCents - budgetCents
@@ -212,10 +266,12 @@ private fun ProfilePage(vm: BudgetViewModel) {
 }
 
 // ---------------------------------------------------------------- категории
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CategoriesPage(vm: BudgetViewModel) {
     val categories by vm.categories.collectAsState()
-    val cur = vm.settings.collectAsState().value.currency
+    val settings by vm.settings.collectAsState()
+    val cur = settings.currency
     var income by rememberSaveable { mutableStateOf(false) }
     var dialog by remember { mutableStateOf<Category?>(null) }
     val list = categories.filter { it.isIncome == income }
@@ -227,6 +283,7 @@ private fun CategoriesPage(vm: BudgetViewModel) {
         }
         list.forEach { c ->
             ListItem(
+                leadingContent = { CategoryBadge(c.name, settings.categoryIcons, size = 36.dp) },
                 headlineContent = { Text(c.name) },
                 supportingContent = {
                     if (!c.isIncome) Text(if (c.limitCents > 0) "Лимит: " + Fmt.money(c.limitCents, cur, false) else "Без лимита")
@@ -243,18 +300,41 @@ private fun CategoriesPage(vm: BudgetViewModel) {
     dialog?.let { c ->
         var name by remember(c) { mutableStateOf(c.name) }
         var limit by remember(c) { mutableStateOf(if (c.limitCents > 0) Fmt.plain(c.limitCents) else "") }
+        var chosenIcon by remember(c) {
+            mutableStateOf(settings.categoryIcons[c.name] ?: CategoryIcons.autoKey(c.name))
+        }
         FormDialog(
             title = if (c.id == 0L) "Новая категория" else "Категория",
             onDismiss = { dialog = null },
             confirmEnabled = name.isNotBlank(),
             onConfirm = {
-                vm.saveCategory(c.copy(name = name.trim(), limitCents = if (c.isIncome) 0L else (Fmt.parseCents(limit) ?: 0L)), c.name.ifBlank { null })
+                val trimmed = name.trim()
+                vm.setCategoryIcon(trimmed, chosenIcon)
+                vm.saveCategory(c.copy(name = trimmed, limitCents = if (c.isIncome) 0L else (Fmt.parseCents(limit) ?: 0L)), c.name.ifBlank { null })
                 dialog = null
             },
             onDelete = if (c.id != 0L) ({ vm.deleteCategory(c); dialog = null }) else null
         ) {
-            TextField2(name, { name = it }, "Название")
+            TextField2(name, {
+                name = it
+                if (c.id == 0L) chosenIcon = CategoryIcons.autoKey(it)
+            }, "Название")
             if (!c.isIncome) MoneyField(limit, { limit = it }, "Месячный лимит, $cur (пусто — без лимита)")
+            Text("Иконка категории", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                CategoryIcons.all.forEach { spec ->
+                    val selected = chosenIcon == spec.key
+                    Surface(
+                        shape = CircleShape,
+                        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                        modifier = Modifier.size(40.dp).clickable { chosenIcon = spec.key }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            CategoryBadge(spec.label, mapOf(spec.label to spec.key), size = 34.dp)
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -426,10 +506,15 @@ private fun SyncPage(vm: BudgetViewModel) {
                 enabled = !vm.syncing && unsynced > 0, modifier = Modifier.weight(1f)
             ) { Text("Отправить ($unsynced)") }
         }
+        OutlinedButton(
+            onClick = { vm.setApi(url, token); vm.pullFromSheets() },
+            enabled = !vm.syncing,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Загрузить изменения из таблицы") }
         if (vm.syncing) CircularProgressIndicator()
         if (vm.message.isNotEmpty()) Text(vm.message, color = MaterialTheme.colorScheme.primary)
         Text(
-            "Изменения и удаления уже отправленных операций в таблице не обновляются. " +
+            "При закрытии приложения данные синхронизируются с таблицей автоматически. " +
                 "Токен хранится на устройстве; не публикуйте URL и токен.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

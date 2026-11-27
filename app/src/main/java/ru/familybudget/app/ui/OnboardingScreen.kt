@@ -51,12 +51,29 @@ fun OnboardingScreen(vm: BudgetViewModel) {
     var cash by rememberSaveable { mutableStateOf("") }
     var income by rememberSaveable { mutableStateOf("") }
     var recordIncome by rememberSaveable { mutableStateOf(false) }
-    val names = remember(categories) { Plans.orderedExpenseCategories(categories) }
+    var billsAlreadyPaid by rememberSaveable { mutableStateOf(false) }
+    var savingsPercent by rememberSaveable { mutableIntStateOf(10) }
+    val coreGoals = remember {
+        listOf(
+            "Аренда квартиры",
+            "Транспорт и бензин",
+            "Связь и интернет",
+            "Стрижка, маникюр",
+            "Продукты",
+            "Развлечения и досуг",
+            "Коммунальные платежи"
+        )
+    }
+    val names = remember(categories) {
+        val rest = Plans.orderedExpenseCategories(categories).filter { it !in coreGoals }
+        coreGoals + rest
+    }
     val values = remember { mutableStateMapOf<String, String>() }
 
     val incomeCents = Fmt.parseCents(income) ?: 0L
+    val cushionCents = incomeCents * savingsPercent / 100L
     val total = names.sumOf { Fmt.parseCents(values[it].orEmpty()) ?: 0L }
-    val free = incomeCents - total
+    val free = incomeCents - total - cushionCents
 
     BackHandler(enabled = step > 0) { step -= 1 }
 
@@ -94,11 +111,28 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                     }
                 }
                 3 -> {
-                    Text("📋 План на месяц", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                    Text("Сколько уйдёт на каждое. Можно оставить пустым.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("📋 Цели на месяц", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("Заполните основные статьи расходов (можно оставить пустыми).", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    ChipPicker(
+                        label = "🛡️ Откладывать на подушку безопасности" +
+                            if (cushionCents > 0) " (${Fmt.money(cushionCents, currency, false)}/мес)" else "",
+                        value = "$savingsPercent%",
+                        options = listOf("5%", "10%", "15%", "20%"),
+                        onSelect = { savingsPercent = it.removeSuffix("%").toIntOrNull() ?: 10 }
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = billsAlreadyPaid, onCheckedChange = { billsAlreadyPaid = it })
+                        Column(Modifier.weight(1f)) {
+                            Text("Обязательные платежи в этом месяце уже оплачены")
+                            HelpText("Отметьте, если остаток на карте уже указан с учётом этих трат — тогда прогноз не уйдёт в минус.")
+                        }
+                    }
                     PlanFields(names, values, currency)
                     Banner("Итого", if (incomeCents > 0 && free < 0) Tone.EXPENSE else Tone.INCOME) {
-                        KeyValueRow("План", Fmt.money(total, currency, false))
+                        KeyValueRow("План расходов", Fmt.money(total, currency, false))
+                        if (cushionCents > 0) {
+                            KeyValueRow("На подушку ($savingsPercent%)", Fmt.money(cushionCents, currency, false))
+                        }
                         if (incomeCents > 0) {
                             KeyValueRow(if (free >= 0) "Свободно" else "Не хватает", Fmt.money(kotlin.math.abs(free), currency, false))
                         }
@@ -139,7 +173,9 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                                     name = name, partner = partner, currency = currency,
                                     cardCents = Fmt.parseCents(card) ?: 0L,
                                     cashCents = Fmt.parseCents(cash) ?: 0L,
-                                    incomeCents = incomeCents, recordIncome = recordIncome, plan = plan
+                                    incomeCents = incomeCents, recordIncome = recordIncome, plan = plan,
+                                    billsAlreadyPaid = billsAlreadyPaid,
+                                    savingsPercent = savingsPercent
                                 )
                             )
                         },

@@ -3,10 +3,23 @@ package ru.familybudget.app.data
 import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import org.json.JSONArray
+import org.json.JSONObject
+
+data class SavingsGoal(
+    val id: Long,
+    val title: String,
+    val targetCents: Long,
+    val savedCents: Long
+)
+
+private const val DEFAULT_API_URL =
+    "https://script.google.com/macros/s/AKfycbwIJnvApZaZbpIF5C0k2zT2LPvn0GTNXVB0ffjC2BE1qDd0QI21pp057a6JQfcigDaV/exec"
+private const val DEFAULT_API_TOKEN = "family-budget-secret-2026-xyz123456"
 
 data class AppSettings(
-    val apiUrl: String = "",
-    val token: String = "",
+    val apiUrl: String = DEFAULT_API_URL,
+    val token: String = DEFAULT_API_TOKEN,
     val persons: List<String> = listOf("Я"),
     val currency: String = "₽",
     val autoSync: Boolean = false,
@@ -18,7 +31,19 @@ data class AppSettings(
     val monthlyBudget: Long = 0,
     val hideTips: Boolean = false,
     /** Месяц «ГГГГ-ММ», для которого уже спросили суммы фиксированных платежей. */
-    val fixedPromptYm: String = ""
+    val fixedPromptYm: String = "",
+    /** Вечернее напоминание каждый день в 20:00. */
+    val dailyReminder: Boolean = false,
+    /** Сколько процентов от дохода откладывать на подушку безопасности (5, 10, 15, 20). */
+    val savingsPercent: Int = 10,
+    /** Выбранная игровая стратегия накоплений (пусто — не выбрана). */
+    val activeStrategy: String = "",
+    /** Финансовые цели (копилки на мечту). */
+    val goals: List<SavingsGoal> = emptyList(),
+    /** Пользовательские иконки категорий: название категории → ключ иконки. */
+    val categoryIcons: Map<String, String> = emptyMap(),
+    /** Использовать размытые обои рабочего стола как фон приложения. */
+    val wallpaperBackground: Boolean = false
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -32,8 +57,8 @@ class SettingsStore(context: Context) {
             ?.split("\n")?.map { it.trim() }?.filter { it.isNotEmpty() }
             ?.ifEmpty { null } ?: listOf("Я")
         return AppSettings(
-            apiUrl = prefs.getString("apiUrl", "").orEmpty(),
-            token = prefs.getString("token", "").orEmpty(),
+            apiUrl = prefs.getString("apiUrl", null).orEmpty().ifBlank { DEFAULT_API_URL },
+            token = prefs.getString("token", null).orEmpty().ifBlank { DEFAULT_API_TOKEN },
             persons = persons,
             currency = prefs.getString("currency", "₽").orEmpty().ifBlank { "₽" },
             autoSync = prefs.getBoolean("autoSync", false),
@@ -42,8 +67,70 @@ class SettingsStore(context: Context) {
             monthlyIncome = prefs.getLong("monthlyIncome", 0L),
             monthlyBudget = prefs.getLong("monthlyBudget", 0L),
             hideTips = prefs.getBoolean("hideTips", false),
-            fixedPromptYm = prefs.getString("fixedPromptYm", "").orEmpty()
+            fixedPromptYm = prefs.getString("fixedPromptYm", "").orEmpty(),
+            dailyReminder = prefs.getBoolean("dailyReminder", false),
+            savingsPercent = prefs.getInt("savingsPercent", 10),
+            activeStrategy = prefs.getString("activeStrategy", "").orEmpty(),
+            goals = parseGoals(prefs.getString("goals_json", "").orEmpty()),
+            categoryIcons = parseIcons(prefs.getString("category_icons_json", "").orEmpty()),
+            wallpaperBackground = prefs.getBoolean("wallpaperBackground", false)
         )
+    }
+
+    private fun parseIcons(raw: String): Map<String, String> {
+        if (raw.isBlank()) return emptyMap()
+        return try {
+            val obj = JSONObject(raw)
+            val map = HashMap<String, String>()
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val k = keys.next()
+                map[k] = obj.optString(k)
+            }
+            map
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun serializeIcons(icons: Map<String, String>): String {
+        val obj = JSONObject()
+        icons.forEach { (k, v) -> obj.put(k, v) }
+        return obj.toString()
+    }
+
+    private fun parseGoals(raw: String): List<SavingsGoal> {
+        if (raw.isBlank()) return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).mapNotNull { i ->
+                val o = arr.optJSONObject(i) ?: return@mapNotNull null
+                val title = o.optString("title").trim()
+                if (title.isEmpty()) return@mapNotNull null
+                SavingsGoal(
+                    id = o.optLong("id", i.toLong() + 1L),
+                    title = title,
+                    targetCents = o.optLong("targetCents", 0L).coerceAtLeast(0L),
+                    savedCents = o.optLong("savedCents", 0L).coerceAtLeast(0L)
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun serializeGoals(goals: List<SavingsGoal>): String {
+        val arr = JSONArray()
+        goals.forEach { g ->
+            arr.put(
+                JSONObject()
+                    .put("id", g.id)
+                    .put("title", g.title)
+                    .put("targetCents", g.targetCents)
+                    .put("savedCents", g.savedCents)
+            )
+        }
+        return arr.toString()
     }
 
     fun update(change: (AppSettings) -> AppSettings) {
@@ -60,6 +147,12 @@ class SettingsStore(context: Context) {
             .putLong("monthlyBudget", next.monthlyBudget)
             .putBoolean("hideTips", next.hideTips)
             .putString("fixedPromptYm", next.fixedPromptYm)
+            .putBoolean("dailyReminder", next.dailyReminder)
+            .putInt("savingsPercent", next.savingsPercent)
+            .putString("activeStrategy", next.activeStrategy)
+            .putString("goals_json", serializeGoals(next.goals))
+            .putString("category_icons_json", serializeIcons(next.categoryIcons))
+            .putBoolean("wallpaperBackground", next.wallpaperBackground)
             .apply()
         state.value = next
     }

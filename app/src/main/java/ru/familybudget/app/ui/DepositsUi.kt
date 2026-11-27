@@ -1,26 +1,32 @@
 package ru.familybudget.app.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -47,31 +54,135 @@ import java.time.YearMonth
 fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.dp)) {
     val deposits by vm.deposits.collectAsState()
     val interest by vm.interest.collectAsState()
-    val cur = vm.settings.collectAsState().value.currency
+    val mandatory by vm.mandatory.collectAsState()
+    val settings by vm.settings.collectAsState()
+    val cur = settings.currency
     var editing by remember { mutableStateOf<Deposit?>(null) }
     var history by remember { mutableStateOf<Deposit?>(null) }
+    var editingGoal by remember { mutableStateOf<ru.familybudget.app.data.SavingsGoal?>(null) }
     val incomeColor = AppColors.income()
+    val savingsColor = AppColors.savings()
+    val infos = remember(deposits, interest) { deposits.map { Deposits.info(it, interest) } }
+    val totalSavings = remember(infos) { infos.sumOf { it.balance } }
+    val totalExpected = remember(infos) { infos.sumOf { it.expectedMonthly } }
+    val totalReceived = remember(infos) { infos.sumOf { it.received } }
+    val monthlyBase = remember(settings.monthlyBudget, mandatory) {
+        val mSum = mandatory.sumOf { it.amountCents }
+        if (settings.monthlyBudget > 0) settings.monthlyBudget else mSum
+    }
+    val cushionGoal = monthlyBase * 3L
 
     Column(
-        Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (deposits.isEmpty()) EmptyHint("Добавьте вклад или накопительный счёт 🐷")
-        deposits.forEach { d ->
-            val info = Deposits.info(d, interest)
-            Column(
-                Modifier.fillMaxWidth().border(1.dp, Sheet.border()).background(MaterialTheme.colorScheme.surface)
-                    .clickable { editing = d }.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+        if (infos.isNotEmpty()) {
+            Banner("Общая сумма накоплений", Tone.SAVINGS) {
+                Text(
+                    Fmt.money(totalSavings, cur),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = savingsColor
+                )
+                KeyValueRow("Ожидается процентов в этом месяце", "+" + Fmt.money(totalExpected, cur), incomeColor)
+                KeyValueRow("Всего начислено процентов", "+" + Fmt.money(totalReceived, cur), incomeColor)
+            }
+        }
+
+        // Стратегии и советы по накоплениям (игровой вызов — сразу на видном месте)
+        val activeStrategy = settings.activeStrategy
+        val ops by vm.operations.collectAsState()
+        val nowYm = remember { YearMonth.now() }
+        val monthOps = remember(ops, nowYm) { ru.familybudget.app.logic.Stats.opsInMonth(ops, nowYm) }
+        val monthIncome = remember(monthOps) { monthOps.filter { it.type == ru.familybudget.app.data.OpType.INCOME }.sumOf { it.amountCents } }
+        val monthExpense = remember(monthOps) { monthOps.filter { it.type == ru.familybudget.app.data.OpType.EXPENSE }.sumOf { it.amountCents } }
+        val savedThisMonth = (monthIncome - monthExpense).coerceAtLeast(0L)
+        val daysLogged = remember(monthOps) { monthOps.map { it.date }.distinct().size }
+
+        val strategies = remember(settings.savingsPercent) {
+            listOf(
+                Triple("pay_yourself", "1. Сначала заплати себе", "Откладывайте ${settings.savingsPercent}% от дохода сразу в день получения, до основных трат."),
+                Triple("rule_50_30_20", "2. Правило 50 / 30 / 20", "50% дохода — на нужды, 30% — на желания, 20% — в накопления и вклады."),
+                Triple("rule_24h", "3. Правило 24 часов", "Откладывайте незапланированную покупку на сутки — половина импульсивных трат отпадёт сама."),
+                Triple("weekly_round", "4. Округление в конце недели", "Каждое воскресенье переводите «хвостик» с карты на накопительный счёт.")
+            )
+        }
+
+        if (activeStrategy.isNotBlank()) {
+            val activeInfo = strategies.firstOrNull { it.first == activeStrategy }
+            if (activeInfo != null) {
+                val targetPct = when (activeStrategy) {
+                    "rule_50_30_20" -> 20
+                    "pay_yourself" -> settings.savingsPercent.coerceAtLeast(5)
+                    else -> 0
+                }
+                val progressVal = when (activeStrategy) {
+                    "pay_yourself", "rule_50_30_20" -> {
+                        val goal = (if (monthIncome > 0) monthIncome else settings.monthlyIncome) * targetPct / 100L
+                        if (goal > 0) (savedThisMonth.toFloat() / goal).coerceIn(0f, 1f) else 0f
+                    }
+                    else -> (daysLogged.toFloat() / 14f).coerceIn(0f, 1f)
+                }
+                val animatedStrat by animateFloatAsState(
+                    targetValue = progressVal,
+                    animationSpec = tween(550),
+                    label = "strategyProgress"
+                )
+                val pctDone = (progressVal * 100).toInt()
+                Banner("🎮 Активный вызов: ${activeInfo.second}", Tone.INCOME) {
+                    Text(activeInfo.third, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    LinearProgressIndicator(
+                        progress = { animatedStrat },
+                        modifier = Modifier.fillMaxWidth().height(9.dp).clip(RoundedCornerShape(5.dp))
+                    )
+                    KeyValueRow("Прогресс месяца", "$pctDone%", incomeColor)
+                    TextButton(onClick = { vm.setStrategy("") }) { Text("Отказаться от вызова") }
+                }
+            }
+        }
+
+        Section("🎮 Стратегии накоплений (выберите вызов)") {
+            strategies.forEachIndexed { idx, (id, title, desc) ->
+                if (idx > 0) HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                val isActive = activeStrategy == id
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (isActive) {
+                            TextButton(onClick = { vm.setStrategy("") }) { Text("Отказаться") }
+                        } else {
+                            OutlinedButton(onClick = { vm.setStrategy(id) }) { Text("Принять вызов 🎮") }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (deposits.isEmpty()) {
+            EmptyHint("Добавьте банковский вклад или накопительный счёт, чтобы видеть общую сумму накоплений и начисленные проценты.")
+        }
+        infos.forEach { info ->
+            val d = info.deposit
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable { editing = d },
+                shape = RoundedCornerShape(20.dp),
+                color = Sheet.glass(),
+                border = BorderStroke(1.dp, Sheet.border())
             ) {
-                Text("🐷 " + d.name, fontWeight = FontWeight.Bold)
-                Text(d.kind + " · " + Deposits.rateText(d), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                KeyValueRow("Сумма сейчас", Fmt.money(info.balance, cur))
-                KeyValueRow("Проценты в этом месяце ≈", "+" + Fmt.money(info.expectedMonthly, cur), incomeColor)
-                KeyValueRow("Уже пришло процентов", "+" + Fmt.money(info.received, cur), incomeColor)
-                Row {
-                    TextButton(onClick = { history = d }) { Text("История процентов") }
-                    TextButton(onClick = { editing = d }) { Text("Изменить") }
+                Column(
+                    Modifier.fillMaxWidth().padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(d.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(d.kind + " · " + Deposits.rateText(d), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    KeyValueRow("Сумма сейчас", Fmt.money(info.balance, cur))
+                    KeyValueRow("Проценты в этом месяце ≈", "+" + Fmt.money(info.expectedMonthly, cur), incomeColor)
+                    KeyValueRow("Уже пришло процентов", "+" + Fmt.money(info.received, cur), incomeColor)
+                    Row {
+                        TextButton(onClick = { history = d }) { Text("История процентов") }
+                        TextButton(onClick = { editing = d }) { Text("Изменить") }
+                    }
                 }
             }
         }
@@ -83,6 +194,70 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
         ) {
             Icon(Icons.Default.Add, contentDescription = null)
             Text("  Добавить вклад или счёт")
+        }
+
+        // Финансовая подушка (реальный прогресс)
+        if (cushionGoal > 0) {
+            val fraction = (totalSavings.toFloat() / cushionGoal).coerceIn(0f, 1f)
+            val animatedCushion by animateFloatAsState(
+                targetValue = fraction,
+                animationSpec = tween(500),
+                label = "cushionProgress"
+            )
+            val monthsCovered = if (monthlyBase > 0) totalSavings.toDouble() / monthlyBase else 0.0
+            Section("🛡️ Финансовая подушка (цель: 3 месяца)") {
+                LinearProgressIndicator(
+                    progress = { animatedCushion },
+                    modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
+                    color = savingsColor
+                )
+                KeyValueRow(
+                    "Покрыто месяцев",
+                    String.format(java.util.Locale.getDefault(), "%.1f из 3,0 мес.", monthsCovered),
+                    savingsColor
+                )
+                KeyValueRow("Цель (3 месяца бюджета)", Fmt.money(cushionGoal, cur, false))
+            }
+        }
+
+        // Финансовые цели (копилки на мечту)
+        Section("🎯 Финансовые цели") {
+            if (settings.goals.isEmpty()) {
+                HelpText("Создайте копилку на конкретную цель — например, отпуск, ремонт или новый телефон.")
+            } else {
+                settings.goals.forEachIndexed { idx, g ->
+                    if (idx > 0) HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                    val gRatio = if (g.targetCents > 0) (g.savedCents.toFloat() / g.targetCents).coerceIn(0f, 1f) else 0f
+                    val gPct = (gRatio * 100).toInt()
+                    Column(
+                        Modifier.fillMaxWidth().clickable { editingGoal = g },
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(g.title, fontWeight = FontWeight.SemiBold)
+                            Text("$gPct%", color = savingsColor, fontWeight = FontWeight.SemiBold)
+                        }
+                        LinearProgressIndicator(
+                            progress = { gRatio },
+                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                            color = savingsColor
+                        )
+                        KeyValueRow("Накоплено", "${Fmt.money(g.savedCents, cur, false)} из ${Fmt.money(g.targetCents, cur, false)}")
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { vm.saveGoal(g.copy(savedCents = g.savedCents + 100_000L)) }) { Text("+1 000") }
+                            TextButton(onClick = { vm.saveGoal(g.copy(savedCents = g.savedCents + 500_000L)) }) { Text("+5 000") }
+                            TextButton(onClick = { editingGoal = g }) { Text("Изменить") }
+                        }
+                    }
+                }
+            }
+            OutlinedButton(
+                onClick = { editingGoal = ru.familybudget.app.data.SavingsGoal(0L, "", 0L, 0L) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Text("  Добавить цель")
+            }
         }
     }
 
@@ -101,7 +276,7 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
             name = name.trim(), kind = kind, ratePercent = rateValue,
             ratePeriod = if (period == "в месяц") 1 else 0, compound = compound
         )
-        val preview = Math.round((if (compound) balanceCents else balanceCents) * Deposits.monthlyRate(draft))
+        val preview = Math.round(balanceCents * Deposits.monthlyRate(draft))
         FormDialog(
             title = if (isNew) "Новый вклад" else "Вклад",
             onDismiss = { editing = null },
@@ -174,6 +349,29 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
             ) {
                 MoneyField(amount, { amount = it }, "Пришло процентов, $cur")
             }
+        }
+    }
+
+    editingGoal?.let { g ->
+        val isNewGoal = g.id == 0L
+        var title by remember(g) { mutableStateOf(g.title) }
+        var target by remember(g) { mutableStateOf(if (g.targetCents > 0) Fmt.plain(g.targetCents) else "") }
+        var saved by remember(g) { mutableStateOf(if (g.savedCents > 0) Fmt.plain(g.savedCents) else "") }
+        val targetCents = Fmt.parseCents(target) ?: 0L
+        val savedCents = Fmt.parseCents(saved) ?: 0L
+        FormDialog(
+            title = if (isNewGoal) "Новая цель" else g.title,
+            onDismiss = { editingGoal = null },
+            confirmEnabled = title.isNotBlank() && targetCents > 0L,
+            onConfirm = {
+                vm.saveGoal(g.copy(title = title.trim(), targetCents = targetCents, savedCents = savedCents))
+                editingGoal = null
+            },
+            onDelete = if (!isNewGoal) ({ vm.deleteGoal(g.id); editingGoal = null }) else null
+        ) {
+            TextField2(title, { title = it }, "Название цели (например, Отпуск)")
+            MoneyField(target, { target = it }, "Нужная сумма, $cur")
+            MoneyField(saved, { saved = it }, "Уже накоплено, $cur")
         }
     }
 }

@@ -1,6 +1,7 @@
 package ru.familybudget.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -109,11 +110,43 @@ fun OperationEditor(vm: BudgetViewModel, initial: Operation) {
             }
             MoneyField(amount, { amount = it }, "Сумма, ${settings.currency}")
 
+            if (isNew && type == OpType.EXPENSE) {
+                val templates = remember(categoryNames) {
+                    listOf(
+                        Triple("☕ Кофе", "250", categoryNames.firstOrNull { it.contains("кафе", true) || it.contains("еда", true) || it.contains("продукт", true) } ?: categoryNames.firstOrNull().orEmpty()),
+                        Triple("🛒 Продукты", "1500", categoryNames.firstOrNull { it.contains("продукт", true) } ?: categoryNames.firstOrNull().orEmpty()),
+                        Triple("🍽️ Обед", "500", categoryNames.firstOrNull { it.contains("кафе", true) || it.contains("продукт", true) } ?: categoryNames.firstOrNull().orEmpty()),
+                        Triple("🚕 Такси", "400", categoryNames.firstOrNull { it.contains("транспорт", true) } ?: categoryNames.firstOrNull().orEmpty())
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    templates.forEach { (label, sum, cat) ->
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                amount = sum
+                                if (cat.isNotBlank()) category = cat
+                                comment = label.substringAfter(" ")
+                            },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+            }
+
             if (isTransfer) {
                 ChipPicker("Со счёта", account, accountNames, { account = it })
                 ChipPicker("На счёт", destAccount, accountNames, { destAccount = it })
             } else {
                 ChipPicker(if (type == OpType.INCOME) "Откуда деньги" else "На что потратили", category, categoryNames, { category = it })
+                TextField2(
+                    value = category,
+                    onChange = { category = it },
+                    label = "Или введите свою категорию вручную"
+                )
                 ChipPicker("Счёт", account, accountNames, { account = it })
             }
             if (settings.persons.size > 1) {

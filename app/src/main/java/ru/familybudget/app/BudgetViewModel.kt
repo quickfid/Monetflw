@@ -47,7 +47,11 @@ data class OnboardingData(
     val incomeCents: Long,
     val recordIncome: Boolean,
     /** План расходов на текущий месяц: категория → сумма в копейках. */
-    val plan: Map<String, Long>
+    val plan: Map<String, Long>,
+    /** Обязательные платежи в этом месяце уже оплачены (остаток указан уже после них). */
+    val billsAlreadyPaid: Boolean = false,
+    /** Сколько % от дохода откладывать на подушку безопасности (5, 10, 15, 20). */
+    val savingsPercent: Int = 10
 )
 
 class BudgetViewModel(app: Application) : AndroidViewModel(app) {
@@ -56,22 +60,23 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     private val store = SettingsStore(app)
 
     val settings: StateFlow<AppSettings> = store.flow
+    private val shared = SharingStarted.Lazily
     val operations: StateFlow<List<Operation>> =
-        dao.operations().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.operations().stateIn(viewModelScope, shared, emptyList())
     val categories: StateFlow<List<Category>> =
-        dao.categories().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.categories().stateIn(viewModelScope, shared, emptyList())
     val accounts: StateFlow<List<Account>> =
-        dao.accounts().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.accounts().stateIn(viewModelScope, shared, emptyList())
     val mandatory: StateFlow<List<Mandatory>> =
-        dao.mandatory().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.mandatory().stateIn(viewModelScope, shared, emptyList())
     val plans: StateFlow<List<PlanItem>> =
-        dao.plans().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.plans().stateIn(viewModelScope, shared, emptyList())
     val deposits: StateFlow<List<Deposit>> =
-        dao.deposits().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.deposits().stateIn(viewModelScope, shared, emptyList())
     val interest: StateFlow<List<InterestEntry>> =
-        dao.interest().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+        dao.interest().stateIn(viewModelScope, shared, emptyList())
     val unsyncedCount: StateFlow<Int> =
-        operations.map { list -> list.count { !it.synced } }.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+        operations.map { list -> list.count { !it.synced } }.stateIn(viewModelScope, shared, 0)
 
     var month by mutableStateOf(YearMonth.now())
         private set
@@ -101,9 +106,13 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
                 dao.insertAccount(Account(name = "Наличные"))
             }
             if (dao.categoryCount() == 0) dao.insertCategories(defaultCategories())
-            // Для тех, кто обновился: гарантируем, что есть «Кредит» и «Прочие расходы».
+            // Для тех, кто обновился: гарантируем наличие ключевых категорий.
             val existing = dao.categoriesOnce().filter { !it.isIncome }.map { it.name }
-            listOf("Кредит", "Прочие расходы").forEach { n ->
+            listOf(
+                "Аренда квартиры", "Транспорт и бензин", "Связь и интернет",
+                "Стрижка, маникюр", "Продукты", "Развлечения и досуг", "Коммунальные платежи",
+                "Кафе и рестораны", "Подписки", "Подарки", "Спорт", "Кредит", "Прочие расходы"
+            ).forEach { n ->
                 if (n !in existing) dao.insertCategory(Category(name = n, isIncome = false))
             }
             ensureInterest()
@@ -132,7 +141,14 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
 
     fun saveOperation(op: Operation) {
         viewModelScope.launch {
-            if (op.id == 0L) dao.insertOperation(op) else dao.updateOperation(op)
+            val catName = op.category.trim()
+            if (op.type != OpType.TRANSFER && catName.isNotEmpty()) {
+                val isInc = op.type == OpType.INCOME
+                val exists = dao.categoriesOnce().any { it.isIncome == isInc && it.name.equals(catName, ignoreCase = true) }
+                if (!exists) dao.insertCategory(Category(name = catName, isIncome = isInc))
+            }
+            val clean = op.copy(category = catName, synced = false)
+            if (clean.id == 0L) dao.insertOperation(clean) else dao.updateOperation(clean)
             editing = null
             if (settings.value.autoSync) sync()
         }
@@ -177,22 +193,52 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     // ---------- первая настройка и профиль
     fun completeOnboarding(d: OnboardingData) {
         viewModelScope.launch {
+            val nowYm = YearMonth.now()
             val name = d.name.trim()
             val people = listOf(name, d.partner.trim()).filter { it.isNotEmpty() }.distinct()
+            val personName = name.ifEmpty { settings.value.persons.firstOrNull().orEmpty() }
             store.update { st ->
                 st.copy(
                     userName = name,
                     persons = if (people.isEmpty()) st.persons else people,
                     currency = d.currency.ifBlank { "₽" },
                     monthlyIncome = d.incomeCents,
+                    savingsPercent = d.savingsPercent,
+                    fixedPromptYm = nowYm.toString(),
                     onboarded = true
                 )
             }
             val accs = accounts.value
-            // Если доход уже пришёл и записан, вычитаем его из стартового остатка,
-            // чтобы текущий баланс остался таким, каким его ввёл человек.
+            val primaryAccount = accs.firstOrNull()?.name.orEmpty()
+
+            // Сначала сохраняем план (он создаёт обязательные платежи).
+            savePlanInternal(nowYm, d.plan, d.incomeCents)
+
+            // Если обязательные платежи уже оплачены и остаток на карте указан уже после них,
+            // отмечаем их оплаченными и компенсируем стартовый баланс, чтобы остаток не уходил в минус.
+            var paidBillsCents = 0L
+            if (d.billsAlreadyPaid) {
+                val todayEpoch = LocalDate.now().toEpochDay()
+                val bills = dao.mandatoryOnce().filter { it.amountCents > 0 }
+                for (m in bills) {
+                    dao.insertOperation(
+                        Operation(
+                            date = todayEpoch,
+                            amountCents = m.amountCents,
+                            type = OpType.EXPENSE,
+                            category = m.category.ifBlank { m.name },
+                            comment = "Оплачено до начала учёта",
+                            person = personName,
+                            account = primaryAccount,
+                            mandatoryId = m.id
+                        )
+                    )
+                    paidBillsCents += m.amountCents
+                }
+            }
+
             val recordIncome = d.recordIncome && d.incomeCents > 0
-            val cardInitial = d.cardCents - (if (recordIncome) d.incomeCents else 0L)
+            val cardInitial = d.cardCents - (if (recordIncome) d.incomeCents else 0L) + paidBillsCents
             if (accs.isNotEmpty()) dao.updateAccount(accs[0].copy(initialCents = cardInitial))
             if (accs.size > 1) dao.updateAccount(accs[1].copy(initialCents = d.cashCents))
             if (recordIncome) {
@@ -203,12 +249,11 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
                         type = OpType.INCOME,
                         category = categories.value.firstOrNull { it.isIncome }?.name ?: "Зарплата",
                         comment = "Доход за месяц",
-                        person = name.ifEmpty { settings.value.persons.firstOrNull().orEmpty() },
-                        account = accs.firstOrNull()?.name.orEmpty()
+                        person = personName,
+                        account = primaryAccount
                     )
                 )
             }
-            savePlanInternal(YearMonth.now(), d.plan, d.incomeCents)
         }
     }
 
@@ -389,6 +434,36 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     fun setCurrency(value: String) { store.update { it.copy(currency = value.trim().ifBlank { "₽" }) } }
     fun setApi(url: String, token: String) { store.update { it.copy(apiUrl = url.trim(), token = token.trim()) } }
     fun setAutoSync(value: Boolean) { store.update { it.copy(autoSync = value) } }
+    fun setDailyReminder(enabled: Boolean) {
+        store.update { it.copy(dailyReminder = enabled) }
+        val ctx = getApplication<Application>()
+        if (enabled) ru.familybudget.app.logic.ReminderScheduler.scheduleDaily20(ctx)
+        else ru.familybudget.app.logic.ReminderScheduler.cancel(ctx)
+    }
+    fun setSavingsPercent(pct: Int) { store.update { it.copy(savingsPercent = pct) } }
+
+    fun setWallpaperBackground(enabled: Boolean) {
+        store.update { it.copy(wallpaperBackground = enabled) }
+    }
+    fun setStrategy(id: String) { store.update { it.copy(activeStrategy = id) } }
+    fun saveGoal(goal: ru.familybudget.app.data.SavingsGoal) {
+        store.update { st ->
+            val id = if (goal.id == 0L) (st.goals.maxOfOrNull { it.id } ?: 0L) + 1L else goal.id
+            val next = goal.copy(id = id)
+            val list = if (st.goals.any { it.id == id }) st.goals.map { if (it.id == id) next else it } else st.goals + next
+            st.copy(goals = list)
+        }
+    }
+    fun deleteGoal(id: Long) {
+        store.update { st -> st.copy(goals = st.goals.filterNot { it.id == id }) }
+    }
+    fun setCategoryIcon(categoryName: String, iconKey: String) {
+        store.update { st ->
+            val next = st.categoryIcons.toMutableMap()
+            if (iconKey.isBlank()) next.remove(categoryName) else next[categoryName] = iconKey
+            st.copy(categoryIcons = next)
+        }
+    }
 
     // ---------- синхронизация с Google-таблицей
     fun sync() {
@@ -397,6 +472,39 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
             syncing = true
             message = SheetsSync.push(dao, settings.value)
             syncing = false
+        }
+    }
+
+    fun pullFromSheets() {
+        if (syncing) return
+        viewModelScope.launch {
+            syncing = true
+            message = SheetsSync.pull(dao, settings.value)
+            syncing = false
+        }
+    }
+
+    fun syncAll() {
+        if (syncing) return
+        viewModelScope.launch {
+            syncing = true
+            message = SheetsSync.syncBoth(dao, settings.value)
+            syncing = false
+        }
+    }
+
+    /** Тихая синхронизация при сворачивании: выполняется только если есть неотправленные операции или включена автосинхронизация. */
+    fun syncOnBackground() {
+        val st = settings.value
+        if (syncing || st.apiUrl.isBlank() || st.token.isBlank()) return
+        if (!st.autoSync && unsyncedCount.value == 0) return
+        viewModelScope.launch {
+            syncing = true
+            try {
+                SheetsSync.syncBoth(dao, st)
+            } finally {
+                syncing = false
+            }
         }
     }
 
@@ -755,9 +863,11 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     private fun defaultCategories(): List<Category> {
         fun exp(name: String) = Category(name = name, isIncome = false, limitCents = 0)
         return listOf(
-            exp("Аренда жилья"), exp("Кредит"), exp("Транспорт и бензин"), exp("Связь и интернет"),
-            exp("Коммунальные платежи"), exp("Продукты"), exp("Здоровье"), exp("Одежда и обувь"),
-            exp("Досуг"), exp("Дом и быт"), exp("Подушка безопасности"), exp("Прочие расходы"),
+            exp("Аренда квартиры"), exp("Транспорт и бензин"), exp("Связь и интернет"),
+            exp("Стрижка, маникюр"), exp("Продукты"), exp("Развлечения и досуг"),
+            exp("Коммунальные платежи"), exp("Кафе и рестораны"), exp("Здоровье"),
+            exp("Одежда и обувь"), exp("Дом и быт"), exp("Подписки"), exp("Подарки"),
+            exp("Спорт"), exp("Кредит"), exp("Подушка безопасности"), exp("Прочие расходы"),
             Category(name = "Зарплата", isIncome = true),
             Category(name = "Аванс", isIncome = true),
             Category(name = "Подработка", isIncome = true),

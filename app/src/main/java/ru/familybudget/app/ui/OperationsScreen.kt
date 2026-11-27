@@ -41,12 +41,14 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val cur = settings.currency
     val ym = vm.month
     var filter by rememberSaveable { mutableStateOf(ALL) }
+    var personFilter by rememberSaveable { mutableStateOf(ALL) }
     var query by rememberSaveable { mutableStateOf("") }
 
     val monthOps = remember(ops, ym) { Stats.opsInMonth(ops, ym) }
-    val list = remember(monthOps, filter, query) {
+    val list = remember(monthOps, filter, personFilter, query) {
         monthOps.filter { o ->
             (filter == ALL || o.type == filter) &&
+                (personFilter == ALL || o.person == personFilter) &&
                 (query.isBlank() ||
                     o.category.contains(query, ignoreCase = true) ||
                     o.comment.contains(query, ignoreCase = true) ||
@@ -65,6 +67,13 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     (listOf(ALL) + OpType.all).forEach { t ->
                         FilterChip(selected = filter == t, onClick = { filter = t }, label = { Text(t) })
+                    }
+                }
+                if (settings.persons.size > 1) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        (listOf(ALL) + settings.persons).forEach { p ->
+                            FilterChip(selected = personFilter == p, onClick = { personFilter = p }, label = { Text(p) })
+                        }
                     }
                 }
                 OutlinedTextField(
@@ -109,7 +118,7 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 }
             }
             items(dayOps, key = { it.id }) { op ->
-                OperationRow(op, cur) { vm.edit(op) }
+                OperationRow(op, cur, settings.categoryIcons) { vm.edit(op) }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             }
         }
@@ -117,7 +126,12 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
 }
 
 @Composable
-private fun OperationRow(op: Operation, currency: String, onClick: () -> Unit) {
+private fun OperationRow(
+    op: Operation,
+    currency: String,
+    iconOverrides: Map<String, String>,
+    onClick: () -> Unit
+) {
     val transfer = op.type == OpType.TRANSFER
     val title = if (transfer) "Перевод: ${op.account} → ${op.destAccount}" else op.category.ifBlank { "Без категории" }
     val subtitle = listOf(op.comment, op.person, if (transfer) "" else op.account)
@@ -134,8 +148,14 @@ private fun OperationRow(op: Operation, currency: String, onClick: () -> Unit) {
     }
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
+        CategoryBadge(
+            categoryName = if (transfer) "Перевод" else op.category.ifBlank { "Прочее" },
+            overrides = iconOverrides,
+            size = 36.dp
+        )
         Column(Modifier.weight(1f).padding(end = 8.dp)) {
             Text(title, fontWeight = FontWeight.Medium)
             if (subtitle.isNotEmpty()) {

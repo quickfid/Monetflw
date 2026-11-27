@@ -1,8 +1,7 @@
 package ru.familybudget.app.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -103,29 +103,41 @@ fun PlanScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 ratio >= 0.85f -> "⚠️ осталось " + Fmt.money(plan - spent, cur, false)
                 else -> "✅ осталось " + Fmt.money(plan - spent, cur, false)
             }
-            Column(
-                Modifier.fillMaxWidth().border(1.dp, Sheet.border()).background(MaterialTheme.colorScheme.surface).padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = Sheet.glass(),
+                border = BorderStroke(1.dp, Sheet.border())
             ) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(Fmt.emoji(name) + " " + name, fontWeight = FontWeight.SemiBold)
+                Column(
+                    Modifier.fillMaxWidth().padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CategoryBadge(name, settings.categoryIcons, size = 32.dp)
+                        Text(name, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                        Text(
+                            Fmt.money(spent, cur, false) + if (plan > 0) " / " + Fmt.money(plan, cur, false) else "",
+                            fontSize = 13.sp
+                        )
+                    }
+                    if (plan > 0) {
+                        LinearProgressIndicator(
+                            progress = { ratio.coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(9.dp),
+                            color = if (over) expenseColor else if (ratio >= 0.85f) warnColor else MaterialTheme.colorScheme.primary
+                        )
+                    }
                     Text(
-                        Fmt.money(spent, cur, false) + if (plan > 0) " / " + Fmt.money(plan, cur, false) else "",
-                        fontSize = 13.sp
+                        status,
+                        fontSize = 12.sp,
+                        color = if (over) expenseColor else if (plan <= 0) warnColor else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                if (plan > 0) {
-                    LinearProgressIndicator(
-                        progress = { ratio.coerceIn(0f, 1f) },
-                        modifier = Modifier.fillMaxWidth().height(10.dp),
-                        color = if (over) expenseColor else if (ratio >= 0.85f) warnColor else MaterialTheme.colorScheme.primary
-                    )
-                }
-                Text(
-                    status,
-                    fontSize = 12.sp,
-                    color = if (over) expenseColor else if (plan <= 0) warnColor else MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }

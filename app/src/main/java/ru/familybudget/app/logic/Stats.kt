@@ -125,8 +125,9 @@ object Stats {
         val verdict = when {
             !isCurrent && !isPast -> Verdict.NONE
             budget > 0 -> {
-                val ratio = projected.toDouble() / budget
-                if (ratio <= 0.95) Verdict.GOOD else if (ratio <= 1.05) Verdict.WARN else Verdict.BAD
+                if (projected * 100 <= budget * 95) Verdict.GOOD
+                else if (projected * 100 <= budget * 105) Verdict.WARN
+                else Verdict.BAD
             }
             else -> if (projectedBalance >= 0) Verdict.GOOD else Verdict.BAD
         }

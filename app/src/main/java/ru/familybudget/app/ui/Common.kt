@@ -1,8 +1,7 @@
 package ru.familybudget.app.ui
 
 import android.app.DatePickerDialog
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -22,8 +22,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.DropdownMenu
@@ -32,6 +30,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,8 +42,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
@@ -52,54 +55,70 @@ import java.time.LocalDate
 
 @Composable
 fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = Sheet.glass(),
+        border = BorderStroke(1.dp, Sheet.border())
     ) {
-        IconButton(onClick = onPrev) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Назад") }
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        IconButton(onClick = onNext) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Вперёд") }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = onPrev) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Предыдущий период") }
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            IconButton(onClick = onNext) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Следующий период") }
+        }
     }
 }
 
 @Composable
 fun Section(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier.fillMaxWidth()
-            .border(1.dp, Sheet.border())
-            .background(MaterialTheme.colorScheme.surface)
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = Sheet.glass(),
+        border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
-        Box(
-            Modifier.fillMaxWidth().background(Sheet.header()).padding(vertical = 10.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        }
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
             content()
         }
     }
 }
 
-/** Плитка как в таблице: подпись на бежевом фоне, значение крупно по центру. */
+/** Компактная карточка показателя с мягким тоном и скруглёнными углами. */
 @Composable
 fun StatCard(label: String, value: String, modifier: Modifier = Modifier, tone: Tone = Tone.NEUTRAL) {
-    Column(modifier.border(1.dp, Sheet.border())) {
-        Box(
-            Modifier.fillMaxWidth().background(Sheet.header()).padding(vertical = 6.dp, horizontal = 4.dp),
-            contentAlignment = Alignment.Center
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        color = Sheet.tone(tone),
+        border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp, textAlign = TextAlign.Center)
-        }
-        Box(
-            Modifier.fillMaxWidth().background(Sheet.tone(tone)).padding(vertical = 14.dp, horizontal = 4.dp),
-            contentAlignment = Alignment.Center
-        ) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
             Text(
                 value,
                 fontWeight = FontWeight.Bold,
-                fontSize = if (value.length > 13) 15.sp else 19.sp,
+                fontSize = if (value.length > 13) 14.sp else 17.sp,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 softWrap = false
@@ -110,8 +129,8 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier, tone: 
 
 @Composable
 fun KeyValueRow(label: String, value: String, valueColor: Color = Color.Unspecified) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = valueColor)
     }
 }
@@ -161,12 +180,58 @@ fun DateField(epochDay: Long, onChange: (Long) -> Unit, modifier: Modifier = Mod
     }
 }
 
+/** Визуально разделяет тысячи пробелами при вводе суммы: 14000 -> 14 000. */
+private object ThousandsVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val raw = text.text
+        if (raw.isEmpty()) return TransformedText(text, OffsetMapping.Identity)
+        val sepIdx = raw.indexOfFirst { it == '.' || it == ',' }
+        val intPart = if (sepIdx >= 0) raw.substring(0, sepIdx) else raw
+        val fracPart = if (sepIdx >= 0) raw.substring(sepIdx) else ""
+
+        val sb = StringBuilder()
+        val origToTrans = IntArray(raw.length + 1)
+        val transToOrig = ArrayList<Int>(raw.length + 4)
+
+        val len = intPart.length
+        for (i in 0 until len) {
+            if (i > 0 && (len - i) % 3 == 0) {
+                sb.append(' ')
+                transToOrig.add(i)
+            }
+            origToTrans[i] = sb.length
+            sb.append(intPart[i])
+            transToOrig.add(i)
+        }
+        for (i in fracPart.indices) {
+            val origIdx = len + i
+            origToTrans[origIdx] = sb.length
+            sb.append(fracPart[i])
+            transToOrig.add(origIdx)
+        }
+        origToTrans[raw.length] = sb.length
+        transToOrig.add(raw.length)
+
+        val mapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int =
+                origToTrans[offset.coerceIn(0, raw.length)]
+            override fun transformedToOriginal(offset: Int): Int =
+                transToOrig[offset.coerceIn(0, transToOrig.size - 1)]
+        }
+        return TransformedText(AnnotatedString(sb.toString()), mapping)
+    }
+}
+
 @Composable
 fun MoneyField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier) {
     OutlinedTextField(
         value = value,
-        onValueChange = { v -> if (Regex("^\\d{0,10}([.,]\\d{0,2})?$").matches(v)) onChange(v) },
+        onValueChange = { v ->
+            val cleaned = v.replace(" ", "").replace("\u00A0", "")
+            if (Regex("^\\d{0,10}([.,]\\d{0,2})?$").matches(cleaned)) onChange(cleaned)
+        },
         label = { Text(label) },
+        visualTransformation = ThousandsVisualTransformation,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true,
         modifier = modifier.fillMaxWidth()
@@ -193,6 +258,23 @@ fun FormDialog(
     onDelete: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    var confirmDelete by remember { mutableStateOf(false) }
+
+    if (confirmDelete && onDelete != null) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Подтвердите удаление") },
+            text = { Text("Удалить «$title»? Это действие нельзя отменить.") },
+            confirmButton = {
+                TextButton(
+                    onClick = { confirmDelete = false; onDelete() },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Удалить") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Отмена") } }
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -202,7 +284,7 @@ fun FormDialog(
             Row {
                 if (onDelete != null) {
                     TextButton(
-                        onClick = onDelete,
+                        onClick = { confirmDelete = true },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) { Text("Удалить") }
                 }
@@ -214,12 +296,20 @@ fun FormDialog(
 
 @Composable
 fun EmptyHint(text: String) {
-    Text(
-        text,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, Sheet.border())
+    ) {
+        Text(
+            text,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 22.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -235,15 +325,22 @@ fun ChipPicker(label: String, value: String, options: List<String>, onSelect: (S
     }
 }
 
-/** Цветной блок-вывод (хорошо / осторожно / плохо) в стиле плиток таблицы. */
+/** Мягкий статусный блок (хорошо / осторожно / риск / накопления). */
 @Composable
 fun Banner(title: String, tone: Tone, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier.fillMaxWidth().border(1.dp, Sheet.border()).background(Sheet.tone(tone)).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = Sheet.tone(tone),
+        border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        content()
+        Column(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            content()
+        }
     }
 }
 
