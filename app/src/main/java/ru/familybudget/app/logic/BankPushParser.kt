@@ -45,9 +45,9 @@ object BankPushParser {
         RegexOption.IGNORE_CASE
     )
     private val minusAmountRegex = Regex("""[-−]\s*\d""")
-    private val balanceTailRegex = Regex("""(?i)(баланс|доступно|остаток).*""")
+    private val balanceTailRegex = Regex("""(?iu)(баланс|доступно|остаток).*""")
     private val noiseWordsRegex = Regex(
-        """(?i)(?:^|[\s·.,:;—−-])(покупка|оплата|по\s+сбп|сбп|списание|карта|вы\s+оплатили|платёж|платеж)(?=$|[\s·.,:;—−-])|\*\d{4}"""
+        """(?iu)(?:^|[\s·.,:;—−-])(покупка|оплата|по\s+сбп|сбп|списание|карта|вы\s+оплатили|платёж|платеж)(?=$|[\s·.,:;—−-])|\*\d{4}"""
     )
     private val spacesRegex = Regex("""[\s\u00A0\u2009\u202F]+""")
 

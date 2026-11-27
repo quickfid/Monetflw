@@ -88,4 +88,33 @@ class LogicTests {
         assertEquals(null, BankPushParser.parsePayment("Альфа-Банк", "Начислен кэшбэк 350 ₽"))
         assertEquals(null, BankPushParser.parsePayment("СберБанк", "Код подтверждения 4829 для оплаты 1 000 ₽"))
     }
+
+    @Test
+    fun statsAndForecastCalculations() {
+        val ym = YearMonth.of(2026, 5)
+        val d1 = LocalDate.of(2026, 5, 1).toEpochDay()
+        val d10 = LocalDate.of(2026, 5, 10).toEpochDay()
+        val ops = listOf(
+            Operation(id = 1, date = d1, amountCents = 10_000_000L, type = OpType.INCOME, category = "Зарплата"),
+            Operation(id = 2, date = d1, amountCents = 1_500_000L, type = OpType.EXPENSE, category = "Продукты"),
+            Operation(id = 3, date = d10, amountCents = 500_000L, type = OpType.EXPENSE, category = "Транспорт"),
+            Operation(id = 4, date = d10, amountCents = 1_000_000L, type = OpType.TRANSFER, category = "Перевод")
+        )
+        // Переводы не искажают доходы и расходы месяца
+        val catStats = Stats.categoryStats(ops, OpType.EXPENSE)
+        assertEquals(2, catStats.size)
+        assertEquals("Продукты", catStats[0].category)
+        assertEquals(1_500_000L, catStats[0].amountCents)
+        assertEquals(500_000L, catStats[1].amountCents)
+
+        // Ежедневные расходы и прогноз по категории
+        val daily = Stats.dailyExpenses(ops, ym)
+        assertEquals(31, daily.size)
+        assertEquals(1_500_000L, daily[0])
+        assertEquals(500_000L, daily[9])
+        assertEquals(3_100_000L, Stats.projectCategory(1_000_000L, elapsed = 10, daysInMonth = 31))
+
+        // Форматирование целых рублей без «,00»
+        assertTrue(!Fmt.money(150_000L, "₽", false).contains(",00"))
+    }
 }
