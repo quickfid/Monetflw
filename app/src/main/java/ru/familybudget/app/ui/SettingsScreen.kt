@@ -340,11 +340,18 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                     }
                 }
                 Column(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("Акцентный цвет", style = MaterialTheme.typography.bodyMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Тема оформления",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         listOf(
                             Triple("calm_glass", "Матовое", Color(0xFF22343D)),
                             Triple("teal", "Бирюза", Color(0xFF1B6B7A)),
@@ -354,11 +361,33 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                         ).forEach { (key, label, swatch) ->
                             val selected = settings.accentTheme == key
                             Surface(
-                                shape = CircleShape,
-                                color = swatch,
-                                border = BorderStroke(if (selected) 3.dp else 1.dp, if (selected) Color.White else Sheet.border()),
-                                modifier = Modifier.size(34.dp).clickable { vm.setAccentTheme(key) }
-                            ) {}
+                                shape = RoundedCornerShape(50),
+                                color = if (selected) swatch.copy(alpha = 0.85f) else Sheet.glass(),
+                                contentColor = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                border = BorderStroke(
+                                    if (selected) 2.dp else 1.dp,
+                                    if (selected) Color.White else Sheet.border()
+                                ),
+                                modifier = Modifier.clickable { vm.setAccentTheme(key) }
+                            ) {
+                                Row(
+                                    Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = swatch,
+                                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.7f)),
+                                        modifier = Modifier.size(14.dp)
+                                    ) {}
+                                    Text(
+                                        label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                                    )
+                                }
+                            }
                         }
                     }
                 }
