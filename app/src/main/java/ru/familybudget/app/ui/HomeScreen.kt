@@ -121,7 +121,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(Modifier.weight(1f)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         if (settings.userName.isBlank()) "Добрый день!" else "Привет, ${settings.userName}!",
                         style = MaterialTheme.typography.titleLarge,
@@ -129,11 +129,19 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        "${game.avatar} Ур. ${game.level} · ${game.title} · 🔥 ${game.streak} дн.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = Sheet.glass(),
+                        border = BorderStroke(1.dp, Sheet.glassBorderBrush())
+                    ) {
+                        Text(
+                            "${game.avatar} Ур. ${game.level} · ${game.title} · 🔥 ${game.streak} дн.",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
                 if (settings.apiUrl.isNotBlank() && settings.token.isNotBlank()) {
                     Surface(
