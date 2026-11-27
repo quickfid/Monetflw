@@ -544,18 +544,23 @@ private fun MandatoryPage(vm: BudgetViewModel) {
         ) {
             TextField2(name, { name = it }, "Название")
             MoneyField(amount, { amount = it }, "Сумма, $cur")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 OutlinedTextField(
                     value = day,
                     onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) day = it },
-                    label = { Text("С числа (1–31)") },
+                    label = { Text("С числа", maxLines = 1) },
+                    placeholder = { Text("1–31") },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
                 OutlinedTextField(
                     value = endDay,
                     onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) endDay = it },
-                    label = { Text("По число (окно)") },
+                    label = { Text("По число", maxLines = 1) },
+                    placeholder = { Text("опц.") },
                     singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
