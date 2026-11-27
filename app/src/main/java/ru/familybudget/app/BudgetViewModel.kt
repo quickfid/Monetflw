@@ -529,6 +529,11 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         message = "Тестовое уведомление отправлено 🔔"
     }
 
+    fun setBankAutoTrack(enabled: Boolean) {
+        store.update { it.copy(bankAutoTrackEnabled = enabled) }
+        message = if (enabled) "Авто-учёт оплат из банков включён 🏦" else "Авто-учёт оплат из банков выключен"
+    }
+
     fun setIncomeDates(salary1Days: String, salary2Days: String, benefitsDay: String, bonusDay: String) {
         store.update {
             it.copy(

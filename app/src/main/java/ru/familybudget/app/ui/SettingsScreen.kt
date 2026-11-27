@@ -819,6 +819,49 @@ private fun NotificationsPage(vm: BudgetViewModel) {
             }
         }
 
+        val listenerEnabled = remember(s.bankAutoTrackEnabled) {
+            val flat = android.provider.Settings.Secure.getString(
+                context.contentResolver,
+                "enabled_notification_listeners"
+            ).orEmpty()
+            flat.contains(context.packageName)
+        }
+        Section("🏦 Авто-учёт оплат из банков (Push)") {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Записывать оплаты автоматически",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        "Сбер, Т-Банк, Альфа, ВТБ, Ozon, Яндекс Пэй. Только покупки и оплаты — переводы и СБП игнорируются.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = s.bankAutoTrackEnabled,
+                    onCheckedChange = { vm.setBankAutoTrack(it) }
+                )
+            }
+            Text(
+                if (listenerEnabled) "✅ Доступ к уведомлениям Android выдан"
+                else "⚠️ Чтобы читать Push от банков, выдайте доступ к уведомлениям Android",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (listenerEnabled) AppColors.income() else AppColors.warning()
+            )
+            OutlinedButton(
+                onClick = {
+                    context.startActivity(
+                        android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Открыть доступ к уведомлениям Android") }
+        }
+
         NotifCard(
             title = "🌅 Утренний брифинг",
             subtitle = "Свободный лимит и обязательные платежи, у которых сегодня окно оплаты",
