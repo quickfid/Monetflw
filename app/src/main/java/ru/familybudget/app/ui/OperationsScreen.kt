@@ -41,12 +41,14 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val cur = settings.currency
     val ym = vm.month
     var filter by rememberSaveable { mutableStateOf(ALL) }
+    var personFilter by rememberSaveable { mutableStateOf(ALL) }
     var query by rememberSaveable { mutableStateOf("") }
 
     val monthOps = remember(ops, ym) { Stats.opsInMonth(ops, ym) }
-    val list = remember(monthOps, filter, query) {
+    val list = remember(monthOps, filter, personFilter, query) {
         monthOps.filter { o ->
             (filter == ALL || o.type == filter) &&
+                (personFilter == ALL || o.person == personFilter) &&
                 (query.isBlank() ||
                     o.category.contains(query, ignoreCase = true) ||
                     o.comment.contains(query, ignoreCase = true) ||
@@ -65,6 +67,13 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     (listOf(ALL) + OpType.all).forEach { t ->
                         FilterChip(selected = filter == t, onClick = { filter = t }, label = { Text(t) })
+                    }
+                }
+                if (settings.persons.size > 1) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        (listOf(ALL) + settings.persons).forEach { p ->
+                            FilterChip(selected = personFilter == p, onClick = { personFilter = p }, label = { Text(p) })
+                        }
                     }
                 }
                 OutlinedTextField(

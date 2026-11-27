@@ -74,6 +74,11 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val md = remember(ops, accounts, mandatory, plans, categories, settings, ym) {
         Plans.monthData(ops, accounts, mandatory, plans, categories, settings, ym, today)
     }
+    val prevExpense = remember(ops, ym) {
+        ru.familybudget.app.logic.Stats.opsInMonth(ops, ym.minusMonths(1))
+            .filter { it.type == OpType.EXPENSE }
+            .sumOf { it.amountCents }
+    }
     val game = remember(ops, plans, mandatory) { Game.compute(ops, plans, mandatory, today) }
     val balance = remember(accounts, ops) { accounts.sumOf { it.initialCents } + ops.sumOf { it.delta() } }
     val depositInfos = remember(deposits, interest) { deposits.map { Deposits.info(it, interest) } }
@@ -294,6 +299,15 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             HelpText("В начале месяца прогноз ориентировочный — через пару дней он станет точнее.")
                         }
                     }
+                }
+                if (prevExpense > 0L && md.summary.expense > 0L) {
+                    val diffPct = (((md.summary.expense - prevExpense) * 100L) / prevExpense).toInt()
+                    val cmpText = when {
+                        diffPct < 0 -> "На ${-diffPct}% меньше, чем в прошлом месяце 👍"
+                        diffPct > 0 -> "На $diffPct% больше, чем в прошлом месяце"
+                        else -> "На уровне прошлого месяца"
+                    }
+                    KeyValueRow("Сравнение", cmpText, if (diffPct <= 0) incomeColor else expenseColor)
                 }
             }
         }

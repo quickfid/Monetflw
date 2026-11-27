@@ -103,6 +103,9 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
     val restoreLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) vm.importBackup(uri)
     }
+    val notifPermLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) vm.setDailyReminder(true)
+    }
     var confirmRestore by remember { mutableStateOf(false) }
     if (confirmRestore) {
         AlertDialog(
@@ -158,8 +161,28 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         if (vm.message.isNotEmpty()) {
             Text(vm.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)
         }
+        HorizontalDivider()
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("🔔 Напоминание в 20:00", style = MaterialTheme.typography.bodyLarge)
+                Text("Ежедневно вечером, чтобы не забыть записать траты", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(
+                checked = settings.dailyReminder,
+                onCheckedChange = { enabled ->
+                    if (enabled && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        notifPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        vm.setDailyReminder(enabled)
+                    }
+                }
+            )
+        }
         Text(
-            "Данные только на вашем телефоне · v1.3.0",
+            "Данные только на вашем телефоне · v1.4.0",
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

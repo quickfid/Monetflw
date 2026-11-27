@@ -22,7 +22,9 @@ data class AppSettings(
     val monthlyBudget: Long = 0,
     val hideTips: Boolean = false,
     /** Месяц «ГГГГ-ММ», для которого уже спросили суммы фиксированных платежей. */
-    val fixedPromptYm: String = ""
+    val fixedPromptYm: String = "",
+    /** Вечернее напоминание каждый день в 20:00. */
+    val dailyReminder: Boolean = false
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -46,7 +48,8 @@ class SettingsStore(context: Context) {
             monthlyIncome = prefs.getLong("monthlyIncome", 0L),
             monthlyBudget = prefs.getLong("monthlyBudget", 0L),
             hideTips = prefs.getBoolean("hideTips", false),
-            fixedPromptYm = prefs.getString("fixedPromptYm", "").orEmpty()
+            fixedPromptYm = prefs.getString("fixedPromptYm", "").orEmpty(),
+            dailyReminder = prefs.getBoolean("dailyReminder", false)
         )
     }
 
@@ -64,6 +67,7 @@ class SettingsStore(context: Context) {
             .putLong("monthlyBudget", next.monthlyBudget)
             .putBoolean("hideTips", next.hideTips)
             .putString("fixedPromptYm", next.fixedPromptYm)
+            .putBoolean("dailyReminder", next.dailyReminder)
             .apply()
         state.value = next
     }

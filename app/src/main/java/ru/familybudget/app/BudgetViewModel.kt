@@ -419,6 +419,12 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     fun setCurrency(value: String) { store.update { it.copy(currency = value.trim().ifBlank { "₽" }) } }
     fun setApi(url: String, token: String) { store.update { it.copy(apiUrl = url.trim(), token = token.trim()) } }
     fun setAutoSync(value: Boolean) { store.update { it.copy(autoSync = value) } }
+    fun setDailyReminder(enabled: Boolean) {
+        store.update { it.copy(dailyReminder = enabled) }
+        val ctx = getApplication<Application>()
+        if (enabled) ru.familybudget.app.logic.ReminderScheduler.scheduleDaily20(ctx)
+        else ru.familybudget.app.logic.ReminderScheduler.cancel(ctx)
+    }
 
     // ---------- синхронизация с Google-таблицей
     fun sync() {

@@ -55,6 +55,12 @@ jobs:
       - name: 5. Проверка Gradle
         run: gradle --version
 
+      - name: 5.5. Кэш постоянного debug-ключа (чтобы Debug APK ставился поверх предыдущего)
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: familybudget-debug-keystore-v1
+
       - name: 6. Определение типа сборки и подготовка ключа подписи
         shell: bash
         env:
