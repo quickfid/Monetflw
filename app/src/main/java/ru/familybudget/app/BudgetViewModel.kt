@@ -508,10 +508,28 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         message = "Финансовая подушка обновлена 🛡️"
     }
 
-    fun addToCushion(deltaCents: Long) {
+    fun addToCushion(deltaCents: Long, deductFromAccount: Boolean = false) {
         if (deltaCents <= 0L) return
         store.update { it.copy(cushionCents = (it.cushionCents + deltaCents).coerceAtLeast(0L)) }
-        message = "Подушка пополнена 🛡️"
+        if (deductFromAccount) {
+            val person = settings.value.persons.firstOrNull().orEmpty()
+            val primaryAccount = accounts.value.firstOrNull()?.name.orEmpty()
+            if (primaryAccount.isNotBlank()) {
+                saveOperation(
+                    Operation(
+                        date = LocalDate.now().toEpochDay(),
+                        amountCents = deltaCents,
+                        type = OpType.TRANSFER,
+                        category = "Подушка безопасности",
+                        comment = "Пополнение финансовой подушки",
+                        person = person,
+                        account = primaryAccount,
+                        destAccount = "Подушка безопасности"
+                    )
+                )
+            }
+        }
+        message = if (deductFromAccount) "Подушка пополнена (перевод с карты) 🛡️" else "Подушка пополнена 🛡️"
     }
 
     /** Быстрая запись расхода за 2 секунды из нижней шторки. */

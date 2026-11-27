@@ -199,6 +199,17 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
         // Финансовая подушка (отдельный независимый резерв, не связанный со вкладами)
         var cushionDialogMode by remember { mutableStateOf<String?>(null) } // "add" | "set"
         var cushionInput by remember { mutableStateOf("") }
+        var deductFromCard by remember { mutableStateOf(true) }
+        val accountsNow by vm.accounts.collectAsState()
+        val currentFreeBalance = remember(accountsNow, ops) {
+            accountsNow.sumOf { it.initialCents } + ops.sumOf {
+                when (it.type) {
+                    ru.familybudget.app.data.OpType.INCOME -> it.amountCents
+                    ru.familybudget.app.data.OpType.EXPENSE -> -it.amountCents
+                    else -> 0L
+                }
+            }
+        }
         if (cushionDialogMode != null) {
             val isAdd = cushionDialogMode == "add"
             AlertDialog(
@@ -222,13 +233,23 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
                                     }) { Text("+${v / 1000}к") }
                                 }
                             }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                androidx.compose.material3.Checkbox(
+                                    checked = deductFromCard,
+                                    onCheckedChange = { deductFromCard = it }
+                                )
+                                Text(
+                                    "Списать с карты (как перевод, не расход)",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
                     }
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         val cents = Fmt.parseCents(cushionInput) ?: 0L
-                        if (isAdd) vm.addToCushion(cents) else vm.setCushionCents(cents)
+                        if (isAdd) vm.addToCushion(cents, deductFromCard) else vm.setCushionCents(cents)
                         cushionDialogMode = null
                     }) { Text(if (isAdd) "Внести" else "Сохранить") }
                 },
@@ -263,7 +284,7 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
-                    onClick = { cushionInput = ""; cushionDialogMode = "add" },
+                    onClick = { cushionInput = ""; deductFromCard = true; cushionDialogMode = "add" },
                     modifier = Modifier.weight(1f)
                 ) { Text("+ Пополнить") }
                 TextButton(
@@ -272,6 +293,18 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
                         cushionDialogMode = "set"
                     }
                 ) { Text("Изменить") }
+            }
+            if (currentFreeBalance > 0L) {
+                TextButton(
+                    onClick = {
+                        cushionInput = (currentFreeBalance / 100L).toString()
+                        deductFromCard = true
+                        cushionDialogMode = "add"
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("✨ Перенести свободный остаток (${Fmt.money(currentFreeBalance, cur, false)}) в подушку")
+                }
             }
         }
 
