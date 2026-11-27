@@ -4,9 +4,13 @@ import android.content.Context
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+private const val DEFAULT_API_URL =
+    "https://script.google.com/macros/s/AKfycbwIJnvApZaZbpIF5C0k2zT2LPvn0GTNXVB0ffjC2BE1qDd0QI21pp057a6JQfcigDaV/exec"
+private const val DEFAULT_API_TOKEN = "family-budget-secret-2026-xyz123456"
+
 data class AppSettings(
-    val apiUrl: String = "",
-    val token: String = "",
+    val apiUrl: String = DEFAULT_API_URL,
+    val token: String = DEFAULT_API_TOKEN,
     val persons: List<String> = listOf("Я"),
     val currency: String = "₽",
     val autoSync: Boolean = false,
@@ -32,8 +36,8 @@ class SettingsStore(context: Context) {
             ?.split("\n")?.map { it.trim() }?.filter { it.isNotEmpty() }
             ?.ifEmpty { null } ?: listOf("Я")
         return AppSettings(
-            apiUrl = prefs.getString("apiUrl", "").orEmpty(),
-            token = prefs.getString("token", "").orEmpty(),
+            apiUrl = prefs.getString("apiUrl", null).orEmpty().ifBlank { DEFAULT_API_URL },
+            token = prefs.getString("token", null).orEmpty().ifBlank { DEFAULT_API_TOKEN },
             persons = persons,
             currency = prefs.getString("currency", "₽").orEmpty().ifBlank { "₽" },
             autoSync = prefs.getBoolean("autoSync", false),
