@@ -11,7 +11,8 @@ data class ParsedBankPayment(
 
 /**
  * Локальный парсер Push-уведомлений банков.
- * Учитывает ТОЛЬКО оплаты и покупки; переводы, СБП, пополнения, возвраты и кэшбэк строго игнорируются.
+ * Учитывает покупки, оплаты и оплаты по СБП / QR; переводы, пополнения, возвраты и кэшбэк строго игнорируются.
+ * Все регулярные выражения предкомпилированы для минимальной нагрузки на CPU и батарею.
  */
 object BankPushParser {
     private val bankPackages = setOf(
@@ -39,7 +40,14 @@ object BankPushParser {
         "покупк", "оплат", "списан", "потрачен", "платёж", "платеж", "чек", "вы оплатили", "сбп", "qr"
     )
 
-    private val amountRegex = Regex("""(\d[\d\s\u00A0]{0,9}(?:[.,]\d{1,2})?)\s*(?:₽|руб\.?|р\.|rub)""", RegexOption.IGNORE_CASE)
+    private val amountRegex = Regex(
+        """(\d[\d\s\u00A0\u2009\u202F]{0,9}(?:[.,]\d{1,2})?)\s*(?:₽|руб\.?|р\.|rub)""",
+        RegexOption.IGNORE_CASE
+    )
+    private val minusAmountRegex = Regex("""[-−]\s*\d""")
+    private val balanceTailRegex = Regex("""(?i)(баланс|доступно|остаток).*""")
+    private val noiseWordsRegex = Regex("""(?i)\b(покупка|оплата|по\s+сбп|сбп|списание|карта|вы\s+оплатили|платёж|платеж)\b|\*\d{4}""")
+    private val spacesRegex = Regex("""[\s\u00A0\u2009\u202F]+""")
 
     fun isSupportedBank(packageName: String): Boolean {
         val pkg = packageName.lowercase()
@@ -51,18 +59,16 @@ object BankPushParser {
         if (full.isBlank()) return null
         val lower = full.lowercase()
 
-        // Строго игнорируем переводы, СБП, пополнения, возвраты и коды подтверждения
+        // Строго игнорируем переводы (включая «Перевод по СБП»), пополнения, возвраты и коды
         if (ignoredKeywords.any { it in lower }) return null
 
-        // Должен быть явный признак оплаты/покупки или знак минуса перед суммой
+        // Должен быть явный признак оплаты/покупки/СБП или знак минуса перед суммой
         val hasPaymentWord = paymentKeywords.any { it in lower }
-        val hasMinusAmount = Regex("""[-−]\s*\d""").containsMatchIn(full)
-        if (!hasPaymentWord && !hasMinusAmount) return null
+        if (!hasPaymentWord && !minusAmountRegex.containsMatchIn(full)) return null
 
         val match = amountRegex.find(full) ?: return null
         val rawNum = match.groupValues[1]
-            .replace(" ", "")
-            .replace("\u00A0", "")
+            .replace(spacesRegex, "")
             .replace(',', '.')
         val cents = try {
             BigDecimal(rawNum).movePointRight(2).setScale(0, RoundingMode.HALF_UP).longValueExact()
@@ -78,9 +84,11 @@ object BankPushParser {
 
     private fun extractMerchant(title: String, text: String): String {
         val clean = text
+            .replace(balanceTailRegex, "")
             .replace(amountRegex, "")
-            .replace(Regex("""(?i)(покупка|оплата|списание|баланс|доступно|остаток|карта|\*\d{4}).*"""), "")
-            .trim(' ', '·', '.', ',', ':', ';', '-', '—')
+            .replace(noiseWordsRegex, "")
+            .replace(spacesRegex, " ")
+            .trim(' ', '·', '.', ',', ':', ';', '-', '—', '−')
         return when {
             clean.length in 2..40 -> clean
             title.length in 2..40 -> title.trim()

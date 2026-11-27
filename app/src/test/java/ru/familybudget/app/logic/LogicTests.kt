@@ -65,4 +65,27 @@ class LogicTests {
         assertTrue(state.streak == 1)
         assertEquals(30, state.badges.size)
     }
+
+    @Test
+    fun bankPushParserHandlesPaymentsAndSbpWhileIgnoringTransfers() {
+        // Обычная покупка картой с тонким пробелом \u202F и балансом в конце
+        val p1 = BankPushParser.parsePayment("Т-Банк", "Покупка 1\u202F250,50 ₽ · Пятёрочка. Баланс 45 000 ₽")
+        assertTrue(p1 != null)
+        assertEquals(125_050L, p1!!.amountCents)
+        assertEquals("Продукты", p1.category)
+        assertEquals("Пятёрочка", p1.merchant)
+
+        // Оплата по СБП / QR учитывается
+        val p2 = BankPushParser.parsePayment("СберБанк", "Оплата по СБП 890 ₽ ВкусВилл")
+        assertTrue(p2 != null)
+        assertEquals(89_000L, p2!!.amountCents)
+        assertEquals("Продукты", p2.category)
+        assertEquals("ВкусВилл", p2.merchant)
+
+        // Перевод (включая «Перевод по СБП»), пополнение и кэшбэк строго игнорируются
+        assertEquals(null, BankPushParser.parsePayment("СберБанк", "Перевод по СБП 5 000 ₽ Иван И."))
+        assertEquals(null, BankPushParser.parsePayment("Т-Банк", "Пополнение 20 000 ₽"))
+        assertEquals(null, BankPushParser.parsePayment("Альфа-Банк", "Начислен кэшбэк 350 ₽"))
+        assertEquals(null, BankPushParser.parsePayment("СберБанк", "Код подтверждения 4829 для оплаты 1 000 ₽"))
+    }
 }
