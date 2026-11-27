@@ -47,7 +47,9 @@ data class OnboardingData(
     val incomeCents: Long,
     val recordIncome: Boolean,
     /** План расходов на текущий месяц: категория → сумма в копейках. */
-    val plan: Map<String, Long>
+    val plan: Map<String, Long>,
+    /** Обязательные платежи в этом месяце уже оплачены (остаток указан уже после них). */
+    val billsAlreadyPaid: Boolean = false
 )
 
 class BudgetViewModel(app: Application) : AndroidViewModel(app) {
@@ -177,22 +179,51 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     // ---------- первая настройка и профиль
     fun completeOnboarding(d: OnboardingData) {
         viewModelScope.launch {
+            val nowYm = YearMonth.now()
             val name = d.name.trim()
             val people = listOf(name, d.partner.trim()).filter { it.isNotEmpty() }.distinct()
+            val personName = name.ifEmpty { settings.value.persons.firstOrNull().orEmpty() }
             store.update { st ->
                 st.copy(
                     userName = name,
                     persons = if (people.isEmpty()) st.persons else people,
                     currency = d.currency.ifBlank { "₽" },
                     monthlyIncome = d.incomeCents,
+                    fixedPromptYm = nowYm.toString(),
                     onboarded = true
                 )
             }
             val accs = accounts.value
-            // Если доход уже пришёл и записан, вычитаем его из стартового остатка,
-            // чтобы текущий баланс остался таким, каким его ввёл человек.
+            val primaryAccount = accs.firstOrNull()?.name.orEmpty()
+
+            // Сначала сохраняем план (он создаёт обязательные платежи).
+            savePlanInternal(nowYm, d.plan, d.incomeCents)
+
+            // Если обязательные платежи уже оплачены и остаток на карте указан уже после них,
+            // отмечаем их оплаченными и компенсируем стартовый баланс, чтобы остаток не уходил в минус.
+            var paidBillsCents = 0L
+            if (d.billsAlreadyPaid) {
+                val todayEpoch = LocalDate.now().toEpochDay()
+                val bills = dao.mandatoryOnce().filter { it.amountCents > 0 }
+                for (m in bills) {
+                    dao.insertOperation(
+                        Operation(
+                            date = todayEpoch,
+                            amountCents = m.amountCents,
+                            type = OpType.EXPENSE,
+                            category = m.category.ifBlank { m.name },
+                            comment = "Оплачено до начала учёта",
+                            person = personName,
+                            account = primaryAccount,
+                            mandatoryId = m.id
+                        )
+                    )
+                    paidBillsCents += m.amountCents
+                }
+            }
+
             val recordIncome = d.recordIncome && d.incomeCents > 0
-            val cardInitial = d.cardCents - (if (recordIncome) d.incomeCents else 0L)
+            val cardInitial = d.cardCents - (if (recordIncome) d.incomeCents else 0L) + paidBillsCents
             if (accs.isNotEmpty()) dao.updateAccount(accs[0].copy(initialCents = cardInitial))
             if (accs.size > 1) dao.updateAccount(accs[1].copy(initialCents = d.cashCents))
             if (recordIncome) {
@@ -203,12 +234,11 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
                         type = OpType.INCOME,
                         category = categories.value.firstOrNull { it.isIncome }?.name ?: "Зарплата",
                         comment = "Доход за месяц",
-                        person = name.ifEmpty { settings.value.persons.firstOrNull().orEmpty() },
-                        account = accs.firstOrNull()?.name.orEmpty()
+                        person = personName,
+                        account = primaryAccount
                     )
                 )
             }
-            savePlanInternal(YearMonth.now(), d.plan, d.incomeCents)
         }
     }
 

@@ -141,6 +141,26 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
+        // Быстрые действия в одно нажатие
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = { vm.startNew(OpType.EXPENSE) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("− Расход (+10 XP)", maxLines = 1, softWrap = false)
+                }
+                OutlinedButton(
+                    onClick = { vm.startNew(OpType.INCOME) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("+ Доход", maxLines = 1, softWrap = false)
+                }
+            }
+        }
+
         // Переключатель месяца
         item {
             MonthSwitcher(Fmt.monthTitle(ym), onPrev = { vm.shiftMonth(-1) }, onNext = { vm.shiftMonth(1) })

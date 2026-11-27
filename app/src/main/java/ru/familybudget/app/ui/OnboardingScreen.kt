@@ -51,6 +51,7 @@ fun OnboardingScreen(vm: BudgetViewModel) {
     var cash by rememberSaveable { mutableStateOf("") }
     var income by rememberSaveable { mutableStateOf("") }
     var recordIncome by rememberSaveable { mutableStateOf(false) }
+    var billsAlreadyPaid by rememberSaveable { mutableStateOf(false) }
     val names = remember(categories) { Plans.orderedExpenseCategories(categories) }
     val values = remember { mutableStateMapOf<String, String>() }
 
@@ -96,6 +97,13 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                 3 -> {
                     Text("📋 План на месяц", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Text("Сколько уйдёт на каждое. Можно оставить пустым.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = billsAlreadyPaid, onCheckedChange = { billsAlreadyPaid = it })
+                        Column(Modifier.weight(1f)) {
+                            Text("Обязательные платежи в этом месяце уже оплачены")
+                            HelpText("Отметьте, если остаток на карте уже указан с учётом этих трат — тогда прогноз не уйдёт в минус.")
+                        }
+                    }
                     PlanFields(names, values, currency)
                     Banner("Итого", if (incomeCents > 0 && free < 0) Tone.EXPENSE else Tone.INCOME) {
                         KeyValueRow("План", Fmt.money(total, currency, false))
@@ -139,7 +147,8 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                                     name = name, partner = partner, currency = currency,
                                     cardCents = Fmt.parseCents(card) ?: 0L,
                                     cashCents = Fmt.parseCents(cash) ?: 0L,
-                                    incomeCents = incomeCents, recordIncome = recordIncome, plan = plan
+                                    incomeCents = incomeCents, recordIncome = recordIncome, plan = plan,
+                                    billsAlreadyPaid = billsAlreadyPaid
                                 )
                             )
                         },

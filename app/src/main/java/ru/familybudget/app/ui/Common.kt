@@ -42,8 +42,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
@@ -179,12 +183,58 @@ fun DateField(epochDay: Long, onChange: (Long) -> Unit, modifier: Modifier = Mod
     }
 }
 
+/** Визуально разделяет тысячи пробелами при вводе суммы: 14000 -> 14 000. */
+private object ThousandsVisualTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val raw = text.text
+        if (raw.isEmpty()) return TransformedText(text, OffsetMapping.Identity)
+        val sepIdx = raw.indexOfFirst { it == '.' || it == ',' }
+        val intPart = if (sepIdx >= 0) raw.substring(0, sepIdx) else raw
+        val fracPart = if (sepIdx >= 0) raw.substring(sepIdx) else ""
+
+        val sb = StringBuilder()
+        val origToTrans = IntArray(raw.length + 1)
+        val transToOrig = ArrayList<Int>(raw.length + 4)
+
+        val len = intPart.length
+        for (i in 0 until len) {
+            if (i > 0 && (len - i) % 3 == 0) {
+                sb.append(' ')
+                transToOrig.add(i)
+            }
+            origToTrans[i] = sb.length
+            sb.append(intPart[i])
+            transToOrig.add(i)
+        }
+        for (i in fracPart.indices) {
+            val origIdx = len + i
+            origToTrans[origIdx] = sb.length
+            sb.append(fracPart[i])
+            transToOrig.add(origIdx)
+        }
+        origToTrans[raw.length] = sb.length
+        transToOrig.add(raw.length)
+
+        val mapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int =
+                origToTrans[offset.coerceIn(0, raw.length)]
+            override fun transformedToOriginal(offset: Int): Int =
+                transToOrig[offset.coerceIn(0, transToOrig.size - 1)]
+        }
+        return TransformedText(AnnotatedString(sb.toString()), mapping)
+    }
+}
+
 @Composable
 fun MoneyField(value: String, onChange: (String) -> Unit, label: String, modifier: Modifier = Modifier) {
     OutlinedTextField(
         value = value,
-        onValueChange = { v -> if (Regex("^\\d{0,10}([.,]\\d{0,2})?$").matches(v)) onChange(v) },
+        onValueChange = { v ->
+            val cleaned = v.replace(" ", "").replace("\u00A0", "")
+            if (Regex("^\\d{0,10}([.,]\\d{0,2})?$").matches(cleaned)) onChange(cleaned)
+        },
         label = { Text(label) },
+        visualTransformation = ThousandsVisualTransformation,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true,
         modifier = modifier.fillMaxWidth()
