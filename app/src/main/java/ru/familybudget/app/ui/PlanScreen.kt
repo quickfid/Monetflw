@@ -131,7 +131,7 @@ fun PlanScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         val animRatio by androidx.compose.animation.core.animateFloatAsState(
                             targetValue = ratio.coerceIn(0f, 1f),
                             animationSpec = androidx.compose.animation.core.tween(
-                                500,
+                                680,
                                 easing = androidx.compose.animation.core.FastOutSlowInEasing
                             ),
                             label = "planBar_$name"

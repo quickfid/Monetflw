@@ -281,7 +281,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     )
                     val animatedBalance by animateFloatAsState(
                         targetValue = balance.toFloat(),
-                        animationSpec = tween(550, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                        animationSpec = tween(720, easing = androidx.compose.animation.core.FastOutSlowInEasing),
                         label = "heroBalance"
                     )
                     Text(
