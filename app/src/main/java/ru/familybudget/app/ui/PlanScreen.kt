@@ -163,8 +163,13 @@ fun PlanScreen(vm: BudgetViewModel, padding: PaddingValues) {
 @Composable
 fun PlanFields(names: List<String>, values: MutableMap<String, String>, currency: String) {
     names.forEach { n ->
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(Fmt.emoji(n) + " " + n, Modifier.weight(1f), fontWeight = FontWeight.Medium)
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CategoryBadge(n, size = 32.dp)
+            Text(n, Modifier.weight(1f), fontWeight = FontWeight.Medium)
             MoneyField(values[n].orEmpty(), { values[n] = it }, currency, Modifier.width(140.dp))
         }
     }
@@ -200,11 +205,12 @@ fun PlanEditor(vm: BudgetViewModel, ym: YearMonth) {
             Modifier.fillMaxSize().safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(onClick = { vm.closePlan() }) { Icon(AppIcons.Close, contentDescription = "Закрыть") }
-                Text("📋 План · " + Fmt.monthTitle(ym), style = MaterialTheme.typography.titleLarge)
+                Icon(AppIcons.Plan, contentDescription = null, modifier = Modifier.size(22.dp))
+                Text("План · " + Fmt.monthTitle(ym), style = MaterialTheme.typography.titleLarge)
             }
-            MoneyField(income, { income = it }, "💼 Доход в месяц, $cur")
+            MoneyField(income, { income = it }, "Доход в месяц, $cur")
             PlanFields(names, values, cur)
             Banner("Итого", if (incomeCents > 0 && free < 0) Tone.EXPENSE else Tone.INCOME) {
                 KeyValueRow("План", Fmt.money(total, cur, false))
@@ -223,7 +229,7 @@ fun PlanEditor(vm: BudgetViewModel, ym: YearMonth) {
                 },
                 enabled = total > 0,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Готово ✅") }
+            ) { Text("Готово") }
         }
     }
 }

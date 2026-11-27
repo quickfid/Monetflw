@@ -96,6 +96,17 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
                     dao.insertCategory(Category(name = name, isIncome = false))
                 }
             }
+            // Удаляем дубль «Коммуналка», если уже есть «Коммунальные платежи»
+            val catsNow = dao.categoriesOnce()
+            if (catsNow.any { it.name.equals("Коммунальные платежи", ignoreCase = true) }) {
+                catsNow.filter { it.name.equals("Коммуналка", ignoreCase = true) }
+                    .forEach { dao.deleteCategory(it) }
+            }
+            val mandNow = dao.mandatoryOnce()
+            if (mandNow.any { it.name.equals("Коммунальные платежи", ignoreCase = true) }) {
+                mandNow.filter { it.name.equals("Коммуналка", ignoreCase = true) }
+                    .forEach { dao.deleteMandatory(it) }
+            }
         }
     }
     val unsyncedCount: StateFlow<Int> =
