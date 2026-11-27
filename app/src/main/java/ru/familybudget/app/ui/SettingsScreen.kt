@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +31,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -46,6 +48,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -130,89 +133,110 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         )
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Text("⚙️ Ещё", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
-        MenuItem("👤 Профиль", "Имя и доход") { open(Page.PROFILE) }
-        MenuItem("🏷️ Категории", "Расходы и доходы") { open(Page.CATEGORIES) }
-        MenuItem("💳 Платежи", "Ежемесячные, с галочками") { open(Page.MANDATORY) }
-        MenuItem("🏦 Счета", "Карты и наличные") { open(Page.ACCOUNTS) }
-        MenuItem("👨‍👩‍👧 Люди", settings.persons.joinToString(", ")) { open(Page.PEOPLE) }
-        MenuItem(
-            "Google Таблица",
-            if (settings.apiUrl.isBlank()) "Не подключена" else "Не отправлено: $unsynced"
-        ) { open(Page.SYNC) }
-        MenuItem("📊 Отчёты", "Анализ доходов, расходов и динамики") { open(Page.REPORTS) }
-        MenuItem("📤 Отправить отчёт в таблицу", "Таблицы и графики для другого человека") {
-            vm.exportReport(vm.month)
-        }
-        MenuItem("📄 Экспорт CSV", "Все операции в файл") {
-            exportLauncher.launch("budget_${LocalDate.now()}.csv")
-        }
-        MenuItem("💾 Резервная копия", "Сохранить все данные в файл") {
-            backupLauncher.launch("family_budget_backup_${LocalDate.now()}.json")
-        }
-        MenuItem("♻️ Восстановить", "Из файла резервной копии") { confirmRestore = true }
-        HorizontalDivider(Modifier.padding(vertical = 8.dp))
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("⚙️ Ещё", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = Sheet.glass(),
+            border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
         ) {
-            OutlinedTextField(
-                value = currency,
-                onValueChange = { if (it.length <= 4) currency = it },
-                label = { Text("Валюта") },
-                singleLine = true,
-                modifier = Modifier.weight(1f)
-            )
-            Button(onClick = { vm.setCurrency(currency) }) { Text("Применить") }
-        }
-        if (vm.message.isNotEmpty()) {
-            Text(vm.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)
-        }
-        HorizontalDivider()
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("🔔 Напоминание в 20:00", style = MaterialTheme.typography.bodyLarge)
-                Text("Ежедневно вечером, чтобы не забыть записать траты", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Switch(
-                checked = settings.dailyReminder,
-                onCheckedChange = { enabled ->
-                    if (enabled && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                        notifPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        vm.setDailyReminder(enabled)
-                    }
+            Column {
+                MenuItem("👤 Профиль", "Имя и доход") { open(Page.PROFILE) }
+                MenuItem("🏷️ Категории", "Расходы и доходы") { open(Page.CATEGORIES) }
+                MenuItem("💳 Платежи", "Ежемесячные, с галочками") { open(Page.MANDATORY) }
+                MenuItem("🏦 Счета", "Карты и наличные") { open(Page.ACCOUNTS) }
+                MenuItem("👨‍👩‍👧 Люди", settings.persons.joinToString(", ")) { open(Page.PEOPLE) }
+                MenuItem(
+                    "Google Таблица",
+                    if (settings.apiUrl.isBlank()) "Не подключена" else "Не отправлено: $unsynced"
+                ) { open(Page.SYNC) }
+                MenuItem("📊 Отчёты", "Анализ доходов, расходов и динамики") { open(Page.REPORTS) }
+                MenuItem("📤 Отправить отчёт в таблицу", "Таблицы и графики для другого человека") {
+                    vm.exportReport(vm.month)
                 }
-            )
-        }
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("🖼️ Размытые обои рабочего стола", style = MaterialTheme.typography.bodyLarge)
-                Text("Фон из обоев телефона с эффектом Liquid Glass", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                MenuItem("📄 Экспорт CSV", "Все операции в файл") {
+                    exportLauncher.launch("budget_${LocalDate.now()}.csv")
+                }
+                MenuItem("💾 Резервная копия", "Сохранить все данные в файл") {
+                    backupLauncher.launch("family_budget_backup_${LocalDate.now()}.json")
+                }
+                MenuItem("♻️ Восстановить", "Из файла резервной копии") { confirmRestore = true }
             }
-            Switch(
-                checked = settings.wallpaperBackground,
-                onCheckedChange = { vm.setWallpaperBackground(it) }
-            )
         }
-        HorizontalDivider()
-        MenuItem(
-            "🔄 Проверить обновления",
-            if (vm.checkingUpdate) "Проверяем…" else "Установить новую версию прямо в приложении"
-        ) { vm.checkForUpdate(silent = false) }
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = Sheet.glass(),
+            border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+        ) {
+            Column(Modifier.padding(vertical = 8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = currency,
+                        onValueChange = { if (it.length <= 4) currency = it },
+                        label = { Text("Валюта") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Button(onClick = { vm.setCurrency(currency) }) { Text("Применить") }
+                }
+                if (vm.message.isNotEmpty()) {
+                    Text(vm.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)
+                }
+                HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("🔔 Напоминание в 20:00", style = MaterialTheme.typography.bodyLarge)
+                        Text("Ежедневно вечером, чтобы не забыть записать траты", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = settings.dailyReminder,
+                        onCheckedChange = { enabled ->
+                            if (enabled && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                notifPermLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                vm.setDailyReminder(enabled)
+                            }
+                        }
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("🖼️ Размытые обои рабочего стола", style = MaterialTheme.typography.bodyLarge)
+                        Text("Фон из обоев телефона с эффектом Liquid Glass", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = settings.wallpaperBackground,
+                        onCheckedChange = { vm.setWallpaperBackground(it) }
+                    )
+                }
+                HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                MenuItem(
+                    "🔄 Проверить обновления",
+                    if (vm.checkingUpdate) "Проверяем…" else "Установить новую версию прямо в приложении"
+                ) { vm.checkForUpdate(silent = false) }
+            }
+        }
         val ctx = LocalContext.current
         val appVer = remember(ctx) { AppUpdater.currentVersion(ctx) }
         Text(
             "Данные только на вашем телефоне · v$appVer",
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -224,6 +248,7 @@ private fun MenuItem(title: String, subtitle: String, onClick: () -> Unit) {
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = { Text(subtitle, maxLines = 2) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.clickable(onClick = onClick)
     )
 }
