@@ -835,7 +835,7 @@ private fun NotificationsPage(vm: BudgetViewModel) {
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        "Сбер, Т-Банк, Альфа, ВТБ, Ozon, Яндекс Пэй. Только покупки и оплаты — переводы и СБП игнорируются.",
+                        "Сбер, Т-Банк, Альфа, ВТБ, Ozon, Яндекс Пэй. Учитываются покупки, оплаты и оплаты по СБП (QR) — переводы игнорируются.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
