@@ -925,11 +925,18 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     mandatory.forEach { m ->
                         val isPaid = m.id in md.paid
                         Row(
-                            Modifier.fillMaxWidth().clickable { vm.toggleMandatory(m, ym, !isPaid) },
-                            verticalAlignment = Alignment.CenterVertically
+                            Modifier.fillMaxWidth().clickable { vm.toggleMandatory(m, ym, !isPaid) }.padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Checkbox(checked = isPaid, onCheckedChange = { vm.toggleMandatory(m, ym, it) })
-                            Text(Fmt.emoji(m.category.ifBlank { m.name }) + " " + m.name, Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                            Icon(
+                                imageVector = AppIcons.CheckBadge,
+                                contentDescription = if (isPaid) "Оплачено" else "Не оплачено",
+                                tint = if (isPaid) incomeColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            CategoryBadge(m.category.ifBlank { m.name }, settings.categoryIcons, size = 30.dp)
+                            Text(m.name, Modifier.weight(1f), fontWeight = FontWeight.Medium)
                             Text(Fmt.money(m.amountCents, cur, false), textAlign = TextAlign.End, fontWeight = FontWeight.SemiBold)
                         }
                         HorizontalDivider(color = Sheet.border().copy(alpha = 0.4f))
@@ -1317,10 +1324,19 @@ private fun levelDrawable(level: Int): Int = when {
 
 @Composable
 private fun QuestRow(done: Boolean, title: String, reward: String, action: String?, onAction: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(if (done) "✅" else "⬜", fontSize = 18.sp)
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            imageVector = AppIcons.CheckBadge,
+            contentDescription = if (done) "Выполнено" else "Не выполнено",
+            tint = if (done) AppColors.income() else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f),
+            modifier = Modifier.size(22.dp)
+        )
         Text(
-            "  $title",
+            title,
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.bodyMedium,
             color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface

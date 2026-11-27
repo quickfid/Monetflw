@@ -243,7 +243,8 @@ private fun BudgetApp() {
     androidx.compose.runtime.CompositionLocalProvider(
         ru.familybudget.app.ui.LocalGlassAlpha provides settings.glassOpacity,
         ru.familybudget.app.ui.LocalAccentTheme provides settings.accentTheme,
-        ru.familybudget.app.ui.LocalUiStyle provides settings.uiStyle
+        ru.familybudget.app.ui.LocalUiStyle provides settings.uiStyle,
+        androidx.compose.material3.LocalContentColor provides MaterialTheme.colorScheme.onBackground
     ) {
         Box(bgModifier) {
                     Scaffold(
