@@ -510,11 +510,11 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateNotifications(change: (AppSettings) -> AppSettings) {
         store.update(change)
-        ReminderScheduler.rescheduleAll(getApplication(), settings.value)
+        ru.familybudget.app.logic.ReminderScheduler.rescheduleAll(getApplication(), settings.value)
     }
 
     fun sendTestNotification() {
-        ReminderScheduler.sendTest(getApplication())
+        ru.familybudget.app.logic.ReminderScheduler.sendTest(getApplication())
         message = "Тестовое уведомление отправлено 🔔"
     }
 
