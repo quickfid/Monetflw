@@ -26,9 +26,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -63,7 +66,7 @@ import ru.familybudget.app.logic.Verdict
 import ru.familybudget.app.logic.delta
 import java.time.LocalDate
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val ops by vm.operations.collectAsState()
@@ -76,6 +79,65 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val settings by vm.settings.collectAsState()
     val unsynced by vm.unsyncedCount.collectAsState()
     val cur = settings.currency
+    val hidden = settings.hideAmounts
+    fun money(cents: Long, showCents: Boolean = true): String =
+        if (hidden) "•••• $cur" else Fmt.money(cents, cur, showCents)
+
+    var showQuickExpense by remember { mutableStateOf(false) }
+    val expenseCats = remember(categories) { Plans.orderedExpenseCategories(categories) }
+    if (showQuickExpense) {
+        var quickCat by remember { mutableStateOf(expenseCats.firstOrNull() ?: "Продукты") }
+        var quickAmt by remember { mutableStateOf("") }
+        ModalBottomSheet(onDismissRequest = { showQuickExpense = false }) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("⚡ Быстрый расход", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = { showQuickExpense = false; vm.startNew(OpType.EXPENSE) }) {
+                        Text("Подробно →")
+                    }
+                }
+                MoneyField(quickAmt, { quickAmt = it }, "Сумма ($cur)")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(200L, 500L, 1_000L, 2_000L, 5_000L).forEach { v ->
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val curRub = (Fmt.parseCents(quickAmt) ?: 0L) / 100L
+                                quickAmt = (curRub + v).toString()
+                            },
+                            label = { Text("+${v}") }
+                        )
+                    }
+                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    expenseCats.take(8).forEach { c ->
+                        FilterChip(
+                            selected = quickCat == c,
+                            onClick = { quickCat = c },
+                            label = { Text(c) }
+                        )
+                    }
+                }
+                Button(
+                    onClick = {
+                        val cents = Fmt.parseCents(quickAmt) ?: 0L
+                        if (cents > 0L) {
+                            vm.quickAddExpense(cents, quickCat)
+                            showQuickExpense = false
+                        }
+                    },
+                    enabled = (Fmt.parseCents(quickAmt) ?: 0L) > 0L,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 18.dp),
+                    shape = RoundedCornerShape(50)
+                ) {
+                    Text("Записать (+10 XP)", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
     val ym = vm.month
     val today = remember { LocalDate.now() }
 
@@ -162,6 +224,18 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         }
                     }
                 }
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Sheet.glass(),
+                    border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
+                    modifier = Modifier.clickable { vm.toggleHideAmounts() }
+                ) {
+                    Text(
+                        if (hidden) "🙈" else "👁️",
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
                 if (settings.apiUrl.isNotBlank() && settings.token.isNotBlank()) {
                     Surface(
                         shape = RoundedCornerShape(50),
@@ -206,7 +280,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         color = Color.White.copy(alpha = 0.85f)
                     )
                     Text(
-                        Fmt.money(balance, cur),
+                        money(balance),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -214,14 +288,14 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     if (depositInfos.isNotEmpty()) {
                         Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(
-                                "🏦 На вкладах: ${Fmt.money(savings, cur, false)}",
+                                "🏦 На вкладах: ${money(savings, false)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFFFDE68A),
                                 fontWeight = FontWeight.SemiBold
                             )
                             if (expectedInterest > 0) {
                                 Text(
-                                    "+${Fmt.money(expectedInterest, cur, false)}/мес",
+                                    "+${money(expectedInterest, false)}/мес",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = Color(0xFFA7F3D0),
                                     fontWeight = FontWeight.Medium
@@ -252,7 +326,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                 color = Color.White.copy(alpha = 0.85f)
                             )
                             Text(
-                                Fmt.money(smartSafeDaily, cur, false),
+                                money(smartSafeDaily, false),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFA7F3D0)
@@ -268,7 +342,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Surface(
-                    modifier = Modifier.weight(1f).height(48.dp).clickable { vm.startNew(OpType.EXPENSE) },
+                    modifier = Modifier.weight(1f).height(48.dp).clickable { showQuickExpense = true },
                     shape = RoundedCornerShape(50),
                     color = Sheet.tone(Tone.EXPENSE),
                     border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())

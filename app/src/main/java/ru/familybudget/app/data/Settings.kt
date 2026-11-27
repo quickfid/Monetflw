@@ -73,7 +73,8 @@ class SettingsStore(context: Context) {
             activeStrategy = prefs.getString("activeStrategy", "").orEmpty(),
             goals = parseGoals(prefs.getString("goals_json", "").orEmpty()),
             categoryIcons = parseIcons(prefs.getString("category_icons_json", "").orEmpty()),
-            wallpaperBackground = prefs.getBoolean("wallpaperBackground", false)
+            wallpaperBackground = prefs.getBoolean("wallpaperBackground", false),
+            hideAmounts = prefs.getBoolean("hideAmounts", false)
         )
     }
 
@@ -153,6 +154,7 @@ class SettingsStore(context: Context) {
             .putString("goals_json", serializeGoals(next.goals))
             .putString("category_icons_json", serializeIcons(next.categoryIcons))
             .putBoolean("wallpaperBackground", next.wallpaperBackground)
+            .putBoolean("hideAmounts", next.hideAmounts)
             .apply()
         state.value = next
     }

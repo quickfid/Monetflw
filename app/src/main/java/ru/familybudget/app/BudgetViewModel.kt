@@ -487,6 +487,28 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         store.update { it.copy(wallpaperBackground = enabled) }
     }
 
+    fun toggleHideAmounts() {
+        store.update { it.copy(hideAmounts = !it.hideAmounts) }
+    }
+
+    /** Быстрая запись расхода за 2 секунды из нижней шторки. */
+    fun quickAddExpense(amountCents: Long, category: String) {
+        if (amountCents <= 0L) return
+        val cat = category.trim().ifBlank { "Продукты" }
+        val person = settings.value.persons.firstOrNull().orEmpty()
+        val account = accounts.value.firstOrNull()?.name.orEmpty()
+        saveOperation(
+            Operation(
+                date = LocalDate.now().toEpochDay(),
+                amountCents = amountCents,
+                type = OpType.EXPENSE,
+                category = cat,
+                person = person,
+                account = account
+            )
+        )
+    }
+
     fun checkForUpdate(silent: Boolean = true) {
         if (checkingUpdate || updateProgress != null) return
         viewModelScope.launch {
