@@ -39,6 +39,14 @@ import androidx.room.withTransaction
 import java.time.LocalDate
 import java.time.YearMonth
 
+/** Вклад, добавленный на стартовом экране. */
+data class OnboardingDeposit(
+    val name: String,
+    val principalCents: Long,
+    val ratePercent: Double,
+    val compound: Boolean = true
+)
+
 /** Всё, что человек ввёл на экране первоначальной настройки. */
 data class OnboardingData(
     val name: String,
@@ -53,7 +61,9 @@ data class OnboardingData(
     /** Обязательные платежи в этом месяце уже оплачены (остаток указан уже после них). */
     val billsAlreadyPaid: Boolean = false,
     /** Сколько % от дохода откладывать на подушку безопасности (5, 10, 15, 20). */
-    val savingsPercent: Int = 10
+    val savingsPercent: Int = 10,
+    /** Вклады и накопительные счета, введённые на старте. */
+    val initialDeposits: List<OnboardingDeposit> = emptyList()
 )
 
 class BudgetViewModel(app: Application) : AndroidViewModel(app) {
@@ -216,11 +226,34 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
                     onboarded = true
                 )
             }
-            val accs = accounts.value
+            var accs = dao.accountsOnce()
+            if (accs.isEmpty()) {
+                dao.insertAccount(Account(name = "Карта"))
+                dao.insertAccount(Account(name = "Наличные"))
+                accs = dao.accountsOnce()
+            }
             val primaryAccount = accs.firstOrNull()?.name.orEmpty()
 
             // Сначала сохраняем план (он создаёт обязательные платежи).
             savePlanInternal(nowYm, d.plan, d.incomeCents)
+
+            // Сохраняем вклады, добавленные на стартовом экране.
+            val baselineYm = nowYm.toString()
+            for (dep in d.initialDeposits) {
+                if (dep.name.isNotBlank() && dep.principalCents > 0) {
+                    dao.insertDeposit(
+                        Deposit(
+                            name = dep.name.trim(),
+                            kind = "Вклад",
+                            principalCents = dep.principalCents,
+                            baselineYm = baselineYm,
+                            ratePercent = dep.ratePercent,
+                            ratePeriod = 0,
+                            compound = dep.compound
+                        )
+                    )
+                }
+            }
 
             // Если обязательные платежи уже оплачены и остаток на карте указан уже после них,
             // отмечаем их оплаченными и компенсируем стартовый баланс, чтобы остаток не уходил в минус.

@@ -190,44 +190,58 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 ) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        if (depositInfos.isEmpty()) "Доступно сейчас на счетах" else "Всего средств (счета + накопления)",
+                        "На счетах сейчас (свободно)",
                         style = MaterialTheme.typography.labelLarge,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = Color.White.copy(alpha = 0.85f)
                     )
                     Text(
-                        Fmt.money(balance + savings, cur),
+                        Fmt.money(balance, cur),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     if (depositInfos.isNotEmpty()) {
-                        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(
-                                "На счетах: ${Fmt.money(balance, cur, false)}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.88f)
-                            )
-                            Text(
-                                "Накопления: ${Fmt.money(savings, cur, false)}",
+                                "🏦 На вкладах: ${Fmt.money(savings, cur, false)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFFFDE68A),
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.SemiBold
                             )
+                            if (expectedInterest > 0) {
+                                Text(
+                                    "+${Fmt.money(expectedInterest, cur, false)}/мес",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFFA7F3D0),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                     if (f.isCurrent && (md.budget > 0 || f.safeDaily > 0)) {
+                        val daysLeft = (ym.lengthOfMonth() - today.dayOfMonth + 1).coerceAtLeast(1)
+                        val realFreeDaily = if (balance > 0) {
+                            ((balance - md.summary.mandatoryUnpaid).coerceAtLeast(0L)) / daysLeft
+                        } else {
+                            f.safeDaily
+                        }
+                        val smartSafeDaily = if (f.safeDaily > 0 && realFreeDaily > 0) {
+                            minOf(f.safeDaily, realFreeDaily)
+                        } else {
+                            maxOf(f.safeDaily, realFreeDaily)
+                        }
                         HorizontalDivider(
                             modifier = Modifier.padding(vertical = 6.dp),
-                            color = Color.White.copy(alpha = 0.18f)
+                            color = Color.White.copy(alpha = 0.22f)
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(
                                 "Безопасно тратить в день",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.8f)
+                                color = Color.White.copy(alpha = 0.85f)
                             )
                             Text(
-                                Fmt.money(f.safeDaily, cur, false),
+                                Fmt.money(smartSafeDaily, cur, false),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFA7F3D0)
