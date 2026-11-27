@@ -57,10 +57,10 @@ import java.time.LocalDate
 fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(18.dp),
+        color = Sheet.glass(),
         border = BorderStroke(1.dp, Sheet.border()),
-        shadowElevation = 1.dp
+        shadowElevation = 2.dp
     ) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
@@ -78,10 +78,10 @@ fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifie
 fun Section(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(20.dp),
+        color = Sheet.glass(),
         border = BorderStroke(1.dp, Sheet.border()),
-        shadowElevation = 1.dp
+        shadowElevation = 2.dp
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
@@ -100,10 +100,10 @@ fun Section(title: String, modifier: Modifier = Modifier, content: @Composable C
 fun StatCard(label: String, value: String, modifier: Modifier = Modifier, tone: Tone = Tone.NEUTRAL) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(18.dp),
         color = Sheet.tone(tone),
         border = BorderStroke(1.dp, Sheet.border()),
-        shadowElevation = 1.dp
+        shadowElevation = 2.dp
     ) {
         Column(
             Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 10.dp),
@@ -333,10 +333,10 @@ fun ChipPicker(label: String, value: String, options: List<String>, onSelect: (S
 fun Banner(title: String, tone: Tone, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         color = Sheet.tone(tone),
         border = BorderStroke(1.dp, Sheet.border()),
-        shadowElevation = 1.dp
+        shadowElevation = 2.dp
     ) {
         Column(
             Modifier.fillMaxWidth().padding(14.dp),

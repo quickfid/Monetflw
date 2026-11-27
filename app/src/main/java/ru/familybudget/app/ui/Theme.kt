@@ -11,23 +11,25 @@ import androidx.compose.ui.graphics.Color
 enum class Tone { NEUTRAL, INCOME, EXPENSE, WARN, SAVINGS }
 
 object Sheet {
-    @Composable fun header(): Color = if (isSystemInDarkTheme()) Color(0xFF1F2D28) else Color(0xFFEAF2F5)
-    @Composable fun border(): Color = if (isSystemInDarkTheme()) Color(0xFF263630) else Color(0xFFE3E9F0)
+    @Composable fun header(): Color = if (isSystemInDarkTheme()) Color(0xCC1E2C27) else Color(0xD9EBF3F7)
+    /** Полупрозрачная «стеклянная» поверхность в стиле Apple. */
+    @Composable fun glass(): Color = if (isSystemInDarkTheme()) Color(0xB8182320) else Color(0xDBFFFFFF)
+    @Composable fun border(): Color = if (isSystemInDarkTheme()) Color(0x2EFFFFFF) else Color(0xB3FFFFFF)
     @Composable fun tone(t: Tone): Color = if (isSystemInDarkTheme()) {
         when (t) {
-            Tone.NEUTRAL -> Color(0xFF18211E)
-            Tone.INCOME -> Color(0xFF142E25)
-            Tone.EXPENSE -> Color(0xFF331D20)
-            Tone.WARN -> Color(0xFF332A16)
-            Tone.SAVINGS -> Color(0xFF312714)
+            Tone.NEUTRAL -> Color(0xB8182320)
+            Tone.INCOME -> Color(0xC4133227)
+            Tone.EXPENSE -> Color(0xC4361C20)
+            Tone.WARN -> Color(0xC4362B14)
+            Tone.SAVINGS -> Color(0xC4332812)
         }
     } else {
         when (t) {
-            Tone.NEUTRAL -> Color(0xFFFFFFFF)
-            Tone.INCOME -> Color(0xFFE6F6EE)
-            Tone.EXPENSE -> Color(0xFFFDECEC)
-            Tone.WARN -> Color(0xFFFFF5DF)
-            Tone.SAVINGS -> Color(0xFFFEF6E4)
+            Tone.NEUTRAL -> Color(0xDBFFFFFF)
+            Tone.INCOME -> Color(0xD9E4F6EE)
+            Tone.EXPENSE -> Color(0xD9FDEAEA)
+            Tone.WARN -> Color(0xD9FFF5DC)
+            Tone.SAVINGS -> Color(0xD9FEF5E0)
         }
     }
 }
@@ -94,7 +96,7 @@ fun BudgetTheme(content: @Composable () -> Unit) {
             onTertiary = Color.White,
             tertiaryContainer = Color(0xFFFEF6E4),
             onTertiaryContainer = Color(0xFF523605),
-            background = Color(0xFFF6F8FB),
+            background = Color(0xFFECF1F7),
             onBackground = Color(0xFF1A242D),
             surface = Color(0xFFFFFFFF),
             onSurface = Color(0xFF1A242D),

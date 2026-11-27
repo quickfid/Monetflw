@@ -105,17 +105,22 @@ fun PlanScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(20.dp),
+                color = Sheet.glass(),
                 border = BorderStroke(1.dp, Sheet.border()),
-                shadowElevation = 1.dp
+                shadowElevation = 2.dp
             ) {
                 Column(
                     Modifier.fillMaxWidth().padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(Fmt.emoji(name) + " " + name, fontWeight = FontWeight.SemiBold)
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CategoryBadge(name, settings.categoryIcons, size = 32.dp)
+                        Text(name, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                         Text(
                             Fmt.money(spent, cur, false) + if (plan > 0) " / " + Fmt.money(plan, cur, false) else "",
                             fontSize = 13.sp

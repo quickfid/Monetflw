@@ -452,6 +452,13 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteGoal(id: Long) {
         store.update { st -> st.copy(goals = st.goals.filterNot { it.id == id }) }
     }
+    fun setCategoryIcon(categoryName: String, iconKey: String) {
+        store.update { st ->
+            val next = st.categoryIcons.toMutableMap()
+            if (iconKey.isBlank()) next.remove(categoryName) else next[categoryName] = iconKey
+            st.copy(categoryIcons = next)
+        }
+    }
 
     // ---------- синхронизация с Google-таблицей
     fun sync() {

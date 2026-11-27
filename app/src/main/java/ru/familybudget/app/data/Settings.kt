@@ -39,7 +39,9 @@ data class AppSettings(
     /** Выбранная игровая стратегия накоплений (пусто — не выбрана). */
     val activeStrategy: String = "",
     /** Финансовые цели (копилки на мечту). */
-    val goals: List<SavingsGoal> = emptyList()
+    val goals: List<SavingsGoal> = emptyList(),
+    /** Пользовательские иконки категорий: название категории → ключ иконки. */
+    val categoryIcons: Map<String, String> = emptyMap()
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -67,8 +69,31 @@ class SettingsStore(context: Context) {
             dailyReminder = prefs.getBoolean("dailyReminder", false),
             savingsPercent = prefs.getInt("savingsPercent", 10),
             activeStrategy = prefs.getString("activeStrategy", "").orEmpty(),
-            goals = parseGoals(prefs.getString("goals_json", "").orEmpty())
+            goals = parseGoals(prefs.getString("goals_json", "").orEmpty()),
+            categoryIcons = parseIcons(prefs.getString("category_icons_json", "").orEmpty())
         )
+    }
+
+    private fun parseIcons(raw: String): Map<String, String> {
+        if (raw.isBlank()) return emptyMap()
+        return try {
+            val obj = JSONObject(raw)
+            val map = HashMap<String, String>()
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val k = keys.next()
+                map[k] = obj.optString(k)
+            }
+            map
+        } catch (_: Exception) {
+            emptyMap()
+        }
+    }
+
+    private fun serializeIcons(icons: Map<String, String>): String {
+        val obj = JSONObject()
+        icons.forEach { (k, v) -> obj.put(k, v) }
+        return obj.toString()
     }
 
     private fun parseGoals(raw: String): List<SavingsGoal> {
@@ -123,6 +148,7 @@ class SettingsStore(context: Context) {
             .putInt("savingsPercent", next.savingsPercent)
             .putString("activeStrategy", next.activeStrategy)
             .putString("goals_json", serializeGoals(next.goals))
+            .putString("category_icons_json", serializeIcons(next.categoryIcons))
             .apply()
         state.value = next
     }

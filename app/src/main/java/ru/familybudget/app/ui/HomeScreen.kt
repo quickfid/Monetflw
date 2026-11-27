@@ -332,12 +332,18 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         }
                         Row(
                             Modifier.fillMaxWidth().clickable { vm.edit(op) }.padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            CategoryBadge(
+                                categoryName = if (op.type == OpType.TRANSFER) "Перевод" else op.category.ifBlank { "Прочее" },
+                                overrides = settings.categoryIcons,
+                                size = 36.dp
+                            )
                             Column(Modifier.weight(1f)) {
                                 Text(
                                     if (op.type == OpType.TRANSFER) "Перевод: ${op.account} → ${op.destAccount}"
-                                    else Fmt.emoji(op.category) + " " + op.category.ifBlank { "Без категории" },
+                                    else op.category.ifBlank { "Без категории" },
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1,
