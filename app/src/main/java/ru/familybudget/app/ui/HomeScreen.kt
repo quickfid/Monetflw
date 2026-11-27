@@ -355,7 +355,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(
-                                "Безопасно тратить в день",
+                                "Можно потратить сегодня",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color.White.copy(alpha = 0.85f)
                             )
@@ -383,13 +383,13 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            "− Расход (+10 XP)",
-                            maxLines = 1,
-                            softWrap = false,
-                            fontWeight = FontWeight.SemiBold,
-                            color = expenseColor
-                        )
+                            Text(
+                                "− Расход",
+                                maxLines = 1,
+                                softWrap = false,
+                                fontWeight = FontWeight.SemiBold,
+                                color = expenseColor
+                            )
                     }
                 }
                 Surface(
@@ -482,15 +482,22 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text(
+                                "🎯 Квесты дня ($doneCount/3)" + if (doneCount == 3) " · ✅" else "",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            LinearProgressIndicator(
+                                progress = { doneCount / 3f },
+                                modifier = Modifier.fillMaxWidth(0.75f).height(5.dp).clip(RoundedCornerShape(3.dp)),
+                                color = incomeColor
+                            )
+                        }
                         Text(
-                            "🎯 Квесты дня ($doneCount/3)" + if (doneCount == 3) " · ✅" else "",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            if (questsOpen) "Свернуть ▴" else "Развернуть ▾",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            if (questsOpen) "Свернуть ▴" else "›",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     androidx.compose.animation.AnimatedVisibility(visible = questsOpen) {
@@ -623,13 +630,18 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                     }
                                     Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Text(money(rem, false), fontWeight = FontWeight.Bold, color = if (rem == 0L) incomeColor else warnColor)
                                     if (rem > 0L && inst.monthlyPaymentCents > 0L) {
-                                        TextButton(
+                                        Button(
                                             onClick = { vm.payInstallment(inst.id, inst.monthlyPaymentCents) },
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                                        ) { Text("Оплатить") }
+                                            shape = RoundedCornerShape(50),
+                                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                                containerColor = Color(0xFFF6B44E),
+                                                contentColor = Color(0xFF141B1F)
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
+                                        ) { Text("Оплатить", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                                     }
                                 }
                             }
@@ -644,9 +656,16 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // 4. Переключатель месяца + Доходы / Расходы / Остаток
+        // 4. Переключатель месяца + Сводка (Доходы / Расходы / Остаток)
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Сводка за ${Fmt.monthTitle(ym).lowercase()}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
                 MonthSwitcher(Fmt.monthTitle(ym), onPrev = { vm.shiftMonth(-1) }, onNext = { vm.shiftMonth(1) })
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatCard("Доходы", Fmt.money(md.summary.income, cur, false), Modifier.weight(1f), Tone.INCOME)
