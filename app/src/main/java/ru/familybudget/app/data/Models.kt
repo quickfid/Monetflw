@@ -127,6 +127,9 @@ interface BudgetDao {
     @Query("SELECT * FROM operations WHERE synced = 0 ORDER BY date, id")
     suspend fun unsynced(): List<Operation>
 
+    @Query("SELECT * FROM operations")
+    suspend fun operationsOnce(): List<Operation>
+
     @Query("UPDATE operations SET synced = 1 WHERE id = :id")
     suspend fun markSynced(id: Long)
 

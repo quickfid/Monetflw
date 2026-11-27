@@ -12,6 +12,7 @@ function doPost(e) {
     const data = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (!constantTimeEqual_(String(data.token || ''), API_TOKEN)) return json_({ ok:false, error:'unauthorized' });
     if (data.action === 'exportReport') return exportReport_(data);
+    if (data.action === 'getOperations') return getOperations_();
     if (data.action !== 'addOperation') return json_({ ok:false, error:'unknown_action' });
 
     const requestId = String(data.requestId || '').trim();
@@ -100,6 +101,59 @@ function constantTimeEqual_(a, b) {
 }
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/** Возвращает все операции с листа «Операции» для обратной синхронизации в приложение. */
+function getOperations_() {
+  const ss = openSpreadsheet_();
+  const sheet = ss.getSheetByName(OPERATIONS_SHEET);
+  if (!sheet) return json_({ ok:false, error:'spreadsheet_access_error', message:'Не найден лист «Операции»' });
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 1) return json_({ ok:true, operations:[] });
+
+  const rowToUid = {};
+  const reqSheet = ss.getSheetByName(REQUESTS_SHEET);
+  if (reqSheet && reqSheet.getLastRow() >= 2) {
+    const reqVals = reqSheet.getRange(2, 1, reqSheet.getLastRow() - 1, 2).getValues();
+    for (let i = 0; i < reqVals.length; i++) {
+      const uid = String(reqVals[i][0] || '').trim();
+      const rowNum = Number(reqVals[i][1]);
+      if (uid && rowNum > 0) rowToUid[rowNum] = uid;
+    }
+  }
+
+  const tz = ss.getSpreadsheetTimeZone() || 'UTC';
+  const values = sheet.getRange(1, 1, lastRow, 9).getValues();
+  const out = [];
+  for (let i = 0; i < values.length; i++) {
+    const r = values[i];
+    const rowNum = i + 1;
+    const rawAmount = Number(String(r[1]).replace(',', '.'));
+    const type = String(r[2] || '').trim();
+    if (!Number.isFinite(rawAmount) || rawAmount <= 0 || !['Доход','Расход','Перевод'].includes(type)) continue;
+    let dateStr = '';
+    if (r[0] instanceof Date && !isNaN(r[0].getTime())) {
+      dateStr = Utilities.formatDate(r[0], tz, 'yyyy-MM-dd');
+    } else if (/^\d{4}-\d{2}-\d{2}/.test(String(r[0] || ''))) {
+      dateStr = String(r[0]).slice(0, 10);
+    } else {
+      continue;
+    }
+    const uid = rowToUid[rowNum] || ('sheet-row-' + rowNum);
+    out.push({
+      uid: uid,
+      date: dateStr,
+      amount: rawAmount,
+      type: type,
+      category: clean_(r[3], 100),
+      comment: clean_(r[4], 500),
+      paymentMethod: clean_(r[5], 100),
+      person: clean_(r[6], 100),
+      sourceAccount: clean_(r[7], 100),
+      destinationAccount: clean_(r[8], 100)
+    });
+  }
+  return json_({ ok:true, operations:out });
 }
 
 // =====================================================================

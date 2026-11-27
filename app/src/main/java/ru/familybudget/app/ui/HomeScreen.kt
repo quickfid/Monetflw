@@ -63,6 +63,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val deposits by vm.deposits.collectAsState()
     val interest by vm.interest.collectAsState()
     val settings by vm.settings.collectAsState()
+    val unsynced by vm.unsyncedCount.collectAsState()
     val cur = settings.currency
     val ym = vm.month
     val today = remember { LocalDate.now() }
@@ -154,20 +155,40 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
 
         // Быстрые действия в одно нажатие
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
-                    onClick = { vm.startNew(OpType.EXPENSE) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("− Расход (+10 XP)", maxLines = 1, softWrap = false)
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { vm.startNew(OpType.EXPENSE) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("− Расход (+10 XP)", maxLines = 1, softWrap = false)
+                    }
+                    OutlinedButton(
+                        onClick = { vm.startNew(OpType.INCOME) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text("+ Доход", maxLines = 1, softWrap = false)
+                    }
                 }
-                OutlinedButton(
-                    onClick = { vm.startNew(OpType.INCOME) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp)
-                ) {
-                    Text("+ Доход", maxLines = 1, softWrap = false)
+                if (settings.apiUrl.isNotBlank() && settings.token.isNotBlank()) {
+                    OutlinedButton(
+                        onClick = { vm.syncAll() },
+                        enabled = !vm.syncing,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Text(
+                            when {
+                                vm.syncing -> "⏳ Синхронизация с таблицей..."
+                                unsynced > 0 -> "☁️ Отправить в таблицу ($unsynced)"
+                                else -> "☁️ Синхронизировать с таблицей"
+                            },
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
                 }
             }
         }

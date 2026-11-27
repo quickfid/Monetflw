@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import java.time.YearMonth
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ru.familybudget.app.ui.AppIcons
 import ru.familybudget.app.ui.BudgetTheme
@@ -56,6 +57,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             BudgetTheme { BudgetApp() }
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        ViewModelProvider(this)[BudgetViewModel::class.java].syncOnBackground()
     }
 }
 

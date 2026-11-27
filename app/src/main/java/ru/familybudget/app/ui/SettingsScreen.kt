@@ -426,10 +426,15 @@ private fun SyncPage(vm: BudgetViewModel) {
                 enabled = !vm.syncing && unsynced > 0, modifier = Modifier.weight(1f)
             ) { Text("Отправить ($unsynced)") }
         }
+        OutlinedButton(
+            onClick = { vm.setApi(url, token); vm.pullFromSheets() },
+            enabled = !vm.syncing,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Загрузить изменения из таблицы") }
         if (vm.syncing) CircularProgressIndicator()
         if (vm.message.isNotEmpty()) Text(vm.message, color = MaterialTheme.colorScheme.primary)
         Text(
-            "Изменения и удаления уже отправленных операций в таблице не обновляются. " +
+            "При закрытии приложения данные синхронизируются с таблицей автоматически. " +
                 "Токен хранится на устройстве; не публикуйте URL и токен.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

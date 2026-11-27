@@ -430,6 +430,38 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun pullFromSheets() {
+        if (syncing) return
+        viewModelScope.launch {
+            syncing = true
+            message = SheetsSync.pull(dao, settings.value)
+            syncing = false
+        }
+    }
+
+    fun syncAll() {
+        if (syncing) return
+        viewModelScope.launch {
+            syncing = true
+            message = SheetsSync.syncBoth(dao, settings.value)
+            syncing = false
+        }
+    }
+
+    /** Тихая двусторонняя синхронизация при сворачивании/закрытии приложения. */
+    fun syncOnBackground() {
+        val st = settings.value
+        if (syncing || st.apiUrl.isBlank() || st.token.isBlank()) return
+        viewModelScope.launch {
+            syncing = true
+            try {
+                SheetsSync.syncBoth(dao, st)
+            } finally {
+                syncing = false
+            }
+        }
+    }
+
     fun testConnection() {
         if (syncing) return
         viewModelScope.launch {

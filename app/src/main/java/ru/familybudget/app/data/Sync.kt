@@ -84,6 +84,105 @@ object SheetsSync {
         "Готово: отправлено $sent из ${pending.size}."
     }
 
+    /** Загружает операции из Google Таблицы: обновляет изменённые и добавляет новые строки. */
+    suspend fun pull(dao: BudgetDao, settings: AppSettings): String = withContext(Dispatchers.IO) {
+        if (settings.apiUrl.isBlank() || settings.token.isBlank()) {
+            return@withContext "Синхронизация не настроена: укажите URL и токен."
+        }
+        try {
+            val payload = JSONObject().apply {
+                put("token", settings.token)
+                put("action", "getOperations")
+            }
+            val request = Request.Builder().url(settings.apiUrl)
+                .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+                .build()
+            client.newCall(request).execute().use { resp ->
+                val body = resp.body?.string().orEmpty()
+                if (!resp.isSuccessful) return@withContext "Ошибка HTTP ${resp.code}."
+                val json = try { JSONObject(body) } catch (e: Exception) {
+                    return@withContext "Ответ не похож на API. Обновите Code.gs и сделайте новое развёртывание."
+                }
+                if (!json.optBoolean("ok")) {
+                    return@withContext if (json.optString("error") == "unknown_action") {
+                        "Скрипт в таблице не поддерживает загрузку. Обновите Code.gs."
+                    } else {
+                        describeError(json)
+                    }
+                }
+                val arr = json.optJSONArray("operations") ?: return@withContext "В таблице пока нет операций."
+                val existingByUid = dao.operationsOnce().associateBy { it.uid }
+                var updated = 0
+                var added = 0
+                for (i in 0 until arr.length()) {
+                    val item = arr.optJSONObject(i) ?: continue
+                    val uid = item.optString("uid").trim()
+                    val dateStr = item.optString("date").trim()
+                    val type = item.optString("type").trim()
+                    val amountCents = Math.round(item.optDouble("amount", 0.0) * 100.0)
+                    if (uid.isEmpty() || dateStr.isEmpty() || amountCents <= 0L) continue
+                    val epochDay = try { LocalDate.parse(dateStr).toEpochDay() } catch (e: Exception) { continue }
+                    val transfer = type == OpType.TRANSFER
+                    val category = item.optString("category").trim()
+                    val comment = item.optString("comment").trim()
+                    val person = item.optString("person").trim()
+                    val account = if (transfer) item.optString("sourceAccount").trim() else item.optString("paymentMethod").trim()
+                    val destAccount = if (transfer) item.optString("destinationAccount").trim() else ""
+
+                    val existing = existingByUid[uid]
+                    if (existing != null) {
+                        val next = existing.copy(
+                            date = epochDay,
+                            amountCents = amountCents,
+                            type = type,
+                            category = category,
+                            comment = comment,
+                            account = account,
+                            destAccount = destAccount,
+                            person = person,
+                            synced = true
+                        )
+                        if (next != existing) {
+                            dao.updateOperation(next)
+                            updated++
+                        }
+                    } else {
+                        dao.insertOperation(
+                            Operation(
+                                uid = uid,
+                                date = epochDay,
+                                amountCents = amountCents,
+                                type = type,
+                                category = category,
+                                comment = comment,
+                                account = account,
+                                destAccount = destAccount,
+                                person = person,
+                                synced = true
+                            )
+                        )
+                        added++
+                    }
+                }
+                "Загружено из таблицы: новых $added, обновлено $updated."
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            "Нет связи: ${e.localizedMessage ?: "ошибка сети"}"
+        }
+    }
+
+    /** Двусторонняя синхронизация: сначала отправляет локальные, затем загружает правки из таблицы. */
+    suspend fun syncBoth(dao: BudgetDao, settings: AppSettings): String {
+        if (settings.apiUrl.isBlank() || settings.token.isBlank()) {
+            return "Синхронизация не настроена: укажите URL и токен."
+        }
+        val pushMsg = push(dao, settings)
+        val pullMsg = pull(dao, settings)
+        return "$pushMsg $pullMsg"
+    }
+
     suspend fun test(settings: AppSettings): String = withContext(Dispatchers.IO) {
         if (settings.apiUrl.isBlank() || settings.token.isBlank()) {
             return@withContext "Укажите URL и токен."
