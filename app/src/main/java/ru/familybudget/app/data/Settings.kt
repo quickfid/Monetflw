@@ -93,7 +93,9 @@ data class AppSettings(
     /** Дни, отмеченные кнопкой «🧘 Сегодня без трат» (ISO yyyy-MM-dd). */
     val noSpendDays: Set<String> = emptySet(),
     /** Рассрочки и сплит-платежи. */
-    val installments: List<InstallmentItem> = emptyList()
+    val installments: List<InstallmentItem> = emptyList(),
+    /** Автоматическая запись оплат из Push-уведомлений банков (без переводов). */
+    val bankAutoTrackEnabled: Boolean = false
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -152,7 +154,8 @@ class SettingsStore(context: Context) {
             menuOrder = prefs.getString("menuOrder", "").orEmpty()
                 .split(",").map { it.trim() }.filter { it.isNotEmpty() },
             noSpendDays = prefs.getStringSet("noSpendDays", emptySet())?.toSet() ?: emptySet(),
-            installments = parseInstallments(prefs.getString("installments_json", "").orEmpty())
+            installments = parseInstallments(prefs.getString("installments_json", "").orEmpty()),
+            bankAutoTrackEnabled = prefs.getBoolean("bankAutoTrackEnabled", false)
         )
     }
 
@@ -300,6 +303,7 @@ class SettingsStore(context: Context) {
             .putString("menuOrder", next.menuOrder.joinToString(","))
             .putStringSet("noSpendDays", next.noSpendDays)
             .putString("installments_json", serializeInstallments(next.installments))
+            .putBoolean("bankAutoTrackEnabled", next.bankAutoTrackEnabled)
             .apply()
         state.value = next
     }
