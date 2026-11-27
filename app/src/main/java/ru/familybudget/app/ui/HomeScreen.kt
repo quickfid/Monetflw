@@ -89,11 +89,8 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
     var showQuickExpense by remember { mutableStateOf(false) }
     var quickPreselectedCat by remember { mutableStateOf<String?>(null) }
     val expenseCats = remember(categories) { Plans.orderedExpenseCategories(categories) }
-    val topCats = remember(ops, expenseCats) {
-        val freq = ops.filter { it.type == OpType.EXPENSE && it.category.isNotBlank() }
-            .groupingBy { it.category }.eachCount()
-        val sorted = freq.entries.sortedByDescending { it.value }.map { it.key }.filter { it in expenseCats }
-        (sorted + expenseCats.filter { it !in sorted }).take(5)
+    val topCats = remember {
+        listOf("Продукты", "Транспорт", "Прочие расходы", "Маркетплейсы", "Сплит и рассрочки")
     }
     if (showQuickExpense) {
         var quickCat by remember(quickPreselectedCat) {
@@ -231,6 +228,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = Sheet.glass(),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         border = BorderStroke(1.dp, Sheet.glassBorderBrush())
                     ) {
                         Row(
@@ -256,6 +254,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 Surface(
                     shape = RoundedCornerShape(50),
                     color = Sheet.glass(),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
                     modifier = Modifier.bouncyClickable { vm.toggleHideAmounts() }
                 ) {
@@ -269,6 +268,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     Surface(
                         shape = RoundedCornerShape(50),
                         color = Sheet.glass(),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
                         modifier = Modifier.bouncyClickable(enabled = !vm.syncing) { vm.syncAll() }
                     ) {
@@ -379,6 +379,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     modifier = Modifier.weight(1f).height(48.dp).bouncyClickable { showQuickExpense = true },
                     shape = RoundedCornerShape(50),
                     color = Sheet.tone(Tone.EXPENSE),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -395,6 +396,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     modifier = Modifier.weight(1f).height(48.dp).bouncyClickable { vm.startNew(OpType.INCOME) },
                     shape = RoundedCornerShape(50),
                     color = Sheet.tone(Tone.INCOME),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())
                 ) {
                     Box(contentAlignment = Alignment.Center) {
@@ -505,6 +507,137 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                     Text("🧘 Сегодня без трат (+20 XP)")
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3.7. Компактный виджет «💳 Рассрочки и сплит» (как кредит: долг, дата платежа, комментарий)
+        item {
+            var editInstallment by remember { mutableStateOf<ru.familybudget.app.data.InstallmentItem?>(null) }
+            var showInstallmentDialog by remember { mutableStateOf(false) }
+            val installments = settings.installments
+            val totalRemaining = installments.sumOf { (it.totalDebtCents - it.paidCents).coerceAtLeast(0L) }
+
+            if (showInstallmentDialog) {
+                val curItem = editInstallment
+                var title by remember(curItem) { mutableStateOf(curItem?.title.orEmpty()) }
+                var debt by remember(curItem) {
+                    mutableStateOf(if ((curItem?.totalDebtCents ?: 0L) > 0L) Fmt.plain(curItem!!.totalDebtCents) else "")
+                }
+                var monthly by remember(curItem) {
+                    mutableStateOf(if ((curItem?.monthlyPaymentCents ?: 0L) > 0L) Fmt.plain(curItem!!.monthlyPaymentCents) else "")
+                }
+                var payDay by remember(curItem) { mutableStateOf((curItem?.paymentDay ?: 10).toString()) }
+                var comment by remember(curItem) { mutableStateOf(curItem?.comment.orEmpty()) }
+                val debtCents = Fmt.parseCents(debt) ?: 0L
+                val monthlyCents = Fmt.parseCents(monthly) ?: 0L
+                val dayNum = payDay.toIntOrNull()?.coerceIn(1, 31) ?: 10
+
+                FormDialog(
+                    title = if (curItem == null) "Новая рассрочка / сплит" else "Рассрочка / сплит",
+                    onDismiss = { showInstallmentDialog = false; editInstallment = null },
+                    confirmEnabled = title.isNotBlank() && debtCents > 0L,
+                    onConfirm = {
+                        vm.saveInstallment(
+                            ru.familybudget.app.data.InstallmentItem(
+                                id = curItem?.id ?: 0L,
+                                title = title.trim(),
+                                totalDebtCents = debtCents,
+                                paidCents = curItem?.paidCents ?: 0L,
+                                monthlyPaymentCents = monthlyCents,
+                                paymentDay = dayNum,
+                                comment = comment.trim()
+                            )
+                        )
+                        showInstallmentDialog = false
+                        editInstallment = null
+                    },
+                    onDelete = if (curItem != null) ({
+                        vm.deleteInstallment(curItem.id)
+                        showInstallmentDialog = false
+                        editInstallment = null
+                    }) else null
+                ) {
+                    TextField2(title, { title = it }, "Название (напр. Яндекс Сплит, iPhone)")
+                    MoneyField(debt, { debt = it }, "Общая сумма долга, $cur")
+                    MoneyField(monthly, { monthly = it }, "Платёж в месяц, $cur")
+                    androidx.compose.material3.OutlinedTextField(
+                        value = payDay,
+                        onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) payDay = it },
+                        label = { Text("Дата платежа (число 1–31)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    TextField2(comment, { comment = it }, "Комментарий (опционально)", singleLine = false)
+                }
+            }
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(22.dp),
+                color = Sheet.glass(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+            ) {
+                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CategoryBadge("Сплит и рассрочки", settings.categoryIcons, size = 30.dp)
+                            Column {
+                                Text("Рассрочки и сплит", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    if (installments.isEmpty()) "Добавьте рассрочку или сплит"
+                                    else "Остаток долга: ${money(totalRemaining, false)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        TextButton(onClick = { editInstallment = null; showInstallmentDialog = true }) {
+                            Text("+ Добавить")
+                        }
+                    }
+                    installments.sortedBy { it.paymentDay }.forEach { inst ->
+                        val rem = (inst.totalDebtCents - inst.paidCents).coerceAtLeast(0L)
+                        val progress = if (inst.totalDebtCents > 0L) (inst.paidCents.toFloat() / inst.totalDebtCents).coerceIn(0f, 1f) else 0f
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { editInstallment = inst; showInstallmentDialog = true }
+                                .padding(vertical = 2.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(inst.title, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                    val sub = buildString {
+                                        append("до ${inst.paymentDay} числа")
+                                        if (inst.monthlyPaymentCents > 0L) append(" · ${money(inst.monthlyPaymentCents, false)}/мес")
+                                        if (inst.comment.isNotBlank()) append(" · ${inst.comment}")
+                                    }
+                                    Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(money(rem, false), fontWeight = FontWeight.Bold, color = if (rem == 0L) incomeColor else warnColor)
+                                    if (rem > 0L && inst.monthlyPaymentCents > 0L) {
+                                        TextButton(
+                                            onClick = { vm.payInstallment(inst.id, inst.monthlyPaymentCents) },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                        ) { Text("Оплатить") }
+                                    }
+                                }
+                            }
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
+                                color = if (rem == 0L) incomeColor else warnColor
+                            )
                         }
                     }
                 }
@@ -939,6 +1072,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             modifier = Modifier.width(96.dp).clickable { selectedBadge = b },
                             shape = RoundedCornerShape(16.dp),
                             color = cardTone,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
                             border = BorderStroke(
                                 if (b.tier == TrophyTier.PLATINUM) 1.6.dp else 1.dp,
                                 if (b.tier == TrophyTier.PLATINUM) {
@@ -1009,6 +1143,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                                 .align(Alignment.BottomEnd),
                                             shape = CircleShape,
                                             color = Sheet.glass(),
+                                            contentColor = MaterialTheme.colorScheme.onSurface,
                                             border = BorderStroke(0.8.dp, Sheet.glassBorderBrush())
                                         ) {
                                             Image(

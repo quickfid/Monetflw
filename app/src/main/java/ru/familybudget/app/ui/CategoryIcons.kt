@@ -50,6 +50,30 @@ object CategoryIcons {
                 Color(0xFFE3F2F5), Color(0xFF1B6B7A), Color(0xFF173136), Color(0xFF67D5E8)
             ),
             CategoryIconSpec(
+                "marketplace", "Маркетплейсы",
+                vec("CatMarketplace") {
+                    path(stroke = s, strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                        moveTo(4f, 8f); lineTo(12f, 4f); lineTo(20f, 8f); verticalLineTo(16.5f); lineTo(12f, 20.5f); lineTo(4f, 16.5f); close()
+                        moveTo(4f, 8f); lineTo(12f, 12f); lineTo(20f, 8f)
+                        moveTo(12f, 12f); verticalLineTo(20.5f)
+                    }
+                },
+                Color(0xFFEDE7F6), Color(0xFF6A1B9A), Color(0xFF2B1C3D), Color(0xFFCE93D8)
+            ),
+            CategoryIconSpec(
+                "installment", "Сплит и рассрочки",
+                vec("CatInstallment") {
+                    path(stroke = s, strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
+                        moveTo(3.5f, 7f); horizontalLineTo(20.5f); verticalLineTo(17.5f); horizontalLineTo(3.5f); close()
+                        moveTo(3.5f, 11f); horizontalLineTo(20.5f)
+                        moveTo(12f, 11f); verticalLineTo(17.5f)
+                        moveTo(7f, 14.5f); horizontalLineTo(9.5f)
+                        moveTo(14.5f, 14.5f); horizontalLineTo(17f)
+                    }
+                },
+                Color(0xFFFFF3E0), Color(0xFFE65100), Color(0xFF3A2412), Color(0xFFFFB74D)
+            ),
+            CategoryIconSpec(
                 "car", "Транспорт",
                 vec("CatCar") {
                     path(stroke = s, strokeLineWidth = 1.8f, strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round) {
@@ -197,6 +221,8 @@ object CategoryIcons {
     fun autoKey(name: String): String {
         val n = name.lowercase()
         return when {
+            "маркетплейс" in n || "ozon" in n || "озон" in n || "wb" in n || "wildberries" in n || "яндекс маркет" in n -> "marketplace"
+            "сплит" in n || "рассрочк" in n || "долям" in n -> "installment"
             "аренд" in n || "жиль" in n || "кварт" in n || "дом" in n || "быт" in n -> "home"
             "транспорт" in n || "бенз" in n || "такси" in n || "авто" in n || "метро" in n -> "car"
             "связ" in n || "интернет" in n || "телеф" in n || "подписк" in n -> "phone"

@@ -152,6 +152,7 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
                         color = Sheet.glass(),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -163,6 +164,7 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
                         color = Sheet.glass(),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -181,6 +183,7 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
                         color = Sheet.glass(),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -208,6 +211,7 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
                         color = Sheet.glass(),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -261,6 +265,7 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
                         color = Sheet.glass(),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -329,6 +334,7 @@ fun OnboardingScreen(vm: BudgetViewModel) {
                     Surface(
                         shape = RoundedCornerShape(22.dp),
                         color = Sheet.glass(),
+                        contentColor = MaterialTheme.colorScheme.onSurface,
                         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
                     ) {
                         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -397,6 +403,7 @@ private fun QuickChips(deltas: List<Long>, onAdd: (Long) -> Unit) {
             Surface(
                 shape = RoundedCornerShape(50),
                 color = Sheet.glass(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 border = BorderStroke(1.dp, Sheet.glassBorderBrush()),
                 modifier = Modifier.clickable { onAdd(d) }
             ) {

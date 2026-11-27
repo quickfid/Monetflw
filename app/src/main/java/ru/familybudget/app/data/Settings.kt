@@ -17,6 +17,17 @@ private const val DEFAULT_API_URL =
     "https://script.google.com/macros/s/AKfycbwIJnvApZaZbpIF5C0k2zT2LPvn0GTNXVB0ffjC2BE1qDd0QI21pp057a6JQfcigDaV/exec"
 private const val DEFAULT_API_TOKEN = "family-budget-secret-2026-xyz123456"
 
+/** Рассрочка / сплит (как кредит: сумма долга, ежемесячный платёж, число оплаты и комментарий). */
+data class InstallmentItem(
+    val id: Long,
+    val title: String,
+    val totalDebtCents: Long,
+    val paidCents: Long = 0L,
+    val monthlyPaymentCents: Long = 0L,
+    val paymentDay: Int = 10,
+    val comment: String = ""
+)
+
 data class AppSettings(
     val apiUrl: String = DEFAULT_API_URL,
     val token: String = DEFAULT_API_TOKEN,
@@ -80,7 +91,9 @@ data class AppSettings(
     /** Пользовательский порядок пунктов в разделе «Ещё». */
     val menuOrder: List<String> = emptyList(),
     /** Дни, отмеченные кнопкой «🧘 Сегодня без трат» (ISO yyyy-MM-dd). */
-    val noSpendDays: Set<String> = emptySet()
+    val noSpendDays: Set<String> = emptySet(),
+    /** Рассрочки и сплит-платежи. */
+    val installments: List<InstallmentItem> = emptyList()
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -138,8 +151,49 @@ class SettingsStore(context: Context) {
             seenBadges = prefs.getStringSet("seenBadges", emptySet())?.toSet() ?: emptySet(),
             menuOrder = prefs.getString("menuOrder", "").orEmpty()
                 .split(",").map { it.trim() }.filter { it.isNotEmpty() },
-            noSpendDays = prefs.getStringSet("noSpendDays", emptySet())?.toSet() ?: emptySet()
+            noSpendDays = prefs.getStringSet("noSpendDays", emptySet())?.toSet() ?: emptySet(),
+            installments = parseInstallments(prefs.getString("installments_json", "").orEmpty())
         )
+    }
+
+    private fun parseInstallments(raw: String): List<InstallmentItem> {
+        if (raw.isBlank()) return emptyList()
+        return try {
+            val arr = JSONArray(raw)
+            (0 until arr.length()).mapNotNull { i ->
+                val o = arr.optJSONObject(i) ?: return@mapNotNull null
+                val title = o.optString("title").trim()
+                if (title.isEmpty()) return@mapNotNull null
+                InstallmentItem(
+                    id = o.optLong("id", i.toLong() + 1L),
+                    title = title,
+                    totalDebtCents = o.optLong("totalDebtCents", 0L).coerceAtLeast(0L),
+                    paidCents = o.optLong("paidCents", 0L).coerceAtLeast(0L),
+                    monthlyPaymentCents = o.optLong("monthlyPaymentCents", 0L).coerceAtLeast(0L),
+                    paymentDay = o.optInt("paymentDay", 10).coerceIn(1, 31),
+                    comment = o.optString("comment", "")
+                )
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun serializeInstallments(items: List<InstallmentItem>): String {
+        val arr = JSONArray()
+        items.forEach { item ->
+            arr.put(
+                JSONObject()
+                    .put("id", item.id)
+                    .put("title", item.title)
+                    .put("totalDebtCents", item.totalDebtCents)
+                    .put("paidCents", item.paidCents)
+                    .put("monthlyPaymentCents", item.monthlyPaymentCents)
+                    .put("paymentDay", item.paymentDay)
+                    .put("comment", item.comment)
+            )
+        }
+        return arr.toString()
     }
 
     private fun parseIcons(raw: String): Map<String, String> {
@@ -245,6 +299,7 @@ class SettingsStore(context: Context) {
             .putStringSet("seenBadges", next.seenBadges)
             .putString("menuOrder", next.menuOrder.joinToString(","))
             .putStringSet("noSpendDays", next.noSpendDays)
+            .putString("installments_json", serializeInstallments(next.installments))
             .apply()
         state.value = next
     }

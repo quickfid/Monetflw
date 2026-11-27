@@ -250,6 +250,7 @@ private fun BudgetApp() {
                             Surface(
                                 shape = RoundedCornerShape(32.dp),
                                 color = Sheet.glass(),
+                                contentColor = MaterialTheme.colorScheme.onSurface,
                                 border = BorderStroke(1.3.dp, Sheet.glassBorderBrush()),
                                 modifier = Modifier
                                     .navigationBarsPadding()

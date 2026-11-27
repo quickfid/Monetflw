@@ -70,6 +70,7 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 Surface(
                     shape = RoundedCornerShape(22.dp),
                     color = Sheet.glass(),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
                 ) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -101,6 +102,7 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 Surface(
                     shape = RoundedCornerShape(22.dp),
                     color = Sheet.glass(),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -132,6 +134,7 @@ fun OperationsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 Surface(
                     shape = RoundedCornerShape(22.dp),
                     color = Sheet.glass(),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
                     modifier = Modifier.fillMaxWidth()
                 ) {
