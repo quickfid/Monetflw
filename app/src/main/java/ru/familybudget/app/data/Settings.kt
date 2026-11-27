@@ -53,7 +53,23 @@ data class AppSettings(
     /** Акцентная цветовая тема: teal, emerald, indigo, graphite. */
     val accentTheme: String = "teal",
     /** Отдельная сумма финансовой подушки безопасности (в копейках, не зависит от вкладов). */
-    val cushionCents: Long = 0L
+    val cushionCents: Long = 0L,
+    // Умные локальные уведомления
+    val notifMorningEnabled: Boolean = false,
+    val notifMorningHour: Int = 9,
+    val notifEveningEnabled: Boolean = false,
+    val notifEveningHour: Int = 21,
+    val notifBillsEnabled: Boolean = true,
+    val notifBillsHour: Int = 10,
+    val notifBillsDaysBefore: Int = 1,
+    val notifLimitEnabled: Boolean = true,
+    val notifLimitHour: Int = 18,
+    val notifWeeklyEnabled: Boolean = false,
+    val notifWeeklyDay: Int = 7, // 1=Пн .. 7=Вс
+    val notifWeeklyHour: Int = 19,
+    val notifCushionEnabled: Boolean = false,
+    val notifCushionDay: Int = 1, // 1..28
+    val notifCushionHour: Int = 11
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -88,7 +104,22 @@ class SettingsStore(context: Context) {
             glassOpacity = prefs.getFloat("glassOpacity", 0.40f).coerceIn(0.20f, 0.85f),
             blurRadius = prefs.getInt("blurRadius", 48).coerceIn(0, 120),
             accentTheme = prefs.getString("accentTheme", "teal").orEmpty().ifBlank { "teal" },
-            cushionCents = prefs.getLong("cushionCents", 0L).coerceAtLeast(0L)
+            cushionCents = prefs.getLong("cushionCents", 0L).coerceAtLeast(0L),
+            notifMorningEnabled = prefs.getBoolean("notifMorningEnabled", false),
+            notifMorningHour = prefs.getInt("notifMorningHour", 9).coerceIn(0, 23),
+            notifEveningEnabled = prefs.getBoolean("notifEveningEnabled", false),
+            notifEveningHour = prefs.getInt("notifEveningHour", 21).coerceIn(0, 23),
+            notifBillsEnabled = prefs.getBoolean("notifBillsEnabled", true),
+            notifBillsHour = prefs.getInt("notifBillsHour", 10).coerceIn(0, 23),
+            notifBillsDaysBefore = prefs.getInt("notifBillsDaysBefore", 1).coerceIn(0, 7),
+            notifLimitEnabled = prefs.getBoolean("notifLimitEnabled", true),
+            notifLimitHour = prefs.getInt("notifLimitHour", 18).coerceIn(0, 23),
+            notifWeeklyEnabled = prefs.getBoolean("notifWeeklyEnabled", false),
+            notifWeeklyDay = prefs.getInt("notifWeeklyDay", 7).coerceIn(1, 7),
+            notifWeeklyHour = prefs.getInt("notifWeeklyHour", 19).coerceIn(0, 23),
+            notifCushionEnabled = prefs.getBoolean("notifCushionEnabled", false),
+            notifCushionDay = prefs.getInt("notifCushionDay", 1).coerceIn(1, 28),
+            notifCushionHour = prefs.getInt("notifCushionHour", 11).coerceIn(0, 23)
         )
     }
 
@@ -173,6 +204,21 @@ class SettingsStore(context: Context) {
             .putInt("blurRadius", next.blurRadius)
             .putString("accentTheme", next.accentTheme)
             .putLong("cushionCents", next.cushionCents)
+            .putBoolean("notifMorningEnabled", next.notifMorningEnabled)
+            .putInt("notifMorningHour", next.notifMorningHour.coerceIn(0, 23))
+            .putBoolean("notifEveningEnabled", next.notifEveningEnabled)
+            .putInt("notifEveningHour", next.notifEveningHour.coerceIn(0, 23))
+            .putBoolean("notifBillsEnabled", next.notifBillsEnabled)
+            .putInt("notifBillsHour", next.notifBillsHour.coerceIn(0, 23))
+            .putInt("notifBillsDaysBefore", next.notifBillsDaysBefore.coerceIn(0, 7))
+            .putBoolean("notifLimitEnabled", next.notifLimitEnabled)
+            .putInt("notifLimitHour", next.notifLimitHour.coerceIn(0, 23))
+            .putBoolean("notifWeeklyEnabled", next.notifWeeklyEnabled)
+            .putInt("notifWeeklyDay", next.notifWeeklyDay.coerceIn(1, 7))
+            .putInt("notifWeeklyHour", next.notifWeeklyHour.coerceIn(0, 23))
+            .putBoolean("notifCushionEnabled", next.notifCushionEnabled)
+            .putInt("notifCushionDay", next.notifCushionDay.coerceIn(1, 28))
+            .putInt("notifCushionHour", next.notifCushionHour.coerceIn(0, 23))
             .apply()
         state.value = next
     }

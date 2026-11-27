@@ -61,7 +61,7 @@ import ru.familybudget.app.data.Mandatory
 import ru.familybudget.app.logic.Fmt
 import java.time.LocalDate
 
-private enum class Page { MENU, PROFILE, CATEGORIES, MANDATORY, ACCOUNTS, PEOPLE, SYNC, REPORTS }
+private enum class Page { MENU, PROFILE, CATEGORIES, MANDATORY, ACCOUNTS, PEOPLE, NOTIFICATIONS, SYNC, REPORTS }
 
 @Composable
 fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
@@ -81,6 +81,7 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         Page.MANDATORY -> "Обязательные платежи"
                         Page.ACCOUNTS -> "Счета"
                         Page.PEOPLE -> "Люди"
+                        Page.NOTIFICATIONS -> "Уведомления"
                         Page.REPORTS -> "Отчёты"
                         else -> "Google Таблица"
                     },
@@ -95,6 +96,7 @@ fun SettingsScreen(vm: BudgetViewModel, padding: PaddingValues) {
             Page.MANDATORY -> MandatoryPage(vm)
             Page.ACCOUNTS -> AccountsPage(vm)
             Page.PEOPLE -> PeoplePage(vm)
+            Page.NOTIFICATIONS -> NotificationsPage(vm)
             Page.SYNC -> SyncPage(vm)
             Page.REPORTS -> ReportsHost(vm, PaddingValues(0.dp))
         }
@@ -164,7 +166,8 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
             Column {
                 MenuItem("Профиль", "Имя и доход", "other") { open(Page.PROFILE) }
                 MenuItem("Категории", "Расходы и доходы", "shopping") { open(Page.CATEGORIES) }
-                MenuItem("Платежи", "Ежемесячные, с галочками", "utilities") { open(Page.MANDATORY) }
+                MenuItem("Платежи", "Ежемесячные, окно дат и галочки", "utilities") { open(Page.MANDATORY) }
+                MenuItem("Уведомления", "Время, дни и напоминания", "phone") { open(Page.NOTIFICATIONS) }
                 MenuItem("Счета", "Карты и наличные", "income") { open(Page.ACCOUNTS) }
                 MenuItem("Люди", settings.persons.joinToString(", "), "family") { open(Page.PEOPLE) }
                 MenuItem(
@@ -464,7 +467,10 @@ private fun MandatoryPage(vm: BudgetViewModel) {
             ) {
                 ListItem(
                     headlineContent = { Text(m.name) },
-                    supportingContent = { Text("до ${m.day} числа · ${m.category}") },
+                    supportingContent = {
+                        val dateStr = if (m.endDay > m.day) "с ${m.day} по ${m.endDay} числа" else "до ${m.day} числа"
+                        Text("$dateStr · ${m.category}")
+                    },
                     trailingContent = { Text(Fmt.money(m.amountCents, cur)) },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     modifier = Modifier.clickable { dialog = m }
@@ -483,28 +489,54 @@ private fun MandatoryPage(vm: BudgetViewModel) {
     dialog?.let { m ->
         var name by remember(m) { mutableStateOf(m.name) }
         var day by remember(m) { mutableStateOf(m.day.toString()) }
+        var endDay by remember(m) { mutableStateOf(if (m.endDay > m.day) m.endDay.toString() else "") }
         var amount by remember(m) { mutableStateOf(if (m.amountCents > 0) Fmt.plain(m.amountCents) else "") }
         var category by remember(m) { mutableStateOf(m.category) }
         val cents = Fmt.parseCents(amount)
         val dayNum = day.toIntOrNull()
+        val endDayNum = endDay.toIntOrNull() ?: 0
+        val validEnd = endDay.isBlank() || (endDayNum in 1..31 && dayNum != null && endDayNum >= dayNum)
         FormDialog(
             title = if (m.id == 0L) "Новый платёж" else "Платёж",
             onDismiss = { dialog = null },
-            confirmEnabled = name.isNotBlank() && cents != null && cents > 0 && dayNum != null && dayNum in 1..31,
+            confirmEnabled = name.isNotBlank() && cents != null && cents > 0 && dayNum != null && dayNum in 1..31 && validEnd,
             onConfirm = {
-                vm.saveMandatory(m.copy(name = name.trim(), day = dayNum ?: 1, amountCents = cents ?: 0L, category = category))
+                val finalEnd = if (endDayNum > (dayNum ?: 1)) endDayNum else 0
+                vm.saveMandatory(
+                    m.copy(
+                        name = name.trim(),
+                        day = dayNum ?: 1,
+                        endDay = finalEnd,
+                        amountCents = cents ?: 0L,
+                        category = category
+                    )
+                )
                 dialog = null
             },
             onDelete = if (m.id != 0L) ({ vm.deleteMandatory(m); dialog = null }) else null
         ) {
             TextField2(name, { name = it }, "Название")
             MoneyField(amount, { amount = it }, "Сумма, $cur")
-            OutlinedTextField(
-                value = day,
-                onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) day = it },
-                label = { Text("День месяца (1–31)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = day,
+                    onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) day = it },
+                    label = { Text("С числа (1–31)") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = endDay,
+                    onValueChange = { if (it.length <= 2 && it.all { ch -> ch.isDigit() }) endDay = it },
+                    label = { Text("По число (окно)") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Text(
+                "Если указать «По число», уведомления «Обязательные платежи» и «Утренний брифинг» будут напоминать в течение этого окна, пока платёж не оплачен.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Picker("Категория расхода", category, expenseCategories, { category = it })
         }
@@ -651,5 +683,173 @@ private fun SyncPage(vm: BudgetViewModel) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+// ---------------------------------------------------------------- уведомления
+@Composable
+private fun NotificationsPage(vm: BudgetViewModel) {
+    val s by vm.settings.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    val needPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+    val weekDays = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (needPermission) {
+            Section("🔔 Разрешение на уведомления") {
+                Text(
+                    "На Android 13+ нужно разрешить показ уведомлений, чтобы напоминания приходили вовремя.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(
+                    onClick = { permLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Разрешить уведомления") }
+            }
+        }
+
+        NotifCard(
+            title = "🌅 Утренний брифинг",
+            subtitle = "Свободный лимит и обязательные платежи, у которых сегодня окно оплаты",
+            enabled = s.notifMorningEnabled,
+            onToggle = { on -> vm.updateNotifications { it.copy(notifMorningEnabled = on) } },
+            hour = s.notifMorningHour,
+            onHourChange = { h -> vm.updateNotifications { it.copy(notifMorningHour = h) } }
+        )
+
+        NotifCard(
+            title = "🌙 Вечернее напоминание",
+            subtitle = "Приходит только если за сегодня ещё не внесено ни одной операции",
+            enabled = s.notifEveningEnabled,
+            onToggle = { on -> vm.updateNotifications { it.copy(notifEveningEnabled = on, dailyReminder = on) } },
+            hour = s.notifEveningHour,
+            onHourChange = { h -> vm.updateNotifications { it.copy(notifEveningHour = h) } }
+        )
+
+        NotifCard(
+            title = "📅 Обязательные платежи",
+            subtitle = "Связано с датами и окном оплаты («с … по … число») в разделе «Платежи»",
+            enabled = s.notifBillsEnabled,
+            onToggle = { on -> vm.updateNotifications { it.copy(notifBillsEnabled = on) } },
+            hour = s.notifBillsHour,
+            onHourChange = { h -> vm.updateNotifications { it.copy(notifBillsHour = h) } },
+            extraLabel = "Напомнить заранее",
+            extraValue = if (s.notifBillsDaysBefore == 0) "В день оплаты" else "За ${s.notifBillsDaysBefore} дн.",
+            onExtraMinus = { vm.updateNotifications { it.copy(notifBillsDaysBefore = (it.notifBillsDaysBefore - 1).coerceAtLeast(0)) } },
+            onExtraPlus = { vm.updateNotifications { it.copy(notifBillsDaysBefore = (it.notifBillsDaysBefore + 1).coerceAtMost(7)) } }
+        )
+
+        NotifCard(
+            title = "⚠️ Предупреждение о лимите",
+            subtitle = "Сообщает, если какая-то категория расходов достигла 85% месячного лимита",
+            enabled = s.notifLimitEnabled,
+            onToggle = { on -> vm.updateNotifications { it.copy(notifLimitEnabled = on) } },
+            hour = s.notifLimitHour,
+            onHourChange = { h -> vm.updateNotifications { it.copy(notifLimitHour = h) } }
+        )
+
+        NotifCard(
+            title = "📊 Итоги недели",
+            subtitle = "Сумма трат за последние 7 дней и главная категория расходов",
+            enabled = s.notifWeeklyEnabled,
+            onToggle = { on -> vm.updateNotifications { it.copy(notifWeeklyEnabled = on) } },
+            hour = s.notifWeeklyHour,
+            onHourChange = { h -> vm.updateNotifications { it.copy(notifWeeklyHour = h) } },
+            extraLabel = "День недели",
+            extraValue = weekDays[(s.notifWeeklyDay - 1).coerceIn(0, 6)],
+            onExtraMinus = { vm.updateNotifications { it.copy(notifWeeklyDay = if (it.notifWeeklyDay <= 1) 7 else it.notifWeeklyDay - 1) } },
+            onExtraPlus = { vm.updateNotifications { it.copy(notifWeeklyDay = if (it.notifWeeklyDay >= 7) 1 else it.notifWeeklyDay + 1) } }
+        )
+
+        NotifCard(
+            title = "🛡️ Пополнение подушки",
+            subtitle = "Напоминает пополнить финансовую подушку или перенести свободный остаток",
+            enabled = s.notifCushionEnabled,
+            onToggle = { on -> vm.updateNotifications { it.copy(notifCushionEnabled = on) } },
+            hour = s.notifCushionHour,
+            onHourChange = { h -> vm.updateNotifications { it.copy(notifCushionHour = h) } },
+            extraLabel = "Число месяца",
+            extraValue = "${s.notifCushionDay}-го",
+            onExtraMinus = { vm.updateNotifications { it.copy(notifCushionDay = if (it.notifCushionDay <= 1) 28 else it.notifCushionDay - 1) } },
+            onExtraPlus = { vm.updateNotifications { it.copy(notifCushionDay = if (it.notifCushionDay >= 28) 1 else it.notifCushionDay + 1) } }
+        )
+
+        OutlinedButton(
+            onClick = { vm.sendTestNotification() },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("🔔 Отправить тестовое уведомление") }
+
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun NotifCard(
+    title: String,
+    subtitle: String,
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+    hour: Int,
+    onHourChange: (Int) -> Unit,
+    extraLabel: String? = null,
+    extraValue: String? = null,
+    onExtraMinus: (() -> Unit)? = null,
+    onExtraPlus: (() -> Unit)? = null
+) {
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = Sheet.glass(),
+        border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = enabled, onCheckedChange = onToggle)
+            }
+            if (enabled) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Время", style = MaterialTheme.typography.labelLarge)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { onHourChange(if (hour <= 0) 23 else hour - 1) }) { Text("−") }
+                        Text(
+                            String.format(java.util.Locale.getDefault(), "%02d:00", hour),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        TextButton(onClick = { onHourChange(if (hour >= 23) 0 else hour + 1) }) { Text("+") }
+                    }
+                }
+                if (extraLabel != null && extraValue != null && onExtraMinus != null && onExtraPlus != null) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(extraLabel, style = MaterialTheme.typography.labelLarge)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = onExtraMinus) { Text("−") }
+                            Text(extraValue, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                            TextButton(onClick = onExtraPlus) { Text("+") }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
