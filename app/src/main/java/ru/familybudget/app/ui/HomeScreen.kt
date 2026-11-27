@@ -716,11 +716,11 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                             onClick = { vm.payInstallment(inst.id, inst.monthlyPaymentCents) },
                                             shape = RoundedCornerShape(50),
                                             colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                                containerColor = Color(0xFFF6B44E),
-                                                contentColor = Color(0xFF141B1F)
+                                                containerColor = Color(0xFFD97706),
+                                                contentColor = Color.White
                                             ),
                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp)
-                                        ) { Text("Оплатить", fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                                        ) { Text("Оплатить", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false) }
                                     }
                                 }
                             }

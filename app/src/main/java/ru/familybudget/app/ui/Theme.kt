@@ -102,26 +102,26 @@ object AppColors {
 @Composable
 fun BudgetTheme(content: @Composable () -> Unit) {
     val scheme = if (isSystemInDarkTheme()) {
-        // Премиальный тёмный (изумруд + золото)
+        // Премиальный тёмный (все шрифты и кнопки — чистый белый)
         darkColorScheme(
-            primary = Color(0xFF34D399),
-            onPrimary = Color(0xFF07291D),
+            primary = Color(0xFF158055),
+            onPrimary = Color.White,
             primaryContainer = Color(0xFF16382C),
-            onPrimaryContainer = Color(0xFFD1FAE5),
-            secondary = Color(0xFF60A5FA),
-            onSecondary = Color(0xFF0D213B),
+            onPrimaryContainer = Color.White,
+            secondary = Color(0xFF2563EB),
+            onSecondary = Color.White,
             secondaryContainer = Color(0xFF1A2B3D),
-            onSecondaryContainer = Color(0xFFDBEAFE),
-            tertiary = Color(0xFFF59E0B),
-            onTertiary = Color(0xFF2B1B03),
+            onSecondaryContainer = Color.White,
+            tertiary = Color(0xFFD97706),
+            onTertiary = Color.White,
             tertiaryContainer = Color(0xFF382910),
-            onTertiaryContainer = Color(0xFFFEF3C7),
+            onTertiaryContainer = Color.White,
             background = Color(0xFF0F1513),
             onBackground = Color.White,
             surface = Color(0xFF18211E),
             onSurface = Color.White,
             surfaceVariant = Color(0xFF212E2A),
-            onSurfaceVariant = Color(0xFFE2E8F0),
+            onSurfaceVariant = Color(0xFFEAF0F5),
             surfaceContainer = Color(0xFF151E1B),
             outline = Color(0xFF334740),
             outlineVariant = Color(0xFF263630)
