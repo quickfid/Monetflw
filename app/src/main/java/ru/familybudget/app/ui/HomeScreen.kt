@@ -158,15 +158,20 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // 2. Главная акцентная карточка баланса (градиент)
+        // 2. Главная акцентная карточка баланса (полупрозрачное стекло со световой кромкой)
         item {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(AppColors.heroBrush())
-                    .padding(18.dp)
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = Color.Transparent,
+                border = BorderStroke(1.4.dp, Sheet.glassBorderBrush()),
+                modifier = Modifier.fillMaxWidth()
             ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(AppColors.heroBrush())
+                        .padding(18.dp)
+                ) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         if (depositInfos.isEmpty()) "Доступно сейчас на счетах" else "Всего средств (счета + накопления)",
@@ -215,23 +220,33 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     }
                 }
             }
+            }
         }
 
         // 3. Практичные быстрые кнопки-капсулы в стиле Liquid Glass
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
-                    onClick = { vm.startNew(OpType.EXPENSE) },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(50)
+                Surface(
+                    modifier = Modifier.weight(1f).height(48.dp).clickable { vm.startNew(OpType.EXPENSE) },
+                    shape = RoundedCornerShape(50),
+                    color = Sheet.tone(Tone.EXPENSE),
+                    border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())
                 ) {
-                    Text("− Расход (+10 XP)", maxLines = 1, softWrap = false, fontWeight = FontWeight.SemiBold)
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            "− Расход (+10 XP)",
+                            maxLines = 1,
+                            softWrap = false,
+                            fontWeight = FontWeight.SemiBold,
+                            color = expenseColor
+                        )
+                    }
                 }
                 Surface(
                     modifier = Modifier.weight(1f).height(48.dp).clickable { vm.startNew(OpType.INCOME) },
                     shape = RoundedCornerShape(50),
-                    color = Sheet.glass(),
-                    border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+                    color = Sheet.tone(Tone.INCOME),
+                    border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
@@ -239,7 +254,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             maxLines = 1,
                             softWrap = false,
                             fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = incomeColor
                         )
                     }
                 }
