@@ -48,9 +48,9 @@ data class Mandatory(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val day: Int = 1,
-    val endDay: Int = 0,
     val amountCents: Long,
-    val category: String = ""
+    val category: String = "",
+    val endDay: Int = 0
 )
 
 /** План расходов на конкретный месяц: сколько запланировано на категорию. ym в формате «2026-11». */
