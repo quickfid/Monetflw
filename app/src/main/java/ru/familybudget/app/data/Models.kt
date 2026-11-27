@@ -42,12 +42,13 @@ data class Account(
     val initialCents: Long = 0
 )
 
-/** Обязательный ежемесячный платёж (аренда, связь, интернет...). */
+/** Обязательный ежемесячный платёж (аренда, связь, интернет...). endDay > day задаёт окно оплаты (например, с 5 по 10 число). */
 @Entity(tableName = "mandatory")
 data class Mandatory(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val day: Int = 1,
+    val endDay: Int = 0,
     val amountCents: Long,
     val category: String = ""
 )
@@ -279,7 +280,7 @@ interface BudgetDao {
         Category::class, Account::class, Mandatory::class, Operation::class, PlanItem::class,
         Deposit::class, InterestEntry::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class BudgetDb : RoomDatabase() {
@@ -293,7 +294,7 @@ abstract class BudgetDb : RoomDatabase() {
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
                     context.applicationContext, BudgetDb::class.java, "budget.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
     }
 }
@@ -327,5 +328,12 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
             "CREATE UNIQUE INDEX IF NOT EXISTS `index_interest_entries_depositId_ym` " +
                 "ON `interest_entries` (`depositId`, `ym`)"
         )
+    }
+}
+
+/** Версия 3 → 4: окно дат оплаты (endDay) для обязательных платежей. */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `mandatory` ADD COLUMN `endDay` INTEGER NOT NULL DEFAULT 0")
     }
 }

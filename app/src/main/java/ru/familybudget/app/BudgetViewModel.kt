@@ -508,6 +508,16 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         message = "Финансовая подушка обновлена 🛡️"
     }
 
+    fun updateNotifications(change: (AppSettings) -> AppSettings) {
+        store.update(change)
+        ReminderScheduler.rescheduleAll(getApplication(), settings.value)
+    }
+
+    fun sendTestNotification() {
+        ReminderScheduler.sendTest(getApplication())
+        message = "Тестовое уведомление отправлено 🔔"
+    }
+
     fun addToCushion(deltaCents: Long, deductFromAccount: Boolean = false) {
         if (deltaCents <= 0L) return
         store.update { it.copy(cushionCents = (it.cushionCents + deltaCents).coerceAtLeast(0L)) }
