@@ -1,9 +1,13 @@
-name: Автоматический релиз (проверка каждые 10 минут)
+name: Автоматический релиз (пакет через 10 минут после коммитов)
 
 on:
-  schedule:
-    - cron: '*/10 * * * *'
+  push:
+    branches: [ main ]
   workflow_dispatch:
+
+concurrency:
+  group: auto-release-batch
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -14,6 +18,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: 0. Ожидание 10 минут для сбора пакета коммитов
+        if: github.event_name == 'push'
+        run: |
+          echo "Ждём 10 минут: если появятся новые коммиты, этот запуск отменится и таймер обновится."
+          sleep 600
       - name: 1. Получение исходников и тегов
         uses: actions/checkout@v7
         with:
