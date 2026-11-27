@@ -6,11 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.DateRange
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.List
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -29,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import java.time.YearMonth
 import androidx.lifecycle.viewmodel.compose.viewModel
+import ru.familybudget.app.ui.AppIcons
 import ru.familybudget.app.ui.BudgetTheme
 import ru.familybudget.app.logic.Fmt
 import ru.familybudget.app.ui.ExportDialog
@@ -55,11 +51,11 @@ class MainActivity : ComponentActivity() {
 private class Tab(val title: String, val icon: ImageVector)
 
 private val tabs = listOf(
-    Tab("Главная", Icons.Rounded.Home),
-    Tab("План", Icons.Rounded.DateRange),
-    Tab("Траты", Icons.Rounded.List),
-    Tab("Накопления", Icons.Rounded.Star),
-    Tab("Ещё", Icons.Rounded.Settings)
+    Tab("Главная", AppIcons.Home),
+    Tab("План", AppIcons.Plan),
+    Tab("Траты", AppIcons.Expenses),
+    Tab("Накопления", AppIcons.Savings),
+    Tab("Ещё", AppIcons.More)
 )
 
 @Composable

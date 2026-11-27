@@ -373,17 +373,41 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // 11. Полезная финансовая подсказка
+        // 11. Полезная финансовая подсказка и совет дня
         item {
+            var tipIdx by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+            val extraTips = remember {
+                listOf(
+                    "Переводите 10% от любого дохода в накопления в тот же день — привычка работает лучше силы воли.",
+                    "Правило 24 часов: отложите спонтанную покупку на сутки — часто оказывается, что она не так уж нужна.",
+                    "Раз в неделю заглядывайте в «Траты»: 2 минуты анализа экономят до 15% месячного бюджета.",
+                    "Финансовая подушка на 3 месяца расходов даёт спокойствие при любых неожиданных ситуациях.",
+                    "Поддерживайте серию дней: ежедневная запись трат занимает 10 секунд и приносит +10 XP."
+                )
+            }
+            val shownTip = if (tipIdx == 0) tip else extraTips[(tipIdx - 1) % extraTips.size]
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 color = AppColors.accentBlue(),
                 border = BorderStroke(1.dp, Sheet.border())
             ) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("💡 Подсказка", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    Text(tip, style = MaterialTheme.typography.bodyMedium)
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (tipIdx == 0) "💡 Персональная подсказка" else "✨ Совет по финансам",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        androidx.compose.material3.TextButton(
+                            onClick = { tipIdx = (tipIdx + 1) % (extraTips.size + 1) },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                        ) {
+                            Text("Другой совет", fontSize = 12.sp)
+                        }
+                    }
+                    Text(shownTip, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }

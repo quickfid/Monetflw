@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
@@ -17,7 +18,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -32,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -48,7 +52,9 @@ import java.time.YearMonth
 fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.dp)) {
     val deposits by vm.deposits.collectAsState()
     val interest by vm.interest.collectAsState()
-    val cur = vm.settings.collectAsState().value.currency
+    val mandatory by vm.mandatory.collectAsState()
+    val settings by vm.settings.collectAsState()
+    val cur = settings.currency
     var editing by remember { mutableStateOf<Deposit?>(null) }
     var history by remember { mutableStateOf<Deposit?>(null) }
     val incomeColor = AppColors.income()
@@ -57,6 +63,11 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
     val totalSavings = remember(infos) { infos.sumOf { it.balance } }
     val totalExpected = remember(infos) { infos.sumOf { it.expectedMonthly } }
     val totalReceived = remember(infos) { infos.sumOf { it.received } }
+    val monthlyBase = remember(settings.monthlyBudget, mandatory) {
+        val mSum = mandatory.sumOf { it.amountCents }
+        if (settings.monthlyBudget > 0) settings.monthlyBudget else mSum
+    }
+    val cushionGoal = monthlyBase * 3L
 
     Column(
         Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(14.dp),
@@ -110,6 +121,48 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
         ) {
             Icon(Icons.Default.Add, contentDescription = null)
             Text("  Добавить вклад или счёт")
+        }
+
+        // Финансовая подушка (реальный прогресс)
+        if (cushionGoal > 0) {
+            val fraction = (totalSavings.toFloat() / cushionGoal).coerceIn(0f, 1f)
+            val monthsCovered = if (monthlyBase > 0) totalSavings.toDouble() / monthlyBase else 0.0
+            Section("🛡️ Финансовая подушка (цель: 3 месяца)") {
+                LinearProgressIndicator(
+                    progress = { fraction },
+                    modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
+                    color = savingsColor
+                )
+                KeyValueRow(
+                    "Покрыто месяцев",
+                    String.format(java.util.Locale.getDefault(), "%.1f из 3,0 мес.", monthsCovered),
+                    savingsColor
+                )
+                KeyValueRow("Цель (3 месяца бюджета)", Fmt.money(cushionGoal, cur, false))
+            }
+        }
+
+        // Стратегии и советы по накоплениям
+        Section("🌱 Стратегии накоплений") {
+            StrategyItem(
+                "1. Сначала заплати себе",
+                "В день получения дохода сразу переводите 10% на накопительный счёт, до основных трат. Так накопления растут автоматически."
+            )
+            HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+            StrategyItem(
+                "2. Правило 50 / 30 / 20",
+                "50% дохода — на обязательные нужды, 30% — на повседневные радости и желания, 20% — в копилку и вклады."
+            )
+            HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+            StrategyItem(
+                "3. Правило 24 часов",
+                "Перед незапланированной покупкой подождите сутки. Большая часть импульсивных желаний проходит сама, а деньги остаются на счёте."
+            )
+            HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+            StrategyItem(
+                "4. Округление в конце недели",
+                "Каждое воскресенье переводите «хвостик» с карты (например, до ровной тысячи) в накопления — незаметно для бюджета, но приятно в итоге."
+            )
         }
     }
 
@@ -202,5 +255,13 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
                 MoneyField(amount, { amount = it }, "Пришло процентов, $cur")
             }
         }
+    }
+}
+
+@Composable
+private fun StrategyItem(title: String, description: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
