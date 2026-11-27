@@ -522,13 +522,29 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     QuestRow(md.summary.expense <= md.budget, "Уложиться в план месяца", "🏅", null) {}
                 }
                 HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                var selectedBadge by remember { mutableStateOf<ru.familybudget.app.logic.Badge?>(null) }
+                selectedBadge?.let { b ->
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { selectedBadge = null },
+                        title = { Text("${b.emoji} ${b.title}") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(if (b.unlocked) "✅ Достижение получено (+25 XP)" else "🔒 Ещё не получено (+25 XP)")
+                                if (b.hint.isNotBlank()) Text(b.hint)
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { selectedBadge = null }) { Text("Понятно") }
+                        }
+                    )
+                }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     game.badges.forEach { b ->
                         Surface(
-                            modifier = Modifier.width(96.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (b.unlocked) Sheet.tone(Tone.SAVINGS) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = BorderStroke(1.dp, Sheet.border())
+                            modifier = Modifier.width(96.dp).clickable { selectedBadge = b },
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (b.unlocked) Sheet.tone(Tone.SAVINGS) else Sheet.glass(),
+                            border = BorderStroke(1.dp, Sheet.glassBorderBrush())
                         ) {
                             Column(
                                 Modifier.padding(8.dp),
@@ -539,6 +555,8 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                     b.title,
                                     fontSize = 11.sp,
                                     textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
                                     color = if (b.unlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
