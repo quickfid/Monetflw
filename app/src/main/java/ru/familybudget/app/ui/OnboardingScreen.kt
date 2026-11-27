@@ -75,12 +75,12 @@ fun OnboardingScreen(vm: BudgetViewModel) {
     val coreGoals = remember {
         listOf(
             "Аренда квартиры",
-            "Коммунальные платежи",
+            "Коммуналка",
             "Кредит",
             "Продукты",
-            "Транспорт и бензин",
+            "Транспорт",
             "Связь и интернет",
-            "Развлечения и досуг"
+            "Развлечения"
         )
     }
     val names = remember(categories) {
@@ -109,11 +109,11 @@ fun OnboardingScreen(vm: BudgetViewModel) {
         val avail = (baseRub * mult).toLong()
         fun roundK(v: Double): String = (((v / 1000.0).toLong()).coerceAtLeast(1L) * 1000L).toString()
         values["Аренда квартиры"] = roundK(avail * 0.30)
-        values["Коммунальные платежи"] = roundK(avail * 0.06)
+        values["Коммуналка"] = roundK(avail * 0.06)
         values["Продукты"] = roundK(avail * 0.25)
-        values["Транспорт и бензин"] = roundK(avail * 0.08)
+        values["Транспорт"] = roundK(avail * 0.08)
         values["Связь и интернет"] = roundK(avail * 0.03)
-        values["Развлечения и досуг"] = roundK(avail * 0.10)
+        values["Развлечения"] = roundK(avail * 0.10)
     }
 
     BackHandler(enabled = step > 0) { step -= 1 }

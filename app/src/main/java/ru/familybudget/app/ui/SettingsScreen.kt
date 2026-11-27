@@ -154,34 +154,35 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("⚙️ Ещё", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
+        Text("Ещё", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
         Surface(
             shape = RoundedCornerShape(22.dp),
             color = Sheet.glass(),
             border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
         ) {
             Column {
-                MenuItem("👤 Профиль", "Имя и доход") { open(Page.PROFILE) }
-                MenuItem("🏷️ Категории", "Расходы и доходы") { open(Page.CATEGORIES) }
-                MenuItem("💳 Платежи", "Ежемесячные, с галочками") { open(Page.MANDATORY) }
-                MenuItem("🏦 Счета", "Карты и наличные") { open(Page.ACCOUNTS) }
-                MenuItem("👨‍👩‍👧 Люди", settings.persons.joinToString(", ")) { open(Page.PEOPLE) }
+                MenuItem("Профиль", "Имя и доход", "other") { open(Page.PROFILE) }
+                MenuItem("Категории", "Расходы и доходы", "shopping") { open(Page.CATEGORIES) }
+                MenuItem("Платежи", "Ежемесячные, с галочками", "utilities") { open(Page.MANDATORY) }
+                MenuItem("Счета", "Карты и наличные", "income") { open(Page.ACCOUNTS) }
+                MenuItem("Люди", settings.persons.joinToString(", "), "family") { open(Page.PEOPLE) }
                 MenuItem(
                     "Google Таблица",
-                    if (settings.apiUrl.isBlank()) "Не подключена" else "Не отправлено: $unsynced"
+                    if (settings.apiUrl.isBlank()) "Не подключена" else "Не отправлено: $unsynced",
+                    "phone"
                 ) { open(Page.SYNC) }
-                MenuItem("📊 Отчёты", "Анализ доходов, расходов и динамики") { open(Page.REPORTS) }
-                MenuItem("📤 Отправить отчёт в таблицу", "Таблицы и графики для другого человека") {
+                MenuItem("Отчёты", "Анализ доходов, расходов и динамики", "savings") { open(Page.REPORTS) }
+                MenuItem("Отправить отчёт в таблицу", "Таблицы и графики для другого человека", "transfer") {
                     vm.exportReport(vm.month)
                 }
-                MenuItem("📄 Экспорт CSV", "Все операции в файл") {
+                MenuItem("Экспорт CSV", "Все операции в файл", "education") {
                     exportLauncher.launch("budget_${LocalDate.now()}.csv")
                 }
-                MenuItem("💾 Резервная копия", "Сохранить все данные в файл") {
+                MenuItem("Резервная копия", "Сохранить все данные в файл", "credit") {
                     backupLauncher.launch("family_budget_backup_${LocalDate.now()}.json")
                 }
-                MenuItem("♻️ Восстановить", "Из файла резервной копии") { confirmRestore = true }
-                MenuItem("🗑️ Сбросить все данные", "Очистить всё и пройти настройку заново") { confirmReset = true }
+                MenuItem("Восстановить", "Из файла резервной копии", "health") { confirmRestore = true }
+                MenuItem("Сбросить все данные", "Очистить всё и пройти настройку заново", "other") { confirmReset = true }
             }
         }
         Surface(
@@ -242,8 +243,9 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                 }
                 HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
                 MenuItem(
-                    "🔄 Проверить обновления",
-                    if (vm.checkingUpdate) "Проверяем…" else "Установить новую версию прямо в приложении"
+                    "Проверить обновления",
+                    if (vm.checkingUpdate) "Проверяем…" else "Установить новую версию прямо в приложении",
+                    "transfer"
                 ) { vm.checkForUpdate(silent = false) }
             }
         }
@@ -259,8 +261,9 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
 }
 
 @Composable
-private fun MenuItem(title: String, subtitle: String, onClick: () -> Unit) {
+private fun MenuItem(title: String, subtitle: String, iconKey: String = "other", onClick: () -> Unit) {
     ListItem(
+        leadingContent = { CategoryBadge(title, mapOf(title to iconKey), size = 34.dp) },
         headlineContent = { Text(title) },
         supportingContent = { Text(subtitle, maxLines = 2) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),

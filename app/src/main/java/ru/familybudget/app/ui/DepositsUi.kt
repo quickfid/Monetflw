@@ -141,24 +141,6 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
             }
         }
 
-        Section("🎮 Стратегии накоплений (выберите вызов)") {
-            strategies.forEachIndexed { idx, (id, title, desc) ->
-                if (idx > 0) HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
-                val isActive = activeStrategy == id
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                    Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (isActive) {
-                            TextButton(onClick = { vm.setStrategy("") }) { Text("Отказаться") }
-                        } else {
-                            OutlinedButton(onClick = { vm.setStrategy(id) }) { Text("Принять вызов 🎮") }
-                        }
-                    }
-                }
-            }
-        }
-
         if (deposits.isEmpty()) {
             EmptyHint("Добавьте банковский вклад или накопительный счёт, чтобы видеть общую сумму накоплений и начисленные проценты.")
         }
@@ -194,6 +176,24 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
         ) {
             Icon(Icons.Default.Add, contentDescription = null)
             Text("  Добавить вклад или счёт")
+        }
+
+        Section("🎮 Стратегии накоплений (выберите вызов)") {
+            strategies.forEachIndexed { idx, (id, title, desc) ->
+                if (idx > 0) HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                val isActive = activeStrategy == id
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (isActive) {
+                            TextButton(onClick = { vm.setStrategy("") }) { Text("Отказаться") }
+                        } else {
+                            OutlinedButton(onClick = { vm.setStrategy(id) }) { Text("Принять вызов 🎮") }
+                        }
+                    }
+                }
+            }
         }
 
         // Финансовая подушка (реальный прогресс)

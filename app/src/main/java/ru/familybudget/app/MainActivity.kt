@@ -20,13 +20,18 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
@@ -38,6 +43,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -189,28 +195,40 @@ private fun BudgetApp() {
                         containerColor = Color.Transparent,
                         snackbarHost = { SnackbarHost(snackbarHostState) },
                         bottomBar = {
-                            NavigationBar(containerColor = Sheet.glass()) {
-                            tabs.forEachIndexed { i, t ->
-                                NavigationBarItem(
-                                    selected = tab == i,
-                                    onClick = { tab = i },
-                                    icon = { Icon(t.icon, contentDescription = t.title) },
-                                    label = {
-                                        Text(
-                                            t.title,
-                                            fontSize = 10.sp,
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            overflow = TextOverflow.Ellipsis
+                            Surface(
+                                shape = RoundedCornerShape(32.dp),
+                                color = Sheet.glass(),
+                                border = BorderStroke(1.3.dp, Sheet.glassBorderBrush()),
+                                modifier = Modifier
+                                    .navigationBarsPadding()
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            ) {
+                                NavigationBar(
+                                    containerColor = Color.Transparent,
+                                    windowInsets = WindowInsets(0, 0, 0, 0)
+                                ) {
+                                    tabs.forEachIndexed { i, t ->
+                                        NavigationBarItem(
+                                            selected = tab == i,
+                                            onClick = { tab = i },
+                                            icon = { Icon(t.icon, contentDescription = t.title) },
+                                            label = {
+                                                Text(
+                                                    t.title,
+                                                    fontSize = 10.sp,
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         )
                                     }
-                                )
+                                }
                             }
-                        }
-                    },
+                        },
                     floatingActionButton = {
                         AnimatedVisibility(
-                            visible = tab == 0 || tab == 2,
+                            visible = tab == 2,
                             enter = scaleIn(tween(200)) + fadeIn(tween(200)),
                             exit = scaleOut(tween(160)) + fadeOut(tween(160))
                         ) {
