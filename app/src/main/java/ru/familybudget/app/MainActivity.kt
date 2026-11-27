@@ -98,6 +98,7 @@ import ru.familybudget.app.ui.OperationEditor
 import ru.familybudget.app.ui.OperationsScreen
 import ru.familybudget.app.ui.SettingsScreen
 import ru.familybudget.app.ui.DepositsPage
+import ru.familybudget.app.ui.bouncyClickable
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -250,25 +251,59 @@ private fun BudgetApp() {
                                     .navigationBarsPadding()
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
                             ) {
-                                NavigationBar(
-                                    containerColor = Color.Transparent,
-                                    windowInsets = WindowInsets(0, 0, 0, 0)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     tabs.forEachIndexed { i, t ->
-                                        NavigationBarItem(
-                                            selected = tab == i,
-                                            onClick = { tab = i },
-                                            icon = { Icon(t.icon, contentDescription = t.title) },
-                                            label = {
-                                                Text(
-                                                    t.title,
-                                                    fontSize = 10.sp,
-                                                    maxLines = 1,
-                                                    softWrap = false,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
+                                        val selected = tab == i
+                                        val circleBg by androidx.compose.animation.animateColorAsState(
+                                            targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f)
+                                            else Color.Transparent,
+                                            animationSpec = tween(260, easing = FastOutSlowInEasing),
+                                            label = "tabBg_$i"
                                         )
+                                        val contentTint by androidx.compose.animation.animateColorAsState(
+                                            targetValue = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            animationSpec = tween(260, easing = FastOutSlowInEasing),
+                                            label = "tabTint_$i"
+                                        )
+                                        Column(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .bouncyClickable { tab = i }
+                                                .padding(vertical = 2.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            Surface(
+                                                modifier = Modifier.size(38.dp),
+                                                shape = CircleShape,
+                                                color = circleBg,
+                                                border = if (selected) BorderStroke(1.dp, Sheet.glassBorderBrush()) else null
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Icon(
+                                                        t.icon,
+                                                        contentDescription = t.title,
+                                                        tint = contentTint,
+                                                        modifier = Modifier.size(21.dp)
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                t.title,
+                                                fontSize = 10.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis,
+                                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                             }
