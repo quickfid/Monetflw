@@ -295,7 +295,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             else -> ""
                         }
                         Row(
-                            Modifier.fillMaxWidth().clickable { vm.startEdit(op) }.padding(vertical = 4.dp),
+                            Modifier.fillMaxWidth().clickable { vm.edit(op) }.padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(Modifier.weight(1f)) {
