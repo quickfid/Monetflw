@@ -1,7 +1,6 @@
 package ru.familybudget.app.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,27 +52,53 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
     var editing by remember { mutableStateOf<Deposit?>(null) }
     var history by remember { mutableStateOf<Deposit?>(null) }
     val incomeColor = AppColors.income()
+    val savingsColor = AppColors.savings()
+    val infos = remember(deposits, interest) { deposits.map { Deposits.info(it, interest) } }
+    val totalSavings = remember(infos) { infos.sumOf { it.balance } }
+    val totalExpected = remember(infos) { infos.sumOf { it.expectedMonthly } }
+    val totalReceived = remember(infos) { infos.sumOf { it.received } }
 
     Column(
-        Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (deposits.isEmpty()) EmptyHint("Добавьте вклад или накопительный счёт 🐷")
-        deposits.forEach { d ->
-            val info = Deposits.info(d, interest)
-            Column(
-                Modifier.fillMaxWidth().border(1.dp, Sheet.border()).background(MaterialTheme.colorScheme.surface)
-                    .clickable { editing = d }.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+        if (infos.isNotEmpty()) {
+            Banner("Общая сумма накоплений", Tone.SAVINGS) {
+                Text(
+                    Fmt.money(totalSavings, cur),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = savingsColor
+                )
+                KeyValueRow("Ожидается процентов в этом месяце", "+" + Fmt.money(totalExpected, cur), incomeColor)
+                KeyValueRow("Всего начислено процентов", "+" + Fmt.money(totalReceived, cur), incomeColor)
+            }
+        }
+        if (deposits.isEmpty()) {
+            EmptyHint("Добавьте банковский вклад или накопительный счёт, чтобы видеть общую сумму накоплений и начисленные проценты.")
+        }
+        infos.forEach { info ->
+            val d = info.deposit
+            Surface(
+                modifier = Modifier.fillMaxWidth().clickable { editing = d },
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, Sheet.border()),
+                shadowElevation = 1.dp
             ) {
-                Text("🐷 " + d.name, fontWeight = FontWeight.Bold)
-                Text(d.kind + " · " + Deposits.rateText(d), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                KeyValueRow("Сумма сейчас", Fmt.money(info.balance, cur))
-                KeyValueRow("Проценты в этом месяце ≈", "+" + Fmt.money(info.expectedMonthly, cur), incomeColor)
-                KeyValueRow("Уже пришло процентов", "+" + Fmt.money(info.received, cur), incomeColor)
-                Row {
-                    TextButton(onClick = { history = d }) { Text("История процентов") }
-                    TextButton(onClick = { editing = d }) { Text("Изменить") }
+                Column(
+                    Modifier.fillMaxWidth().padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(d.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(d.kind + " · " + Deposits.rateText(d), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    KeyValueRow("Сумма сейчас", Fmt.money(info.balance, cur))
+                    KeyValueRow("Проценты в этом месяце ≈", "+" + Fmt.money(info.expectedMonthly, cur), incomeColor)
+                    KeyValueRow("Уже пришло процентов", "+" + Fmt.money(info.received, cur), incomeColor)
+                    Row {
+                        TextButton(onClick = { history = d }) { Text("История процентов") }
+                        TextButton(onClick = { editing = d }) { Text("Изменить") }
+                    }
                 }
             }
         }
@@ -101,7 +128,7 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
             name = name.trim(), kind = kind, ratePercent = rateValue,
             ratePeriod = if (period == "в месяц") 1 else 0, compound = compound
         )
-        val preview = Math.round((if (compound) balanceCents else balanceCents) * Deposits.monthlyRate(draft))
+        val preview = Math.round(balanceCents * Deposits.monthlyRate(draft))
         FormDialog(
             title = if (isNew) "Новый вклад" else "Вклад",
             onDismiss = { editing = null },

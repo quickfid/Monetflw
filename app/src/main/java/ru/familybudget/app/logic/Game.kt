@@ -28,7 +28,10 @@ object Game {
     private val avatars = listOf("🐣", "🐷", "🦊", "🦉", "🐉", "👑")
 
     fun compute(ops: List<Operation>, plans: List<PlanItem>, mandatory: List<Mandatory>, today: LocalDate): GameState {
-        val paidOps = ops.count { it.mandatoryId != null }
+        val paidOps = ops.filter { it.mandatoryId != null }
+            .map { YearMonth.from(LocalDate.ofEpochDay(it.date)) to it.mandatoryId }
+            .distinct()
+            .size
         val planMonths = plans.map { it.ym }.distinct().size
         val days = ops.map { it.date }.distinct().sorted()
         val daySet = days.toHashSet()

@@ -1,5 +1,6 @@
 package ru.familybudget.app.data
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -22,6 +23,11 @@ object SheetsSync {
         .writeTimeout(15, TimeUnit.SECONDS)
         .build()
 
+    private val longClient = client.newBuilder()
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .build()
+
     private class Result(val ok: Boolean, val error: String = "")
 
     class ReportResult(val url: String, val message: String)
@@ -29,7 +35,6 @@ object SheetsSync {
     /** Отправляет данные месяца; скрипт строит в таблице красивый отчёт с графиками и возвращает ссылку. */
     suspend fun exportReport(settings: AppSettings, payload: String): ReportResult = withContext(Dispatchers.IO) {
         try {
-            val longClient = client.newBuilder().readTimeout(120, TimeUnit.SECONDS).writeTimeout(60, TimeUnit.SECONDS).build()
             val request = Request.Builder().url(settings.apiUrl)
                 .post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
                 .build()
@@ -47,6 +52,8 @@ object SheetsSync {
                     ReportResult("", describeError(json))
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             ReportResult("", "Нет связи: ${e.localizedMessage ?: "ошибка сети"}")
         }
@@ -62,6 +69,8 @@ object SheetsSync {
         for (op in pending) {
             val result = try {
                 post(op, settings)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 return@withContext "Отправлено $sent из ${pending.size}. Нет связи: ${e.localizedMessage ?: "ошибка сети"}"
             }
@@ -90,6 +99,8 @@ object SheetsSync {
                 }
                 if (json.optBoolean("ok")) "Подключение работает." else describeError(json)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             "Нет связи: ${e.localizedMessage ?: "ошибка сети"}"
         }

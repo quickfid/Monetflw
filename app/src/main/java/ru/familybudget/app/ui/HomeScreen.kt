@@ -1,7 +1,6 @@
 package ru.familybudget.app.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,11 +15,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -28,11 +30,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.familybudget.app.BudgetViewModel
+import ru.familybudget.app.data.OpType
 import ru.familybudget.app.logic.Deposits
 import ru.familybudget.app.logic.Fmt
 import ru.familybudget.app.logic.Game
@@ -60,75 +65,88 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         Plans.monthData(ops, accounts, mandatory, plans, categories, settings, ym, today)
     }
     val game = remember(ops, plans, mandatory) { Game.compute(ops, plans, mandatory, today) }
-    val balance = accounts.sumOf { it.initialCents } + ops.sumOf { it.delta() }
+    val balance = remember(accounts, ops) { accounts.sumOf { it.initialCents } + ops.sumOf { it.delta() } }
     val depositInfos = remember(deposits, interest) { deposits.map { Deposits.info(it, interest) } }
-    val savings = depositInfos.sumOf { it.balance }
-    val expectedInterest = depositInfos.sumOf { it.expectedMonthly }
+    val savings = remember(depositInfos) { depositInfos.sumOf { it.balance } }
+    val expectedInterest = remember(depositInfos) { depositInfos.sumOf { it.expectedMonthly } }
+    val recentOps = remember(md.ops) { md.ops.sortedWith(compareByDescending<ru.familybudget.app.data.Operation> { it.date }.thenByDescending { it.id }).take(5) }
+
     val f = md.forecast
     val incomeColor = AppColors.income()
     val expenseColor = AppColors.expense()
     val warnColor = AppColors.warning()
+    val savingsColor = AppColors.savings()
     val todayDay = today.toEpochDay()
     val paidCount = mandatory.count { it.id in md.paid }
     val canPlan = !f.isPast
 
+    val tip = remember(md, f, savings, cur) {
+        when {
+            !md.hasPlan && canPlan -> "Составьте план на месяц — так приложение сможет точно подсказывать, сколько безопасно тратить каждый день."
+            f.isCurrent && f.verdict == Verdict.BAD -> "Темп трат выше плана. Попробуйте держаться в пределах ${Fmt.money(f.safeDaily, cur, false)} в день, чтобы вернуться в бюджет."
+            f.isCurrent && f.verdict == Verdict.WARN -> "Расходы близки к границе плана. Проверьте необязательные покупки на ближайшие дни."
+            f.isCurrent && md.summary.mandatoryUnpaid > 0 -> "В этом месяце остались неоплаченные обязательные платежи на ${Fmt.money(md.summary.mandatoryUnpaid, cur, false)}."
+            savings == 0L && md.summary.closing > 0 -> "У вас есть свободный остаток. Даже небольшая сумма на накопительном счёте создаёт финансовую подушку."
+            f.isCurrent && f.verdict == Verdict.GOOD -> "Отличный темп! Вы уверенно укладываетесь в бюджет и можете спокойно тратить до ${Fmt.money(f.safeDaily, cur, false)} в день."
+            else -> "Записывайте покупки сразу — это занимает пару секунд и помогает видеть реальную картину месяца."
+        }
+    }
+
     LazyColumn(
         Modifier.fillMaxSize().padding(padding),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 88.dp),
+        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 92.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // ---- герой: уровень, опыт, серия
+        // 1. Приветствие и компактный статус прогресса
         item {
-            Column(
-                Modifier.fillMaxWidth().border(1.dp, Sheet.border()).background(Sheet.header()).padding(14.dp)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, Sheet.border()),
+                shadowElevation = 1.dp
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(game.avatar, fontSize = 46.sp)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            if (settings.userName.isBlank()) "Привет!" else "Привет, ${settings.userName}!",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text("Уровень ${game.level} · ${game.title}", style = MaterialTheme.typography.labelLarge)
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                if (settings.userName.isBlank()) "Добрый день!" else "Привет, ${settings.userName}!",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "${game.avatar} Уровень ${game.level} · ${game.title} · ${game.xp} XP",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Sheet.header()
+                        ) {
+                            Text(
+                                "🔥 ${game.streak} дн.",
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🔥 ${game.streak}", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                        Text("дней", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    LinearProgressIndicator(
+                        progress = { game.progress },
+                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp))
+                    )
                 }
-                LinearProgressIndicator(
-                    progress = { game.progress },
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(10.dp)
-                )
-                Text(
-                    "⭐ ${game.xp} XP · ещё ${game.xpToNext} до уровня ${game.level + 1}",
-                    modifier = Modifier.padding(top = 6.dp),
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
+
+        // Переключатель месяца
         item {
             MonthSwitcher(Fmt.monthTitle(ym), onPrev = { vm.shiftMonth(-1) }, onNext = { vm.shiftMonth(1) })
         }
 
-        // ---- задания
-        item {
-            Section("🎯 Задания") {
-                QuestRow(md.hasPlan, "План на месяц", "+100 XP", if (!md.hasPlan && canPlan) "Создать" else null) { vm.openPlan(ym) }
-                QuestRow(ops.any { it.date == todayDay }, "Записать траты за сегодня", "+10 XP", "Добавить") { vm.startNew() }
-                if (mandatory.isNotEmpty()) {
-                    QuestRow(paidCount == mandatory.size, "Платежи оплачены: $paidCount из ${mandatory.size}", "+15 XP", null) {}
-                }
-                if (md.budget > 0) {
-                    QuestRow(md.summary.expense <= md.budget, "Уложиться в план месяца", "🏅", null) {}
-                }
-            }
-        }
-
-        // ---- статус и прогноз
+        // 2. Краткий финансовый статус, прогноз и дневной лимит
         item {
             val tone = when (f.verdict) {
                 Verdict.GOOD -> Tone.INCOME
@@ -137,38 +155,45 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 Verdict.NONE -> Tone.NEUTRAL
             }
             val title = when {
-                f.isPast -> "📘 Итоги месяца"
-                !f.isCurrent -> "🗓 Впереди"
-                f.verdict == Verdict.GOOD -> "✅ Всё отлично"
-                f.verdict == Verdict.WARN -> "⚠️ Осторожно"
-                f.verdict == Verdict.BAD -> "🚨 Риск перерасхода"
-                else -> "🔮 Прогноз"
+                f.isPast -> "Итоги месяца"
+                !f.isCurrent -> "Будущий месяц"
+                f.verdict == Verdict.GOOD -> "Бюджет в порядке"
+                f.verdict == Verdict.WARN -> "Близко к лимиту"
+                f.verdict == Verdict.BAD -> "Риск перерасхода"
+                else -> "Прогноз месяца"
             }
             Banner(title, tone) {
                 if (f.isPast) {
-                    KeyValueRow("Потрачено", Fmt.money(f.spent, cur, false))
-                    KeyValueRow("Остаток", Fmt.money(md.summary.closing, cur, false))
+                    KeyValueRow("Потрачено за месяц", Fmt.money(f.spent, cur, false))
+                    KeyValueRow("Итоговый остаток", Fmt.money(md.summary.closing, cur, false))
                 } else {
-                    KeyValueRow("Прогноз трат", Fmt.money(f.projectedExpense, cur, false) + if (md.budget > 0) " из " + Fmt.money(md.budget, cur, false) else "")
+                    KeyValueRow(
+                        "Прогноз расходов",
+                        Fmt.money(f.projectedExpense, cur, false) + if (md.budget > 0) " из ${Fmt.money(md.budget, cur, false)}" else ""
+                    )
                     if (f.isCurrent) {
-                        KeyValueRow("Остаток к концу месяца", Fmt.money(f.projectedBalance, cur, false))
-                        if (md.budget > 0) KeyValueRow("В день можно", Fmt.money(f.safeDaily, cur, false))
-                        if (!f.reliable) Text("Через пару дней прогноз станет точнее", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        KeyValueRow("Ожидаемый остаток", Fmt.money(f.projectedBalance, cur, false))
+                        if (md.budget > 0 || f.safeDaily > 0) {
+                            KeyValueRow("Можно тратить в день", Fmt.money(f.safeDaily, cur, false), incomeColor)
+                        }
+                        if (!f.reliable) {
+                            HelpText("В начале месяца прогноз ориентировочный — через несколько дней он станет точнее.")
+                        }
                     }
                 }
             }
         }
 
-        // ---- деньги
+        // 3–5. Главные цифры: доступно, доходы, расходы, остаток
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (depositInfos.isEmpty()) {
-                    StatCard("💸 Баланс сейчас", Fmt.money(balance, cur), Modifier.fillMaxWidth())
+                    StatCard("Доступно сейчас на счетах", Fmt.money(balance, cur), Modifier.fillMaxWidth())
                 } else {
-                    StatCard("💰 Всего с накоплениями", Fmt.money(balance + savings, cur), Modifier.fillMaxWidth())
+                    StatCard("Всего денег (счета + накопления)", Fmt.money(balance + savings, cur), Modifier.fillMaxWidth())
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatCard("На счетах", Fmt.money(balance, cur, false), Modifier.weight(1f))
-                        StatCard("Вклады и накопления", Fmt.money(savings, cur, false), Modifier.weight(1f), Tone.INCOME)
+                        StatCard("Накопления", Fmt.money(savings, cur, false), Modifier.weight(1f), Tone.SAVINGS)
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -178,27 +203,32 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 }
             }
         }
+
+        // 9. Прогресс выполнения месячного плана
         if (md.budget > 0) {
             item {
                 val fraction = (md.summary.expense.toFloat() / md.budget).coerceIn(0f, 1f)
+                val pct = ((md.summary.expense * 100) / md.budget).toInt().coerceAtLeast(0)
                 val over = md.summary.expense > md.budget
-                Section("🎮 Бюджет месяца") {
+                Section("Выполнение плана месяца · $pct%") {
                     LinearProgressIndicator(
                         progress = { fraction },
-                        modifier = Modifier.fillMaxWidth().height(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
                         color = if (over) expenseColor else MaterialTheme.colorScheme.primary
                     )
                     KeyValueRow(
-                        if (over) "Сверх плана" else "Осталось",
+                        if (over) "Превышение плана" else "Осталось по плану",
                         Fmt.money(kotlin.math.abs(md.budget - md.summary.expense), cur, false),
                         if (over) expenseColor else incomeColor
                     )
                 }
             }
         }
+
+        // График трат по дням
         if ((f.isCurrent || f.isPast) && f.spent > 0) {
             item {
-                Section("📉 Траты по дням") {
+                Section("Динамика расходов по дням") {
                     BurnChart(
                         actual = f.cumulative,
                         daysInMonth = f.daysInMonth,
@@ -217,32 +247,91 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // ---- вклады и проценты
+        // 8. Краткая информация о накоплениях
         item {
-            Section("🐷 Вклады и накопления") {
+            Section("Накопления и вклады") {
                 if (depositInfos.isEmpty()) {
-                    Text("Здесь будут отображаться ваши вклады и накопительные счета. Добавить их можно во вкладке «Вклады».",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                    HelpText("У вас пока нет добавленных вкладов. Перейдите во вкладку «Накопления», чтобы начать вести копилку.")
                 } else {
-                    depositInfos.forEach { info ->
+                    KeyValueRow("Общая сумма накоплений", Fmt.money(savings, cur, false), savingsColor)
+                    KeyValueRow("Ожидаемые проценты за месяц", "+" + Fmt.money(expectedInterest, cur, false), incomeColor)
+                    depositInfos.take(3).forEach { info ->
+                        HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(info.deposit.name, fontWeight = FontWeight.Medium)
-                                Text("+" + Fmt.money(info.expectedMonthly, cur, false) + " ожидается за месяц",
-                                    fontSize = 12.sp, color = incomeColor)
+                                Text(info.deposit.name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                Text(
+                                    Deposits.rateText(info.deposit) + " · +" + Fmt.money(info.expectedMonthly, cur, false) + "/мес",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                             Text(Fmt.money(info.balance, cur, false), fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    KeyValueRow("Проценты за месяц ≈", "+" + Fmt.money(expectedInterest, cur, false), incomeColor)
                 }
             }
         }
 
-        // ---- платежи
+        // 10. Последние операции
+        item {
+            Section("Последние операции") {
+                if (recentOps.isEmpty()) {
+                    HelpText("В этом месяце пока нет записей. Нажмите «+» внизу, чтобы добавить первый расход или доход.")
+                    OutlinedButton(onClick = { vm.startNew() }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Записать первую операцию")
+                    }
+                } else {
+                    recentOps.forEachIndexed { idx, op ->
+                        if (idx > 0) HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                        val amountColor = when (op.type) {
+                            OpType.INCOME -> incomeColor
+                            OpType.EXPENSE -> expenseColor
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
+                        val sign = when (op.type) {
+                            OpType.INCOME -> "+"
+                            OpType.EXPENSE -> "−"
+                            else -> ""
+                        }
+                        Row(
+                            Modifier.fillMaxWidth().clickable { vm.startEdit(op) }.padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    if (op.type == OpType.TRANSFER) "Перевод: ${op.account} → ${op.destAccount}"
+                                    else Fmt.emoji(op.category) + " " + op.category.ifBlank { "Без категории" },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    Fmt.date(op.date) + if (op.comment.isNotBlank()) " · ${op.comment}" else "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                sign + Fmt.money(op.amountCents, cur, false),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = amountColor
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Обязательные платежи
         if (mandatory.isNotEmpty()) {
             item {
-                Section("💳 Платежи месяца") {
+                Section("Обязательные платежи") {
                     mandatory.forEach { m ->
                         val isPaid = m.id in md.paid
                         Row(
@@ -264,24 +353,53 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // ---- награды
+        // 11. Полезная финансовая подсказка
         item {
-            Section("🏆 Награды ${game.badges.count { it.unlocked }} из ${game.badges.size}") {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                color = AppColors.accentBlue(),
+                border = BorderStroke(1.dp, Sheet.border())
+            ) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("💡 Подсказка", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(tip, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+
+        // Задания и достижения (компактно, чтобы мотивировать, но не отвлекать)
+        item {
+            Section("Задания и достижения · ${game.badges.count { it.unlocked }} из ${game.badges.size}") {
+                QuestRow(md.hasPlan, "План на месяц", "+100 XP", if (!md.hasPlan && canPlan) "Создать" else null) { vm.openPlan(ym) }
+                QuestRow(ops.any { it.date == todayDay }, "Записать траты за сегодня", "+10 XP", "Добавить") { vm.startNew() }
+                if (mandatory.isNotEmpty()) {
+                    QuestRow(paidCount == mandatory.size, "Платежи оплачены: $paidCount из ${mandatory.size}", "+15 XP", null) {}
+                }
+                if (md.budget > 0) {
+                    QuestRow(md.summary.expense <= md.budget, "Уложиться в план месяца", "🏅", null) {}
+                }
+                HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     game.badges.forEach { b ->
-                        Column(
-                            Modifier.width(100.dp).border(1.dp, Sheet.border())
-                                .background(if (b.unlocked) Sheet.tone(Tone.WARN) else Sheet.tone(Tone.NEUTRAL))
-                                .padding(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Surface(
+                            modifier = Modifier.width(96.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (b.unlocked) Sheet.tone(Tone.SAVINGS) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = BorderStroke(1.dp, Sheet.border())
                         ) {
-                            Text(if (b.unlocked) b.emoji else "🔒", fontSize = 26.sp)
-                            Text(
-                                b.title,
-                                fontSize = 11.sp,
-                                textAlign = TextAlign.Center,
-                                color = if (b.unlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(
+                                Modifier.padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(if (b.unlocked) b.emoji else "🔒", fontSize = 22.sp)
+                                Text(
+                                    b.title,
+                                    fontSize = 11.sp,
+                                    textAlign = TextAlign.Center,
+                                    color = if (b.unlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -293,10 +411,11 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
 @Composable
 private fun QuestRow(done: Boolean, title: String, reward: String, action: String?, onAction: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(if (done) "✅" else "⬜", fontSize = 20.sp)
+        Text(if (done) "✅" else "⬜", fontSize = 18.sp)
         Text(
             "  $title",
             modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
             color = if (done) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
         if (!done && action != null) {
