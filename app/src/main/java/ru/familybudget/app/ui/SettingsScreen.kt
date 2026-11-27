@@ -186,6 +186,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         Surface(
             shape = RoundedCornerShape(22.dp),
             color = Sheet.glass(),
+            contentColor = MaterialTheme.colorScheme.onSurface,
             border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
         ) {
             Column {
@@ -260,6 +261,7 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
         Surface(
             shape = RoundedCornerShape(22.dp),
             color = Sheet.glass(),
+            contentColor = MaterialTheme.colorScheme.onSurface,
             border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
         ) {
             Column(Modifier.padding(vertical = 8.dp)) {
@@ -477,6 +479,7 @@ private fun CategoriesPage(vm: BudgetViewModel) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Sheet.glass(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
             ) {
                 ListItem(
@@ -553,6 +556,7 @@ private fun MandatoryPage(vm: BudgetViewModel) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Sheet.glass(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
             ) {
                 ListItem(
@@ -651,6 +655,7 @@ private fun AccountsPage(vm: BudgetViewModel) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Sheet.glass(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
             ) {
                 ListItem(
@@ -703,6 +708,7 @@ private fun PeoplePage(vm: BudgetViewModel) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = Sheet.glass(),
+                contentColor = MaterialTheme.colorScheme.onSurface,
                 border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
             ) {
                 ListItem(
@@ -903,6 +909,7 @@ private fun NotifCard(
     Surface(
         shape = RoundedCornerShape(22.dp),
         color = Sheet.glass(),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

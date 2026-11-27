@@ -545,6 +545,35 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         message = "🧘 День без трат засчитан! +20 XP"
     }
 
+    fun saveInstallment(item: ru.familybudget.app.data.InstallmentItem) {
+        store.update { s ->
+            val list = s.installments.toMutableList()
+            val idx = list.indexOfFirst { it.id == item.id }
+            if (idx >= 0) list[idx] = item else list.add(item.copy(id = System.currentTimeMillis()))
+            s.copy(installments = list)
+        }
+        message = "Рассрочка сохранена 💳"
+    }
+
+    fun deleteInstallment(id: Long) {
+        store.update { s -> s.copy(installments = s.installments.filterNot { it.id == id }) }
+        message = "Рассрочка удалена"
+    }
+
+    fun payInstallment(id: Long, amountCents: Long) {
+        if (amountCents <= 0L) return
+        val target = settings.value.installments.firstOrNull { it.id == id } ?: return
+        store.update { s ->
+            val list = s.installments.map {
+                if (it.id == id) it.copy(paidCents = (it.paidCents + amountCents).coerceAtMost(it.totalDebtCents))
+                else it
+            }
+            s.copy(installments = list)
+        }
+        quickAddExpense(amountCents, "Сплит и рассрочки")
+        message = "Платёж по «${target.title}» записан (+10 XP) 💳"
+    }
+
     fun addToCushion(deltaCents: Long, deductFromAccount: Boolean = false) {
         if (deltaCents <= 0L) return
         store.update { it.copy(cushionCents = (it.cushionCents + deltaCents).coerceAtLeast(0L)) }
