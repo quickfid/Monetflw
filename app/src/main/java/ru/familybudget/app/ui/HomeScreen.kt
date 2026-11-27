@@ -24,10 +24,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -375,7 +378,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
 
         // 11. Полезная финансовая подсказка и совет дня
         item {
-            var tipIdx by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+            var tipIdx by remember { mutableIntStateOf(0) }
             val extraTips = remember {
                 listOf(
                     "Переводите 10% от любого дохода в накопления в тот же день — привычка работает лучше силы воли.",
@@ -400,7 +403,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold
                         )
-                        androidx.compose.material3.TextButton(
+                        TextButton(
                             onClick = { tipIdx = (tipIdx + 1) % (extraTips.size + 1) },
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                         ) {
