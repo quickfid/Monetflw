@@ -14,9 +14,10 @@ object Fmt {
     private val dateFormat = DateTimeFormatter.ofPattern("d MMMM, EEE", ru)
 
     fun money(cents: Long, currency: String, decimals: Boolean = true): String {
+        val showDecimals = decimals && (cents % 100L != 0L)
         val nf = NumberFormat.getNumberInstance(ru)
-        nf.minimumFractionDigits = if (decimals) 2 else 0
-        nf.maximumFractionDigits = if (decimals) 2 else 0
+        nf.minimumFractionDigits = if (showDecimals) 2 else 0
+        nf.maximumFractionDigits = if (showDecimals) 2 else 0
         return nf.format(cents / 100.0) + " " + currency
     }
 

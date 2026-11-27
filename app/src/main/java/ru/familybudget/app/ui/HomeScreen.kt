@@ -1,8 +1,10 @@
 package ru.familybudget.app.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -747,7 +749,50 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         }
                     )
                 }
+                var trophiesExpanded by remember { mutableStateOf(false) }
+                Row(
+                    Modifier.fillMaxWidth().clickable { trophiesExpanded = !trophiesExpanded },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Трофеи (${game.badges.count { it.unlocked }}/${game.badges.size})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        InfoHintIcon(
+                            "Получайте бронзовые (+15 XP), серебряные (+30 XP), золотые (+90 XP) и платиновый (+300 XP) трофеи за ведение бюджета, серию дней и выполнение плана.",
+                            title = "Система трофеев"
+                        )
+                    }
+                    Text(
+                        if (trophiesExpanded) "Свернуть ▴" else "Развернуть ▾",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                androidx.compose.animation.AnimatedVisibility(visible = trophiesExpanded) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "platGlow")
+                    val platScale by infiniteTransition.animateFloat(
+                        initialValue = 1.0f,
+                        targetValue = 1.09f,
+                        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                            animation = tween(1400, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                        ),
+                        label = "platScale"
+                    )
+                    val platGlowAlpha by infiniteTransition.animateFloat(
+                        initialValue = 0.35f,
+                        targetValue = 0.85f,
+                        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                            animation = tween(1400, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                        ),
+                        label = "platGlowAlpha"
+                    )
                     game.badges.forEach { b ->
                         val cardTone = when {
                             !b.unlocked -> Sheet.glass()
@@ -756,26 +801,97 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             b.tier == TrophyTier.SILVER -> Sheet.glass()
                             else -> Sheet.tone(Tone.WARN)
                         }
+                        val badgeBg = when (b.tier) {
+                            TrophyTier.GOLD -> Color(0xFFFFD54F).copy(alpha = if (b.unlocked) 0.35f else 0.14f)
+                            TrophyTier.SILVER -> Color(0xFFB0BEC5).copy(alpha = if (b.unlocked) 0.38f else 0.14f)
+                            TrophyTier.BRONZE -> Color(0xFFD78852).copy(alpha = if (b.unlocked) 0.32f else 0.14f)
+                            TrophyTier.PLATINUM -> Color(0xFF4FC3F7).copy(alpha = platGlowAlpha)
+                        }
                         Surface(
                             modifier = Modifier.width(96.dp).clickable { selectedBadge = b },
                             shape = RoundedCornerShape(16.dp),
                             color = cardTone,
-                            border = BorderStroke(1.dp, Sheet.glassBorderBrush())
+                            border = BorderStroke(
+                                if (b.tier == TrophyTier.PLATINUM) 1.6.dp else 1.dp,
+                                if (b.tier == TrophyTier.PLATINUM) Color(0xFF81D4FA).copy(alpha = platGlowAlpha)
+                                else Sheet.glassBorderBrush()
+                            )
                         ) {
                             Column(
                                 Modifier.padding(8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Image(
-                                    painter = painterResource(trophyDrawable(b.tier)),
-                                    contentDescription = b.tier.label,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .alpha(if (b.unlocked) 1f else 0.32f)
-                                )
+                                if (b.tier == TrophyTier.PLATINUM) {
+                                    // Платиновый трофей: ТОЛЬКО яркий анимированный кубок с сиянием
+                                    Box(
+                                        modifier = Modifier.size(50.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Surface(
+                                            modifier = Modifier
+                                                .size(46.dp)
+                                                .graphicsLayer {
+                                                    scaleX = platScale
+                                                    scaleY = platScale
+                                                },
+                                            shape = CircleShape,
+                                            color = badgeBg
+                                        ) {}
+                                        Image(
+                                            painter = painterResource(R.drawable.trophy_platinum),
+                                            contentDescription = b.tier.label,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .clip(CircleShape)
+                                                .graphicsLayer {
+                                                    scaleX = platScale
+                                                    scaleY = platScale
+                                                }
+                                                .alpha(if (b.unlocked) 1f else 0.72f)
+                                        )
+                                    }
+                                } else {
+                                    // Уникальная иконка достижения в стиле PS5 + значок кубка (Бронза/Серебро/Золото)
+                                    Box(
+                                        modifier = Modifier.size(50.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Surface(
+                                            modifier = Modifier.size(44.dp),
+                                            shape = CircleShape,
+                                            color = badgeBg,
+                                            border = BorderStroke(1.dp, Sheet.glassBorderBrush())
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    b.emoji,
+                                                    fontSize = 21.sp,
+                                                    modifier = Modifier.alpha(if (b.unlocked) 1f else 0.35f)
+                                                )
+                                            }
+                                        }
+                                        Surface(
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .align(Alignment.BottomEnd),
+                                            shape = CircleShape,
+                                            color = Sheet.glass(),
+                                            border = BorderStroke(0.8.dp, Sheet.glassBorderBrush())
+                                        ) {
+                                            Image(
+                                                painter = painterResource(trophyDrawable(b.tier)),
+                                                contentDescription = b.tier.label,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape)
+                                                    .alpha(if (b.unlocked) 1f else 0.45f)
+                                            )
+                                        }
+                                    }
+                                }
                                 Text(
                                     b.title,
                                     fontSize = 11.sp,
@@ -786,13 +902,14 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                     color = if (b.unlocked) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    "${b.tier.label} · +${b.tier.xp}",
+                                    "+${b.tier.xp} XP",
                                     fontSize = 9.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
+                }
                 }
             }
         }
