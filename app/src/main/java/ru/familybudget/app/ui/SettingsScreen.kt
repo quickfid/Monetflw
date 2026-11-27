@@ -381,14 +381,21 @@ private fun CategoriesPage(vm: BudgetViewModel) {
             FilterChip(selected = income, onClick = { income = true }, label = { Text("Доходы") })
         }
         list.forEach { c ->
-            ListItem(
-                leadingContent = { CategoryBadge(c.name, settings.categoryIcons, size = 36.dp) },
-                headlineContent = { Text(c.name) },
-                supportingContent = {
-                    if (!c.isIncome) Text(if (c.limitCents > 0) "Лимит: " + Fmt.money(c.limitCents, cur, false) else "Без лимита")
-                },
-                modifier = Modifier.clickable { dialog = c }
-            )
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Sheet.glass(),
+                border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+            ) {
+                ListItem(
+                    leadingContent = { CategoryBadge(c.name, settings.categoryIcons, size = 36.dp) },
+                    headlineContent = { Text(c.name) },
+                    supportingContent = {
+                        if (!c.isIncome) Text(if (c.limitCents > 0) "Лимит: " + Fmt.money(c.limitCents, cur, false) else "Без лимита")
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.clickable { dialog = c }
+                )
+            }
         }
         OutlinedButton(onClick = { dialog = Category(name = "", isIncome = income) }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null)
@@ -450,12 +457,19 @@ private fun MandatoryPage(vm: BudgetViewModel) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (items.isEmpty()) EmptyHint("Пока пусто. Отмеченный на обзоре платёж сам превращается в расход.")
         items.forEach { m ->
-            ListItem(
-                headlineContent = { Text(m.name) },
-                supportingContent = { Text("до ${m.day} числа · ${m.category}") },
-                trailingContent = { Text(Fmt.money(m.amountCents, cur)) },
-                modifier = Modifier.clickable { dialog = m }
-            )
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Sheet.glass(),
+                border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+            ) {
+                ListItem(
+                    headlineContent = { Text(m.name) },
+                    supportingContent = { Text("до ${m.day} числа · ${m.category}") },
+                    trailingContent = { Text(Fmt.money(m.amountCents, cur)) },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.clickable { dialog = m }
+                )
+            }
         }
         OutlinedButton(
             onClick = { dialog = Mandatory(name = "", day = 1, amountCents = 0, category = expenseCategories.firstOrNull().orEmpty()) },
@@ -507,12 +521,24 @@ private fun AccountsPage(vm: BudgetViewModel) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         accounts.forEach { a ->
-            ListItem(
-                headlineContent = { Text(a.name) },
-                supportingContent = { Text("Начальный остаток: " + Fmt.money(a.initialCents, cur)) },
-                trailingContent = { Text(Fmt.money(ru.familybudget.app.logic.Stats.accountBalance(a, ops), cur)) },
-                modifier = Modifier.clickable { dialog = a }
-            )
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Sheet.glass(),
+                border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+            ) {
+                ListItem(
+                    headlineContent = { Text(a.name) },
+                    supportingContent = {
+                        Text(
+                            if (a.initialCents >= 0L) "Начальный остаток: " + Fmt.money(a.initialCents, cur)
+                            else "Баланс скорректирован под стартовые операции"
+                        )
+                    },
+                    trailingContent = { Text(Fmt.money(ru.familybudget.app.logic.Stats.accountBalance(a, ops), cur)) },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.clickable { dialog = a }
+                )
+            }
         }
         OutlinedButton(onClick = { dialog = Account(name = "") }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null)
@@ -547,12 +573,19 @@ private fun PeoplePage(vm: BudgetViewModel) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         settings.persons.forEach { p ->
-            ListItem(
-                headlineContent = { Text(p) },
-                trailingContent = {
-                    if (settings.persons.size > 1) TextButton(onClick = { vm.removePerson(p) }) { Text("Удалить") }
-                }
-            )
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Sheet.glass(),
+                border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
+            ) {
+                ListItem(
+                    headlineContent = { Text(p) },
+                    trailingContent = {
+                        if (settings.persons.size > 1) TextButton(onClick = { vm.removePerson(p) }) { Text("Удалить") }
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+                )
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(
