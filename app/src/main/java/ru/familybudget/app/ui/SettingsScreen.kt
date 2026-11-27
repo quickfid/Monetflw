@@ -201,6 +201,11 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                 onCheckedChange = { vm.setWallpaperBackground(it) }
             )
         }
+        HorizontalDivider()
+        MenuItem(
+            "🔄 Проверить обновления",
+            if (vm.checkingUpdate) "Проверяем…" else "Установить новую версию прямо в приложении"
+        ) { vm.checkForUpdate(silent = false) }
         Text(
             "Данные только на вашем телефоне · v1.4.0",
             modifier = Modifier.padding(16.dp),
