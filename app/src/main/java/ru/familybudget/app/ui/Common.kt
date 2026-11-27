@@ -122,6 +122,25 @@ fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifie
 }
 
 @Composable
+fun InfoHintIcon(text: String, title: String = "Подсказка") {
+    var open by remember { mutableStateOf(false) }
+    TextButton(
+        onClick = { open = true },
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+    ) {
+        Text("ⓘ", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    if (open) {
+        AlertDialog(
+            onDismissRequest = { open = false },
+            title = { Text(title) },
+            text = { Text(text, style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = { TextButton(onClick = { open = false }) { Text("Понятно") } }
+        )
+    }
+}
+
+@Composable
 fun Section(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         modifier = modifier.fillMaxWidth(),
