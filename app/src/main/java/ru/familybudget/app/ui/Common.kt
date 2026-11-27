@@ -96,6 +96,7 @@ fun MonthSwitcher(title: String, onPrev: () -> Unit, onNext: () -> Unit, modifie
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(50),
         color = Sheet.glass(),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
         Row(
@@ -146,6 +147,7 @@ fun Section(title: String, modifier: Modifier = Modifier, content: @Composable C
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         color = Sheet.glass(),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -167,6 +169,7 @@ fun StatCard(label: String, value: String, modifier: Modifier = Modifier, tone: 
         modifier = modifier,
         shape = RoundedCornerShape(22.dp),
         color = Sheet.tone(tone),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
         Column(
@@ -399,6 +402,7 @@ fun Banner(title: String, tone: Tone, modifier: Modifier = Modifier, content: @C
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         color = Sheet.tone(tone),
+        contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush())
     ) {
         Column(
