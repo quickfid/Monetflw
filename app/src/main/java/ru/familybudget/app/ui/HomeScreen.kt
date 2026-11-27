@@ -228,7 +228,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     shape = RoundedCornerShape(50),
                     color = Sheet.glass(),
                     border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
-                    modifier = Modifier.clickable { vm.toggleHideAmounts() }
+                    modifier = Modifier.bouncyClickable { vm.toggleHideAmounts() }
                 ) {
                     Text(
                         if (hidden) "🙈" else "👁️",
@@ -241,7 +241,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         shape = RoundedCornerShape(50),
                         color = Sheet.glass(),
                         border = BorderStroke(1.2.dp, Sheet.glassBorderBrush()),
-                        modifier = Modifier.clickable(enabled = !vm.syncing) { vm.syncAll() }
+                        modifier = Modifier.bouncyClickable(enabled = !vm.syncing) { vm.syncAll() }
                     ) {
                         Text(
                             when {
@@ -279,8 +279,13 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White.copy(alpha = 0.85f)
                     )
+                    val animatedBalance by animateFloatAsState(
+                        targetValue = balance.toFloat(),
+                        animationSpec = tween(550, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                        label = "heroBalance"
+                    )
                     Text(
-                        money(balance),
+                        money(animatedBalance.toLong()),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -342,7 +347,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Surface(
-                    modifier = Modifier.weight(1f).height(48.dp).clickable { showQuickExpense = true },
+                    modifier = Modifier.weight(1f).height(48.dp).bouncyClickable { showQuickExpense = true },
                     shape = RoundedCornerShape(50),
                     color = Sheet.tone(Tone.EXPENSE),
                     border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())
@@ -358,7 +363,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     }
                 }
                 Surface(
-                    modifier = Modifier.weight(1f).height(48.dp).clickable { vm.startNew(OpType.INCOME) },
+                    modifier = Modifier.weight(1f).height(48.dp).bouncyClickable { vm.startNew(OpType.INCOME) },
                     shape = RoundedCornerShape(50),
                     color = Sheet.tone(Tone.INCOME),
                     border = BorderStroke(1.3.dp, Sheet.glassBorderBrush())

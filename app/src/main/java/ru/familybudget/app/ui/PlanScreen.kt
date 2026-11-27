@@ -128,8 +128,16 @@ fun PlanScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         )
                     }
                     if (plan > 0) {
+                        val animRatio by androidx.compose.animation.core.animateFloatAsState(
+                            targetValue = ratio.coerceIn(0f, 1f),
+                            animationSpec = androidx.compose.animation.core.tween(
+                                500,
+                                easing = androidx.compose.animation.core.FastOutSlowInEasing
+                            ),
+                            label = "planBar_$name"
+                        )
                         LinearProgressIndicator(
-                            progress = { ratio.coerceIn(0f, 1f) },
+                            progress = { animRatio },
                             modifier = Modifier.fillMaxWidth().height(9.dp),
                             color = when {
                                 over -> expenseColor
