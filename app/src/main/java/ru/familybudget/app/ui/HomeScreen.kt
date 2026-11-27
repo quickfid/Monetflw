@@ -813,8 +813,11 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             color = cardTone,
                             border = BorderStroke(
                                 if (b.tier == TrophyTier.PLATINUM) 1.6.dp else 1.dp,
-                                if (b.tier == TrophyTier.PLATINUM) Color(0xFF81D4FA).copy(alpha = platGlowAlpha)
-                                else Sheet.glassBorderBrush()
+                                if (b.tier == TrophyTier.PLATINUM) {
+                                    androidx.compose.ui.graphics.SolidColor(Color(0xFF81D4FA).copy(alpha = platGlowAlpha))
+                                } else {
+                                    Sheet.glassBorderBrush()
+                                }
                             )
                         ) {
                             Column(
