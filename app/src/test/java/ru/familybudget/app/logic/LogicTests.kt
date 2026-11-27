@@ -30,7 +30,7 @@ class LogicTests {
         val ops = listOf(
             Operation(id = 1, date = today, amountCents = 200_000L, type = OpType.INCOME, category = "Зарплата", account = "Карта"),
             Operation(id = 2, date = today, amountCents = 40_000L, type = OpType.EXPENSE, category = "Продукты", account = "Карта"),
-            Operation(id = 3, date = today, amountCents = 30_000L, type = OpType.TRANSFER, account = "Карта", destAccount = "Наличные")
+            Operation(id = 3, date = today, amountCents = 30_000L, type = OpType.TRANSFER, category = "Перевод", account = "Карта", destAccount = "Наличные")
         )
         assertEquals(200_000L, ops[0].delta())
         assertEquals(-40_000L, ops[1].delta())

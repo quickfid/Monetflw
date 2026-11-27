@@ -47,10 +47,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: 4. Настройка Gradle 8.9
+      - name: 4. Настройка Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.11.1'
 
       - name: 5. Проверка Gradle
         run: gradle --version
