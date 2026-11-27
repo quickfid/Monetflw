@@ -89,7 +89,7 @@ object Game {
                 incomeByMonth[k] = (incomeByMonth[k] ?: 0L) + o.amountCents
                 hasIncome = true
             }
-            if (o.note.isNotBlank()) withNotes++
+            if (o.comment.isNotBlank()) withNotes++
             if (o.person.isNotBlank()) persons.add(o.person)
         }
         val planTotals = plans.groupBy { it.ym }.mapValues { e -> e.value.sumOf { it.amountCents } }
