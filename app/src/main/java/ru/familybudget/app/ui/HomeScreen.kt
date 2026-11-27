@@ -301,10 +301,19 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                     Modifier
                         .fillMaxWidth()
                         .background(AppColors.heroBrush())
-                        .padding(18.dp)
                 ) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     val isCalm = LocalUiStyle.current == "modern"
+                    if (isCalm && f.cumulative.size >= 2 && f.spent > 0) {
+                        HeroSpendingSparkline(
+                            points = f.cumulative,
+                            lineColor = Color(0xFF6EE7B7),
+                            modifier = Modifier.matchParentSize()
+                        )
+                    }
+                Column(
+                    Modifier.fillMaxWidth().padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     if (isCalm) {
                         Row(
                             Modifier.fillMaxWidth(),
@@ -951,8 +960,9 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
             }
         }
 
-        // 8. График трат по дням
-        if ((f.isCurrent || f.isPast) && f.spent > 0) {
+        // 8. График трат по дням (в стиле «Матовое стекло» встроен фоном в карточку баланса)
+        val showStandaloneChart = LocalUiStyle.current != "modern"
+        if (showStandaloneChart && (f.isCurrent || f.isPast) && f.spent > 0) {
             item {
                 Section("Динамика расходов по дням") {
                     BurnChart(
@@ -1347,5 +1357,65 @@ private fun QuestRow(done: Boolean, title: String, reward: String, action: Strin
         } else {
             Text(reward, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+/** Плавный фоновый спарклайн расходов по дням со световой точкой (как на эскизе). */
+@Composable
+private fun HeroSpendingSparkline(
+    points: List<Long>,
+    lineColor: Color,
+    modifier: Modifier = Modifier
+) {
+    androidx.compose.foundation.Canvas(modifier = modifier) {
+        if (points.size < 2) return@Canvas
+        val maxVal = (points.maxOrNull() ?: 1L).coerceAtLeast(1L).toFloat()
+        val startX = size.width * 0.42f
+        val endX = size.width * 0.94f
+        val topY = size.height * 0.22f
+        val bottomY = size.height * 0.68f
+        val stepX = (endX - startX) / (points.size - 1).coerceAtLeast(1)
+
+        val coords = points.mapIndexed { i, v ->
+            val x = startX + i * stepX
+            val y = bottomY - (v.toFloat() / maxVal) * (bottomY - topY)
+            androidx.compose.ui.geometry.Offset(x, y)
+        }
+
+        val linePath = androidx.compose.ui.graphics.Path().apply {
+            moveTo(coords.first().x, coords.first().y)
+            for (i in 1 until coords.size) {
+                val p0 = coords[i - 1]
+                val p1 = coords[i]
+                val cx = (p0.x + p1.x) / 2f
+                cubicTo(cx, p0.y, cx, p1.y, p1.x, p1.y)
+            }
+        }
+        val fillPath = androidx.compose.ui.graphics.Path().apply {
+            addPath(linePath)
+            lineTo(coords.last().x, bottomY + 12f)
+            lineTo(coords.first().x, bottomY + 12f)
+            close()
+        }
+
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                colors = listOf(lineColor.copy(alpha = 0.24f), Color.Transparent),
+                startY = topY,
+                endY = bottomY + 12f
+            )
+        )
+        drawPath(
+            path = linePath,
+            color = lineColor.copy(alpha = 0.85f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = 2.2.dp.toPx(),
+                cap = androidx.compose.ui.graphics.StrokeCap.Round
+            )
+        )
+        val tip = coords.last()
+        drawCircle(color = lineColor.copy(alpha = 0.28f), radius = 9.dp.toPx(), center = tip)
+        drawCircle(color = lineColor, radius = 3.8.dp.toPx(), center = tip)
     }
 }
