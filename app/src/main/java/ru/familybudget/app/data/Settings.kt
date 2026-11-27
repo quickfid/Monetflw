@@ -43,7 +43,15 @@ data class AppSettings(
     /** Пользовательские иконки категорий: название категории → ключ иконки. */
     val categoryIcons: Map<String, String> = emptyMap(),
     /** Использовать размытые обои рабочего стола как фон приложения. */
-    val wallpaperBackground: Boolean = false
+    val wallpaperBackground: Boolean = false,
+    /** Режим приватности: скрывать суммы на главном экране. */
+    val hideAmounts: Boolean = false,
+    /** Прозрачность стеклянных карточек (0.20f .. 0.85f). */
+    val glassOpacity: Float = 0.40f,
+    /** Сила размытия обоев рабочего стола на Android 12+ (0 .. 120). */
+    val blurRadius: Int = 48,
+    /** Акцентная цветовая тема: teal, emerald, indigo, graphite. */
+    val accentTheme: String = "teal"
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -74,7 +82,10 @@ class SettingsStore(context: Context) {
             goals = parseGoals(prefs.getString("goals_json", "").orEmpty()),
             categoryIcons = parseIcons(prefs.getString("category_icons_json", "").orEmpty()),
             wallpaperBackground = prefs.getBoolean("wallpaperBackground", false),
-            hideAmounts = prefs.getBoolean("hideAmounts", false)
+            hideAmounts = prefs.getBoolean("hideAmounts", false),
+            glassOpacity = prefs.getFloat("glassOpacity", 0.40f).coerceIn(0.20f, 0.85f),
+            blurRadius = prefs.getInt("blurRadius", 48).coerceIn(0, 120),
+            accentTheme = prefs.getString("accentTheme", "teal").orEmpty().ifBlank { "teal" }
         )
     }
 
@@ -155,6 +166,9 @@ class SettingsStore(context: Context) {
             .putString("category_icons_json", serializeIcons(next.categoryIcons))
             .putBoolean("wallpaperBackground", next.wallpaperBackground)
             .putBoolean("hideAmounts", next.hideAmounts)
+            .putFloat("glassOpacity", next.glassOpacity)
+            .putInt("blurRadius", next.blurRadius)
+            .putString("accentTheme", next.accentTheme)
             .apply()
         state.value = next
     }

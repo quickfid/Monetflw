@@ -491,6 +491,18 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         store.update { it.copy(hideAmounts = !it.hideAmounts) }
     }
 
+    fun setGlassOpacity(alpha: Float) {
+        store.update { it.copy(glassOpacity = alpha.coerceIn(0.20f, 0.85f)) }
+    }
+
+    fun setBlurRadius(radius: Int) {
+        store.update { it.copy(blurRadius = radius.coerceIn(0, 120)) }
+    }
+
+    fun setAccentTheme(theme: String) {
+        store.update { it.copy(accentTheme = theme) }
+    }
+
     /** Быстрая запись расхода за 2 секунды из нижней шторки. */
     fun quickAddExpense(amountCents: Long, category: String) {
         if (amountCents <= 0L) return

@@ -35,6 +35,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -240,6 +241,52 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                         checked = settings.wallpaperBackground,
                         onCheckedChange = { vm.setWallpaperBackground(it) }
                     )
+                }
+                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp)) {
+                    Text(
+                        "Прозрачность стекла: ${(settings.glassOpacity * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Slider(
+                        value = settings.glassOpacity,
+                        onValueChange = { vm.setGlassOpacity(it) },
+                        valueRange = 0.20f..0.85f
+                    )
+                }
+                if (settings.wallpaperBackground && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                        Text(
+                            "Сила размытия обоев: ${settings.blurRadius}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Slider(
+                            value = settings.blurRadius.toFloat(),
+                            onValueChange = { vm.setBlurRadius(it.toInt()) },
+                            valueRange = 0f..120f
+                        )
+                    }
+                }
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Акцентный цвет", style = MaterialTheme.typography.bodyMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf(
+                            Triple("teal", "Бирюза", Color(0xFF1B6B7A)),
+                            Triple("emerald", "Изумруд", Color(0xFF127A52)),
+                            Triple("indigo", "Индиго", Color(0xFF3E44A8)),
+                            Triple("graphite", "Графит", Color(0xFF2E3A47))
+                        ).forEach { (key, label, swatch) ->
+                            val selected = settings.accentTheme == key
+                            Surface(
+                                shape = CircleShape,
+                                color = swatch,
+                                border = BorderStroke(if (selected) 3.dp else 1.dp, if (selected) Color.White else Sheet.border()),
+                                modifier = Modifier.size(34.dp).clickable { vm.setAccentTheme(key) }
+                            ) {}
+                        }
+                    }
                 }
                 HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
                 MenuItem(
