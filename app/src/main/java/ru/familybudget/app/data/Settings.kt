@@ -51,7 +51,9 @@ data class AppSettings(
     /** Сила размытия обоев рабочего стола на Android 12+ (0 .. 120). */
     val blurRadius: Int = 48,
     /** Акцентная цветовая тема: teal, emerald, indigo, graphite. */
-    val accentTheme: String = "teal"
+    val accentTheme: String = "teal",
+    /** Отдельная сумма финансовой подушки безопасности (в копейках, не зависит от вкладов). */
+    val cushionCents: Long = 0L
 )
 
 /** Простое хранилище настроек. URL и токен вводятся в приложении, пересобирать APK не нужно. */
@@ -85,7 +87,8 @@ class SettingsStore(context: Context) {
             hideAmounts = prefs.getBoolean("hideAmounts", false),
             glassOpacity = prefs.getFloat("glassOpacity", 0.40f).coerceIn(0.20f, 0.85f),
             blurRadius = prefs.getInt("blurRadius", 48).coerceIn(0, 120),
-            accentTheme = prefs.getString("accentTheme", "teal").orEmpty().ifBlank { "teal" }
+            accentTheme = prefs.getString("accentTheme", "teal").orEmpty().ifBlank { "teal" },
+            cushionCents = prefs.getLong("cushionCents", 0L).coerceAtLeast(0L)
         )
     }
 
@@ -169,6 +172,7 @@ class SettingsStore(context: Context) {
             .putFloat("glassOpacity", next.glassOpacity)
             .putInt("blurRadius", next.blurRadius)
             .putString("accentTheme", next.accentTheme)
+            .putLong("cushionCents", next.cushionCents)
             .apply()
         state.value = next
     }

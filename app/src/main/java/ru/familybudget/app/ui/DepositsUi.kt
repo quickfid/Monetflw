@@ -196,16 +196,59 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
             }
         }
 
-        // Финансовая подушка (реальный прогресс)
-        if (cushionGoal > 0) {
-            val fraction = (totalSavings.toFloat() / cushionGoal).coerceIn(0f, 1f)
-            val animatedCushion by animateFloatAsState(
-                targetValue = fraction,
-                animationSpec = tween(500),
-                label = "cushionProgress"
+        // Финансовая подушка (отдельный независимый резерв, не связанный со вкладами)
+        var cushionDialogMode by remember { mutableStateOf<String?>(null) } // "add" | "set"
+        var cushionInput by remember { mutableStateOf("") }
+        if (cushionDialogMode != null) {
+            val isAdd = cushionDialogMode == "add"
+            AlertDialog(
+                onDismissRequest = { cushionDialogMode = null },
+                title = { Text(if (isAdd) "🛡️ Пополнить подушку" else "🛡️ Сумма в подушке") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            if (isAdd) "Сколько вы внесли в финансовую подушку?"
+                            else "Укажите текущую / стартовую сумму в вашей финансовой подушке (независимо от вкладов):",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        MoneyField(cushionInput, { cushionInput = it }, "Сумма ($cur)")
+                        if (isAdd) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(5_000L, 10_000L, 20_000L).forEach { v ->
+                                    TextButton(onClick = {
+                                        val curRub = (Fmt.parseCents(cushionInput) ?: 0L) / 100L
+                                        cushionInput = (curRub + v).toString()
+                                    }) { Text("+${v / 1000}к") }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val cents = Fmt.parseCents(cushionInput) ?: 0L
+                        if (isAdd) vm.addToCushion(cents) else vm.setCushionCents(cents)
+                        cushionDialogMode = null
+                    }) { Text(if (isAdd) "Внести" else "Сохранить") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { cushionDialogMode = null }) { Text("Отмена") }
+                }
             )
-            val monthsCovered = if (monthlyBase > 0) totalSavings.toDouble() / monthlyBase else 0.0
-            Section("🛡️ Финансовая подушка (цель: 3 месяца)") {
+        }
+
+        val cushionNow = settings.cushionCents
+        val fraction = if (cushionGoal > 0) (cushionNow.toFloat() / cushionGoal).coerceIn(0f, 1f) else 0f
+        val animatedCushion by animateFloatAsState(
+            targetValue = fraction,
+            animationSpec = tween(500),
+            label = "cushionProgress"
+        )
+        val monthsCovered = if (monthlyBase > 0) cushionNow.toDouble() / monthlyBase else 0.0
+        Section("🛡️ Финансовая подушка (цель: 3 месяца)") {
+            KeyValueRow("Накоплено в подушке", Fmt.money(cushionNow, cur, false), savingsColor)
+            if (cushionGoal > 0) {
                 LinearProgressIndicator(
                     progress = { animatedCushion },
                     modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)),
@@ -217,6 +260,18 @@ fun DepositsPage(vm: BudgetViewModel, padding: PaddingValues = PaddingValues(0.d
                     savingsColor
                 )
                 KeyValueRow("Цель (3 месяца бюджета)", Fmt.money(cushionGoal, cur, false))
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { cushionInput = ""; cushionDialogMode = "add" },
+                    modifier = Modifier.weight(1f)
+                ) { Text("+ Пополнить") }
+                TextButton(
+                    onClick = {
+                        cushionInput = if (cushionNow > 0) (cushionNow / 100L).toString() else ""
+                        cushionDialogMode = "set"
+                    }
+                ) { Text("Изменить") }
             }
         }
 

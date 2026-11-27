@@ -503,6 +503,17 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         store.update { it.copy(accentTheme = theme) }
     }
 
+    fun setCushionCents(cents: Long) {
+        store.update { it.copy(cushionCents = cents.coerceAtLeast(0L)) }
+        message = "Финансовая подушка обновлена 🛡️"
+    }
+
+    fun addToCushion(deltaCents: Long) {
+        if (deltaCents <= 0L) return
+        store.update { it.copy(cushionCents = (it.cushionCents + deltaCents).coerceAtLeast(0L)) }
+        message = "Подушка пополнена 🛡️"
+    }
+
     /** Быстрая запись расхода за 2 секунды из нижней шторки. */
     fun quickAddExpense(amountCents: Long, category: String) {
         if (amountCents <= 0L) return
