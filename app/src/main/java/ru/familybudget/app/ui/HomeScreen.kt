@@ -291,7 +291,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         }
 
         // 2. Главная акцентная карточка баланса (полупрозрачное стекло со световой кромкой)
-        item {
+        item(key = "hero_balance") {
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = Color.Transparent,
@@ -546,7 +546,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         }
 
         // 3.6. Компактные «Квесты дня» (сворачиваемые, без визуального шума) + «День без трат»
-        item {
+        item(key = "daily_quests") {
             val todayIso = today.toString()
             val todayOps = remember(ops, todayDay) { ops.filter { it.date == todayDay } }
             val todayExpense = remember(todayOps) {
@@ -579,8 +579,16 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold
                             )
+                            val questProgress by androidx.compose.animation.core.animateFloatAsState(
+                                targetValue = doneCount / 3f,
+                                animationSpec = androidx.compose.animation.core.spring(
+                                    dampingRatio = 0.85f,
+                                    stiffness = androidx.compose.animation.core.Spring.StiffnessLow
+                                ),
+                                label = "questProgress"
+                            )
                             LinearProgressIndicator(
-                                progress = { doneCount / 3f },
+                                progress = { questProgress },
                                 modifier = Modifier.fillMaxWidth(0.75f).height(5.dp).clip(RoundedCornerShape(3.dp)),
                                 color = incomeColor
                             )
@@ -616,7 +624,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         }
 
         // 3.7. Компактный виджет «💳 Рассрочки и сплит» (как кредит: долг, дата платежа, комментарий)
-        item {
+        item(key = "installments") {
             var editInstallment by remember { mutableStateOf<ru.familybudget.app.data.InstallmentItem?>(null) }
             var showInstallmentDialog by remember { mutableStateOf(false) }
             val installments = settings.installments
@@ -936,7 +944,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
 
         // 7. Обязательные платежи
         if (mandatory.isNotEmpty()) {
-            item {
+            item(key = "mandatory_bills") {
                 Section("Обязательные платежи") {
                     mandatory.forEach { m ->
                         val isPaid = m.id in md.paid

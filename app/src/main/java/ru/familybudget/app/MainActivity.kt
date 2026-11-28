@@ -260,8 +260,8 @@ private fun BudgetApp() {
     AnimatedContent(
         targetState = screenKey,
         transitionSpec = {
-            (fadeIn(tween(380, easing = FastOutSlowInEasing)) + slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it / 22 }) togetherWith
-                (fadeOut(tween(300, easing = FastOutSlowInEasing)) + slideOutVertically(tween(300, easing = FastOutSlowInEasing)) { -it / 28 })
+            (fadeIn(tween(240, easing = FastOutSlowInEasing)) + slideInVertically(tween(240, easing = FastOutSlowInEasing)) { it / 28 }) togetherWith
+                (fadeOut(tween(180, easing = FastOutSlowInEasing)) + slideOutVertically(tween(180, easing = FastOutSlowInEasing)) { -it / 32 })
         },
         label = "rootScreen"
     ) { screen ->
@@ -383,10 +383,10 @@ private fun BudgetApp() {
                         targetState = tab,
                         transitionSpec = {
                             val dir = if (targetState > initialState) 1 else -1
-                            (fadeIn(tween(360, easing = FastOutSlowInEasing)) +
-                                slideInHorizontally(tween(360, easing = FastOutSlowInEasing)) { dir * it / 12 }) togetherWith
-                                (fadeOut(tween(280, easing = FastOutSlowInEasing)) +
-                                    slideOutHorizontally(tween(280, easing = FastOutSlowInEasing)) { -dir * it / 16 })
+                            (fadeIn(tween(220, easing = FastOutSlowInEasing)) +
+                                slideInHorizontally(tween(220, easing = FastOutSlowInEasing)) { dir * it / 18 }) togetherWith
+                                (fadeOut(tween(160, easing = FastOutSlowInEasing)) +
+                                    slideOutHorizontally(tween(160, easing = FastOutSlowInEasing)) { -dir * it / 22 })
                         },
                         label = "mainTab"
                     ) { currentTab ->

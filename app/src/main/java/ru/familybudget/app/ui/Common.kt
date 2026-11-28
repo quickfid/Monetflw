@@ -73,8 +73,8 @@ fun Modifier.bouncyClickable(enabled: Boolean = true, onClick: () -> Unit): Modi
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.96f else 1f,
-        animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessLow),
+        targetValue = if (pressed) 0.965f else 1f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMedium),
         label = "bouncyScale"
     )
     this
