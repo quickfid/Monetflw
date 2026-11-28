@@ -281,9 +281,9 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                     Button(onClick = { vm.setCurrency(currency) }) { Text("Применить") }
                 }
                 HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
-                var salaryText by remember(settings.monthlyIncomeCents) {
+                var salaryText by remember(settings.monthlyIncome) {
                     mutableStateOf(
-                        if (settings.monthlyIncomeCents > 0L) Fmt.input(settings.monthlyIncomeCents) else ""
+                        if (settings.monthlyIncome > 0L) Fmt.plain(settings.monthlyIncome) else ""
                     )
                 }
                 Row(
