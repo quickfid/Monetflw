@@ -532,7 +532,7 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
     /** Изменить фиксированную ежемесячную зарплату в настройках. */
     fun setFixedSalary(salaryCents: Long) {
         val clean = salaryCents.coerceAtLeast(0L)
-        store.update { it.copy(monthlyIncomeCents = clean) }
+        store.update { it.copy(monthlyIncome = clean) }
         message = "Фиксированная зарплата обновлена"
     }
 
