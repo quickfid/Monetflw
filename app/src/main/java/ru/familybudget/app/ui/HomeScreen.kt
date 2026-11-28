@@ -304,7 +304,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                         .background(AppColors.heroBrush())
                 ) {
                     val isCalm = LocalUiStyle.current == "modern"
-                    if (isCalm && f.cumulative.size >= 2 && f.spent > 0) {
+                    if (f.cumulative.size >= 2 && f.spent > 0) {
                         HeroSpendingSparkline(
                             points = f.cumulative,
                             lineColor = Color(0xFF6EE7B7),
