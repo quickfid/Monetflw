@@ -6,10 +6,23 @@ const OPERATIONS_SHEET = 'Операции';
 const REQUESTS_SHEET = '_API_Requests';
 const API_TOKEN = 'REPLACE_WITH_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS';
 
+// ─── Настройки Telegram-бота для ввода с iPhone ──────────────────────────────
+// Вставьте сюда токен от @BotFather (НИКОГДА не публикуйте реальный токен в открытый Git).
+const TELEGRAM_BOT_TOKEN = 'ВСТАВЬТЕ_СЮДА_ТОКЕН_ОТ_BOTFATHER';
+// Ваш числовой Telegram Chat ID (чтобы ботом могли пользоваться только вы).
+// Оставьте пустым при первом запуске — бот сам пришлёт ваш ID в ответ на /start.
+const TELEGRAM_ALLOWED_CHAT_ID = '';
+const TELEGRAM_DEFAULT_PERSON = 'Антон';
+const TELEGRAM_DEFAULT_ACCOUNT = 'Карта';
+
 function doPost(e) {
   const lock = LockService.getScriptLock();
   try {
     const data = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    // Если пришёл webhook от Telegram-бота (iPhone)
+    if (data && (data.message || data.callback_query)) {
+      return handleTelegramUpdate_(data);
+    }
     if (!constantTimeEqual_(String(data.token || ''), API_TOKEN)) return json_({ ok:false, error:'unauthorized' });
     if (data.action === 'exportReport') return exportReport_(data);
     if (data.action === 'getOperations') return getOperations_();
@@ -480,4 +493,149 @@ function buildYear_(sh, data, fmt) {
       .setOption('width', 600).setOption('height', 380).build();
     sh.insertChart(topChart);
   }
+}
+
+// ─── Telegram-бот для быстрого ввода и сводки с iPhone ───────────────────────
+
+/**
+ * Запустите эту функцию ОДИН РАЗ после развёртывания Веб-приложения (Развернуть → Новое развёртывание),
+ * чтобы привязать Telegram-бота к вашей Google Таблице.
+ */
+function setupTelegramWebhook() {
+  const webAppUrl = ScriptApp.getService().getUrl();
+  if (!webAppUrl || !TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN.indexOf('ВСТАВЬТЕ') === 0) {
+    throw new Error('Сначала вставьте TELEGRAM_BOT_TOKEN и сделайте Развернуть → Веб-приложение.');
+  }
+  const resp = UrlFetchApp.fetch(
+    'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/setWebhook?url=' + encodeURIComponent(webAppUrl)
+  );
+  Logger.log(resp.getContentText());
+}
+
+function handleTelegramUpdate_(update) {
+  const msg = update.message;
+  if (!msg || !msg.chat || !msg.text) return json_({ ok: true });
+  const chatId = String(msg.chat.id);
+  const text = String(msg.text).trim();
+
+  // Защита по личному Chat ID
+  if (TELEGRAM_ALLOWED_CHAT_ID && chatId !== String(TELEGRAM_ALLOWED_CHAT_ID)) {
+    tgSend_(chatId, '⛔ Доступ запрещён.');
+    return json_({ ok: true });
+  }
+
+  if (text === '/start' || text === '/help') {
+    const idNote = TELEGRAM_ALLOWED_CHAT_ID ? '' : ('\n\n🔑 Ваш Chat ID: `' + chatId + '` (впишите его в TELEGRAM_ALLOWED_CHAT_ID в скрипте для защиты).');
+    tgSend_(
+      chatId,
+      '👋 Привет! Я синхронизирую ваши траты с Android-приложением через Google Таблицу.\n\n' +
+      'Как записывать:\n' +
+      '• `650 продукты` — расход\n' +
+      '• `1200 такси до дома` — расход с комментарием\n' +
+      '• `+15000 премия` — доход\n\n' +
+      'Нажмите «📊 Сводка» для баланса за месяц.' + idNote,
+      true
+    );
+    return json_({ ok: true });
+  }
+
+  if (text === '📊 Сводка' || text.toLowerCase() === 'сводка') {
+    tgSend_(chatId, tgBuildSummary_(), true);
+    return json_({ ok: true });
+  }
+
+  // Парсинг сообщения вида: "650 продукты", "+5000 премия", "1250,50 озон кроссовки"
+  const m = text.match(/^([+-])?\s*(\d+(?:[.,]\d{1,2})?)\s*(.*)$/);
+  if (!m) {
+    tgSend_(chatId, 'Не понял сумму. Пример: `650 продукты` или `+10000 премия`.', true);
+    return json_({ ok: true });
+  }
+  const isIncome = m[1] === '+';
+  const amount = Number(m[2].replace(',', '.'));
+  const rest = (m[3] || '').trim();
+  if (!Number.isFinite(amount) || amount <= 0) {
+    tgSend_(chatId, 'Сумма должна быть больше 0.', true);
+    return json_({ ok: true });
+  }
+
+  const type = isIncome ? 'Доход' : 'Расход';
+  const category = isIncome ? (rest || 'Доход') : tgDetectCategory_(rest);
+  const comment = rest ? (rest + ' (Telegram)') : 'Telegram';
+  const requestId = 'tg-' + chatId + '-' + (msg.message_id || Date.now());
+
+  const ss = openSpreadsheet_();
+  const operations = ss.getSheetByName(OPERATIONS_SHEET);
+  if (!operations) {
+    tgSend_(chatId, '❌ В таблице не найден лист «Операции».');
+    return json_({ ok: true });
+  }
+  const requests = getRequestsSheet_(ss);
+  const when = new Date();
+  const row = [[when, type, category, amount, comment, TELEGRAM_DEFAULT_PERSON, TELEGRAM_DEFAULT_ACCOUNT, '']];
+  const nextRow = operations.getLastRow() + 1;
+  operations.getRange(nextRow, 1, 1, 8).setValues(row);
+  requests.appendRow([requestId, nextRow, when]);
+
+  const sign = isIncome ? '+' : '−';
+  tgSend_(chatId, '✅ Записано: ' + sign + amount.toLocaleString('ru-RU') + ' ₽ · ' + category + '\nНажмите ☁️ в приложении на Android для синхронизации.', true);
+  return json_({ ok: true });
+}
+
+function tgDetectCategory_(text) {
+  const s = String(text || '').toLowerCase();
+  if (/продукт|еда|пятёр|пятер|магнит|вкусвилл|лента|ашан|перекр|самокат|лавк/.test(s)) return 'Продукты';
+  if (/озон|ozon|wb|wildberries|маркет|вайлдбер/.test(s)) return 'Маркетплейсы';
+  if (/сплит|рассроч|долям|подел/.test(s)) return 'Сплит и рассрочки';
+  if (/такси|бенз|метро|трансп|авто|азс|парков/.test(s)) return 'Транспорт';
+  if (/кафе|кофе|рестор|достав|бургер|пицц/.test(s)) return 'Кафе и рестораны';
+  if (/связ|интерн|мтс|билайн|мегафон|теле2/.test(s)) return 'Связь и интернет';
+  if (/аптек|врач|здоров|клиник/.test(s)) return 'Здоровье';
+  if (/коммун|жкх|свет|вод/.test(s)) return 'Коммунальные платежи';
+  if (/аренд|кварт|жил/.test(s)) return 'Аренда квартиры';
+  if (/кино|игр|развлеч|досуг/.test(s)) return 'Развлечения';
+  return 'Прочие расходы';
+}
+
+function tgBuildSummary_() {
+  const ss = openSpreadsheet_();
+  const sh = ss.getSheetByName(OPERATIONS_SHEET);
+  if (!sh || sh.getLastRow() < 2) return '📊 Операций пока нет.';
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const vals = sh.getRange(2, 1, sh.getLastRow() - 1, 4).getValues();
+  let inc = 0, exp = 0;
+  for (let i = 0; i < vals.length; i++) {
+    const d = vals[i][0];
+    if (!(d instanceof Date) || d.getFullYear() !== y || d.getMonth() !== m) continue;
+    const t = String(vals[i][1] || '');
+    const a = Number(vals[i][3]) || 0;
+    if (t === 'Доход') inc += a;
+    else if (t === 'Расход') exp += a;
+  }
+  const bal = inc - exp;
+  return '📊 Сводка за текущий месяц:\n' +
+    '• Доходы: +' + inc.toLocaleString('ru-RU') + ' ₽\n' +
+    '• Расходы: −' + exp.toLocaleString('ru-RU') + ' ₽\n' +
+    '• Баланс месяца: ' + (bal >= 0 ? '+' : '−') + Math.abs(bal).toLocaleString('ru-RU') + ' ₽';
+}
+
+function tgSend_(chatId, text, withKeyboard) {
+  const payload = {
+    chat_id: chatId,
+    text: text,
+    parse_mode: 'Markdown'
+  };
+  if (withKeyboard) {
+    payload.reply_markup = {
+      keyboard: [[{ text: '📊 Сводка' }]],
+      resize_keyboard: true
+    };
+  }
+  UrlFetchApp.fetch('https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage', {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
 }
