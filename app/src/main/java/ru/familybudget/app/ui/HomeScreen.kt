@@ -553,9 +553,10 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                 todayOps.filter { it.type == OpType.EXPENSE }.sumOf { it.amountCents }
             }
             val markedNoSpend = todayIso in settings.noSpendDays
+            val isEvening = remember { java.time.LocalTime.now().hour >= 18 }
             val q1Done = todayOps.isNotEmpty() || markedNoSpend
-            val q2Done = f.safeDaily <= 0L || todayExpense <= f.safeDaily
-            val q3Done = mandatory.isEmpty() || paidCount > 0
+            val q2Done = q1Done && (f.safeDaily <= 0L || todayExpense <= f.safeDaily)
+            val q3Done = mandatory.isEmpty() || paidCount >= mandatory.size
             val doneCount = listOf(q1Done, q2Done, q3Done).count { it }
             var questsOpen by remember { mutableStateOf(false) }
 
@@ -598,10 +599,14 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
                             if (todayExpense == 0L && !markedNoSpend) {
                                 OutlinedButton(
                                     onClick = { vm.markNoSpendToday() },
+                                    enabled = isEvening,
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(50)
                                 ) {
-                                    Text("🧘 Сегодня без трат (+20 XP)")
+                                    Text(
+                                        if (isEvening) "Сегодня без трат (+20 XP)"
+                                        else "«День без трат» откроется после 18:00"
+                                    )
                                 }
                             }
                         }
