@@ -210,8 +210,10 @@ private fun BudgetApp() {
         !ru.familybudget.app.logic.Plans.hasPlan(plansNow, nowMonth)
     val askFixed = settings.onboarded && !askMonthlyGoals && settings.fixedPromptYm != nowMonth.toString() &&
         categoriesNow.any { !it.isIncome && Fmt.isBill(it.name) }
+    val todayDate = remember { LocalDate.now() }
     val askMonthlyBonus = settings.onboarded && !askMonthlyGoals && !askFixed &&
-        settings.bonusPromptYm != nowMonth.toString()
+        settings.bonusPromptYm != nowMonth.toString() &&
+        (settings.bonusPromptYm.isBlank() || todayDate.dayOfMonth == 1)
 
     if (askMonthlyBonus) {
         var bonusText by remember(nowMonth) { mutableStateOf("") }
