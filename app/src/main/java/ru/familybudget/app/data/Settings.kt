@@ -43,6 +43,8 @@ data class AppSettings(
     val hideTips: Boolean = false,
     /** Месяц «ГГГГ-ММ», для которого уже спросили суммы фиксированных платежей. */
     val fixedPromptYm: String = "",
+    /** Месяц «ГГГГ-ММ», для которого уже спросили ежемесячную премию (1-го числа). */
+    val bonusPromptYm: String = "",
     /** Вечернее напоминание каждый день в 20:00. */
     val dailyReminder: Boolean = false,
     /** Сколько процентов от дохода откладывать на подушку безопасности (5, 10, 15, 20). */
@@ -122,6 +124,7 @@ class SettingsStore(context: Context) {
             monthlyBudget = prefs.getLong("monthlyBudget", 0L),
             hideTips = prefs.getBoolean("hideTips", false),
             fixedPromptYm = prefs.getString("fixedPromptYm", "").orEmpty(),
+            bonusPromptYm = prefs.getString("bonusPromptYm", "").orEmpty(),
             dailyReminder = prefs.getBoolean("dailyReminder", false),
             savingsPercent = prefs.getInt("savingsPercent", 10),
             activeStrategy = prefs.getString("activeStrategy", "").orEmpty(),
@@ -271,6 +274,7 @@ class SettingsStore(context: Context) {
             .putLong("monthlyBudget", next.monthlyBudget)
             .putBoolean("hideTips", next.hideTips)
             .putString("fixedPromptYm", next.fixedPromptYm)
+            .putString("bonusPromptYm", next.bonusPromptYm)
             .putBoolean("dailyReminder", next.dailyReminder)
             .putInt("savingsPercent", next.savingsPercent)
             .putString("activeStrategy", next.activeStrategy)

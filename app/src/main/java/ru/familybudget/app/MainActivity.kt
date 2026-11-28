@@ -210,6 +210,42 @@ private fun BudgetApp() {
         !ru.familybudget.app.logic.Plans.hasPlan(plansNow, nowMonth)
     val askFixed = settings.onboarded && !askMonthlyGoals && settings.fixedPromptYm != nowMonth.toString() &&
         categoriesNow.any { !it.isIncome && Fmt.isBill(it.name) }
+    val askMonthlyBonus = settings.onboarded && !askMonthlyGoals && !askFixed &&
+        settings.bonusPromptYm != nowMonth.toString()
+
+    if (askMonthlyBonus) {
+        var bonusText by remember(nowMonth) { mutableStateOf("") }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { vm.submitMonthlyBonus(nowMonth, 0L) },
+            title = { Text("Ежемесячная премия") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Начался новый месяц (${Fmt.monthTitle(nowMonth)}). Введите сумму премии за прошлый месяц — она сразу запишется в доходы.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    ru.familybudget.app.ui.MoneyField(
+                        value = bonusText,
+                        onChange = { bonusText = it },
+                        label = "Сумма премии, ${settings.currency}"
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.Button(
+                    onClick = {
+                        val cents = Fmt.parseCents(bonusText) ?: 0L
+                        vm.submitMonthlyBonus(nowMonth, cents)
+                    }
+                ) { Text("Записать") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { vm.submitMonthlyBonus(nowMonth, 0L) }
+                ) { Text("Без премии") }
+            }
+        )
+    }
     ExportDialog(vm)
 
     val screenKey = when {
