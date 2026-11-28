@@ -84,6 +84,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
     val unsynced by vm.unsyncedCount.collectAsState()
     val cur = settings.currency
     val hidden = settings.hideAmounts
+    val isModernStyle = LocalUiStyle.current == "modern"
     fun money(cents: Long, showCents: Boolean = true): String =
         if (hidden) "•••• $cur" else Fmt.money(cents, cur, showCents)
 
@@ -961,8 +962,7 @@ fun HomeScreen(vm: BudgetViewModel, padding: PaddingValues) {
         }
 
         // 8. График трат по дням (в стиле «Матовое стекло» встроен фоном в карточку баланса)
-        val showStandaloneChart = LocalUiStyle.current != "modern"
-        if (showStandaloneChart && (f.isCurrent || f.isPast) && f.spent > 0) {
+        if (!isModernStyle && (f.isCurrent || f.isPast) && f.spent > 0) {
             item {
                 Section("Динамика расходов по дням") {
                     BurnChart(
