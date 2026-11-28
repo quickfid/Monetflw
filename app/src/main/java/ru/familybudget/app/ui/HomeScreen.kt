@@ -1400,7 +1400,7 @@ private fun HeroSpendingSparkline(
 
         drawPath(
             path = fillPath,
-            brush = Brush.verticalGradient(
+            brush = androidx.compose.ui.graphics.Brush.verticalGradient(
                 colors = listOf(lineColor.copy(alpha = 0.24f), Color.Transparent),
                 startY = topY,
                 endY = bottomY + 12f
