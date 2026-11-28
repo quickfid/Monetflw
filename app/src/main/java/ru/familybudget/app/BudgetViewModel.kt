@@ -529,6 +529,35 @@ class BudgetViewModel(app: Application) : AndroidViewModel(app) {
         store.update { it.copy(uiStyle = style) }
     }
 
+    /** Изменить фиксированную ежемесячную зарплату в настройках. */
+    fun setFixedSalary(salaryCents: Long) {
+        val clean = salaryCents.coerceAtLeast(0L)
+        store.update { it.copy(monthlyIncomeCents = clean) }
+        message = "Фиксированная зарплата обновлена"
+    }
+
+    /** Записать (или пропустить) ежемесячную премию 1-го числа месяца. */
+    fun submitMonthlyBonus(ym: YearMonth, bonusCents: Long) {
+        store.update { it.copy(bonusPromptYm = ym.toString()) }
+        if (bonusCents <= 0L) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val acc = dao.accountsOnce().firstOrNull()?.name.orEmpty()
+            val person = settings.value.persons.firstOrNull().orEmpty()
+            dao.insertOperation(
+                Operation(
+                    date = LocalDate.now().toEpochDay(),
+                    amountCents = bonusCents,
+                    type = OpType.INCOME,
+                    category = "Премия",
+                    comment = "Ежемесячная премия",
+                    person = person,
+                    account = acc
+                )
+            )
+            message = "Премия записана: +${Fmt.money(bonusCents, settings.value.currency, false)}"
+        }
+    }
+
     fun setCushionCents(cents: Long) {
         store.update { it.copy(cushionCents = cents.coerceAtLeast(0L)) }
         message = "Финансовая подушка обновлена 🛡️"

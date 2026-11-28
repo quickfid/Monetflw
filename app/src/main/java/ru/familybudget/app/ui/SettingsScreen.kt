@@ -280,6 +280,30 @@ private fun MenuPage(vm: BudgetViewModel, open: (Page) -> Unit) {
                     )
                     Button(onClick = { vm.setCurrency(currency) }) { Text("Применить") }
                 }
+                HorizontalDivider(color = Sheet.border().copy(alpha = 0.5f))
+                var salaryText by remember(settings.monthlyIncomeCents) {
+                    mutableStateOf(
+                        if (settings.monthlyIncomeCents > 0L) Fmt.input(settings.monthlyIncomeCents) else ""
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    MoneyField(
+                        value = salaryText,
+                        onChange = { salaryText = it },
+                        label = "Фикс. зарплата, ${settings.currency}",
+                        modifier = Modifier.weight(1f)
+                    )
+                    Button(
+                        onClick = {
+                            val cents = Fmt.parseCents(salaryText) ?: 0L
+                            vm.setFixedSalary(cents)
+                        }
+                    ) { Text("Сохранить") }
+                }
                 if (vm.message.isNotEmpty()) {
                     Text(vm.message, modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.primary)
                 }
